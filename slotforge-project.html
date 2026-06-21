@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SlotForge — Constraint-Based Scheduling Engine</title>
+<style>
+  :root{
+    --ink:#1b1f23;
+    --paper:#f7f5f0;
+    --paper-raised:#ffffff;
+    --grid-line: rgba(27,31,35,0.08);
+    --accent:#2d5d4f;       /* deep pine — solver/precision */
+    --accent-soft: rgba(45,93,79,0.12);
+    --signal:#c4622d;       /* burnt orange — conflict/highlight */
+    --signal-soft: rgba(196,98,45,0.12);
+    --mono-grey:#6b6f73;
+    --rule: rgba(27,31,35,0.14);
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', 'Segoe UI', Arial, sans-serif;
+    line-height:1.6;
+  }
+
+  /* ---------- background grid texture (timeslot motif) ---------- */
+  .grid-backdrop{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:0;
+    background-image:
+      linear-gradient(var(--grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+    background-size: 64px 64px;
+    opacity:0.5;
+  }
+
+  .wrap{
+    position:relative;
+    z-index:1;
+    max-width:980px;
+    margin:0 auto;
+    padding: 0 32px 120px;
+  }
+
+  /* ---------- header ---------- */
+  header{
+    padding: 72px 0 40px;
+    border-bottom: 2px solid var(--ink);
+    margin-bottom: 48px;
+  }
+
+  .eyebrow{
+    font-family:'JetBrains Mono', 'Courier New', monospace;
+    font-size:13px;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--accent);
+    margin-bottom:18px;
+    display:flex;
+    align-items:center;
+    gap:10px;
+  }
+  .eyebrow::before{
+    content:'';
+    width:8px;height:8px;
+    background:var(--signal);
+    display:inline-block;
+    border-radius:1px;
+  }
+
+  h1{
+    font-family:'Fraunces', Georgia, 'Times New Roman', serif;
+    font-weight:600;
+    font-size:clamp(40px, 6vw, 64px);
+    line-height:1.02;
+    margin:0 0 18px;
+    letter-spacing:-0.01em;
+  }
+  h1 em{
+    font-style:italic;
+    color:var(--accent);
+  }
+
+  .subtitle{
+    font-size:18px;
+    color:var(--mono-grey);
+    max-width:640px;
+    margin:0 0 28px;
+  }
+
+  .meta-row{
+    display:flex;
+    gap:28px;
+    flex-wrap:wrap;
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    color:var(--mono-grey);
+  }
+  .meta-row span b{ color: var(--ink); font-weight:600; }
+
+  /* ---------- section headings ---------- */
+  .section-tag{
+    font-family:'JetBrains Mono', monospace;
+    font-size:13px;
+    color:var(--accent);
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    margin-bottom:10px;
+  }
+
+  h2{
+    font-family:'Fraunces', Georgia, serif;
+    font-weight:600;
+    font-size:30px;
+    margin: 0 0 24px;
+    padding-bottom:14px;
+    border-bottom:1px solid var(--rule);
+  }
+
+  section{ margin-bottom:64px; }
+
+  /* ---------- abstract ---------- */
+  .abstract-block{
+    background: var(--paper-raised);
+    border:1px solid var(--rule);
+    border-left: 4px solid var(--accent);
+    padding: 32px 36px;
+    border-radius: 2px;
+    font-size:16.5px;
+  }
+  .abstract-block p{ margin:0 0 16px; }
+  .abstract-block p:last-child{ margin-bottom:0; }
+
+  .keywords{
+    margin-top:24px;
+    padding-top:18px;
+    border-top:1px dashed var(--rule);
+    font-size:13px;
+    font-family:'JetBrains Mono', monospace;
+    color:var(--mono-grey);
+  }
+  .keywords b{ color:var(--ink); font-family:inherit; }
+
+  /* ---------- objectives grid ---------- */
+  .objectives{
+    display:grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap:1px;
+    background:var(--rule);
+    border:1px solid var(--rule);
+  }
+  .objective-cell{
+    background:var(--paper-raised);
+    padding:24px 26px;
+  }
+  .objective-cell .num{
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    color:var(--signal);
+    margin-bottom:8px;
+    display:block;
+  }
+  .objective-cell h3{
+    font-size:16px;
+    margin:0 0 8px;
+    font-family:'Fraunces', serif;
+    font-weight:600;
+  }
+  .objective-cell p{
+    margin:0;
+    font-size:14px;
+    color:var(--mono-grey);
+  }
+
+  /* ---------- tech stack table ---------- */
+  .stack-table{
+    width:100%;
+    border-collapse:collapse;
+    background:var(--paper-raised);
+    border:1px solid var(--rule);
+    font-size:14.5px;
+  }
+  .stack-table th{
+    text-align:left;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--mono-grey);
+    padding:14px 18px;
+    border-bottom:2px solid var(--ink);
+    background:var(--accent-soft);
+  }
+  .stack-table td{
+    padding:16px 18px;
+    border-bottom:1px solid var(--rule);
+    vertical-align:top;
+  }
+  .stack-table tr:last-child td{ border-bottom:none; }
+  .stack-table tr:hover td{ background: rgba(45,93,79,0.04); }
+
+  .layer-name{
+    font-weight:600;
+    white-space:nowrap;
+  }
+  .tech-pill{
+    display:inline-block;
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    background:var(--accent);
+    color:#fff;
+    padding:3px 9px;
+    border-radius:3px;
+    margin:2px 4px 2px 0;
+  }
+  .tech-note{
+    color:var(--mono-grey);
+    font-size:13.5px;
+  }
+  code{
+    font-family:'JetBrains Mono', monospace;
+    background:var(--accent-soft);
+    color:var(--accent);
+    padding:1px 5px;
+    border-radius:3px;
+    font-size:0.92em;
+  }
+
+  .group-label{
+    font-family:'JetBrains Mono', monospace;
+    font-size:11.5px;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--signal);
+    padding-top:22px !important;
+    padding-bottom:6px !important;
+    border-bottom:none !important;
+  }
+
+  /* ---------- architecture diagram ---------- */
+  .arch-diagram{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    flex-wrap:wrap;
+    background:var(--paper-raised);
+    border:1px solid var(--rule);
+    padding:32px 28px;
+    margin-top:32px;
+  }
+  .arch-node{
+    flex:1;
+    min-width:140px;
+    text-align:center;
+    padding:18px 14px;
+    border:1.5px solid var(--ink);
+    background:var(--paper);
+    position:relative;
+  }
+  .arch-node.solver{ border-color:var(--accent); background:var(--accent-soft); }
+  .arch-node .tag{
+    font-family:'JetBrains Mono', monospace;
+    font-size:10.5px;
+    color:var(--mono-grey);
+    text-transform:uppercase;
+    letter-spacing:0.08em;
+    display:block;
+    margin-bottom:6px;
+  }
+  .arch-node .label{
+    font-weight:600;
+    font-size:14.5px;
+  }
+  .arch-arrow{
+    font-family:'JetBrains Mono', monospace;
+    color:var(--signal);
+    font-size:20px;
+    flex-shrink:0;
+  }
+
+  /* ---------- footer ---------- */
+  footer{
+    margin-top: 80px;
+    padding-top: 28px;
+    border-top:2px solid var(--ink);
+    font-family:'JetBrains Mono', monospace;
+    font-size:12.5px;
+    color:var(--mono-grey);
+    display:flex;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+
+  @media (max-width: 640px){
+    .objectives{ grid-template-columns: 1fr; }
+    .arch-diagram{ flex-direction:column; }
+    .arch-arrow{ transform:rotate(90deg); }
+    h1{ font-size:38px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-backdrop"></div>
+
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Operations Research · Mini Project</div>
+    <h1>SlotForge<br><em>Constraint-Driven</em> Scheduling Engine</h1>
+    <p class="subtitle">A multi-tenant scheduling platform that turns resources, agents, and time slots into a conflict-free timetable — modeled as a constraint satisfaction problem and solved with integer programming. Built for institutions , generalizable to any resource-scheduling domain.</p>
+    <div class="meta-row">
+      <span><b>Domain</b> — Operations Research / CSP</span>
+      <span><b>Team size</b> — 2</span>
+      <span><b>Status</b> — Planning / Architecture</span>
+    </div>
+  </header>
+
+  <section id="abstract">
+    <div class="section-tag">01 — Abstract</div>
+    <h2>Project Abstract</h2>
+    <div class="abstract-block">
+      <p>Manual timetable construction in schools, colleges, and any organization that allocates people to time slots is a combinatorial problem routinely solved by hand through trial and error, despite being a textbook instance of <b>Constraint Satisfaction (CSP)</b> and <b>Integer Linear Programming (ILP)</b>. As the number of agents, resources, and slots grows, the search space expands combinatorially, making manual scheduling slow, error-prone, and resistant to change whenever a single constraint shifts.</p>
+      <p><b>SlotForge</b>, formulates resource-and-time scheduling as a constraint optimization problem and builds a production-grade multi-tenant platform around it. While the primary use case is academic timetabling — teachers, rooms, subjects, sections — the underlying model is domain-agnostic: any setup where finite resources must be assigned to agents across time slots without conflict (shift rosters, facility booking, exam scheduling) fits the same constraint structure, making the platform a general-purpose scheduler rather than a single-purpose timetable tool. Every entity is scoped under an <b>organization_id</b> from the outset, allowing multiple independent institutions or teams to run on the same system without data leakage between tenants.</p>
+      <p>Hard constraints — no agent or resource double-booked in the same slot, every section's weekly load satisfied, capacity and type compatibility respected — are encoded as boolean and linear constraints. Soft constraints — minimizing gaps, balancing daily load, respecting stated preferences — are stored as data rather than hardcoded, so the solver's behavior is configured by an admin through the interface, not by editing source code. Soft constraint outcomes are scored and surfaced per generation (preference satisfaction, utilization, gap minimization), giving every run a transparent quality signal rather than a black-box "done."</p>
+      <p>Because solver runs can take anywhere from a few seconds to over a minute on larger inputs, generation is handled as an <b>asynchronous background job</b> rather than a blocking request: the API enqueues a job onto a <b>Redis</b> queue, a dedicated solver worker process picks it up, and the result is written back to the database — letting a user leave and return, and letting multiple institutions generate timetables concurrently without one slow solve blocking another. The API and worker run as separate processes even when colocated on the same host, so a solver crash never takes the API down. Every generation is versioned and immutable once created; admins can compare versions, roll back, and explicitly promote a version from <b>draft</b> to <b>published</b> — end users only ever see the published schedule, never a half-reviewed draft. An audit log tracks every structural change (slot edits, room reassignments, staff deletions) for accountability in multi-admin settings.</p>
+      <p>The system separates concerns across three managed layers: <b>Vercel</b> hosts the React admin web app and the Flutter mobile client; an <b>Oracle Cloud VPS</b> runs the FastAPI service, the solver worker, Redis, and background task scheduling; and <b>Supabase</b> provides PostgreSQL, authentication, object storage (for exports, logos, and imports), and a path to realtime sync later. A premium tier layers an LLM-based review pass on top of the solved schedule and its constraint scores — translating the optimizer's trade-offs into plain-language explanations a non-technical admin can act on.</p>
+    </div>
+    <div class="keywords"><b>Keywords —</b> Constraint Satisfaction Problem, Integer Linear Programming, CP-SAT, Multi-Tenant Scheduling, Combinatorial Optimization, Asynchronous Job Processing, Resource Allocation</div>
+  </section>
+
+  <section id="objectives">
+    <div class="section-tag">02 — Scope</div>
+    <h2>Core Objectives</h2>
+    <div class="objectives">
+      <div class="objective-cell">
+        <span class="num">OBJ.01</span>
+        <h3>Conflict-free generation</h3>
+        <p>Zero double-bookings of agents, rooms, or resources across the generated timetable, verified, not assumed.</p>
+      </div>
+      <div class="objective-cell">
+        <span class="num">OBJ.02</span>
+        <h3>Multi-tenant from day one</h3>
+        <p>Every table scoped by <code>organization_id</code> — multiple institutions run on one system with zero data leakage.</p>
+      </div>
+      <div class="objective-cell">
+        <span class="num">OBJ.03</span>
+        <h3>Async, non-blocking solve</h3>
+        <p>Generation runs as a queued background job; users aren't stuck staring at a spinner for a 60-second solve.</p>
+      </div>
+      <div class="objective-cell">
+        <span class="num">OBJ.04</span>
+        <h3>Versioned, draft → published</h3>
+        <p>Every generation is immutable and comparable; end users only ever see a deliberately published version.</p>
+      </div>
+      <div class="objective-cell">
+        <span class="num">OBJ.05</span>
+        <h3>Data-driven constraints</h3>
+        <p>Constraints live in the database, not in code — admins configure solver behavior without a redeploy.</p>
+      </div>
+      <div class="objective-cell">
+        <span class="num">OBJ.06</span>
+        <h3>AI-assisted review (premium)</h3>
+        <p>An LLM pass over the solved schedule and its constraint scores, explained in plain language for non-technical admins.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="architecture">
+    <div class="section-tag">03 — System Design</div>
+    <h2>Architecture Overview</h2>
+    <div class="arch-diagram">
+      <div class="arch-node"><span class="tag">Vercel</span><span class="label">React Admin /<br>Flutter Mobile</span></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node"><span class="tag">Oracle VPS</span><span class="label">FastAPI<br>(API process)</span></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node"><span class="tag">Queue</span><span class="label">Redis</span></div>
+    </div>
+    <div class="arch-diagram" style="margin-top:16px;">
+      <div class="arch-node solver"><span class="tag">Oracle VPS</span><span class="label">Solver Worker<br>(separate process)</span></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node solver"><span class="tag">Engine</span><span class="label">OR-Tools<br>CP-SAT</span></div>
+      <div class="arch-arrow">→</div>
+      <div class="arch-node"><span class="tag">Supabase</span><span class="label">PostgreSQL<br>(versioned result)</span></div>
+    </div>
+    <p class="tech-note" style="margin-top:18px; font-size:13.5px;">API and worker run as independent processes (<code>slotforge-api</code>, <code>slotforge-worker</code> as separate systemd units) on the same VPS — a solver crash never takes the API down. Supabase additionally provides Auth, Storage, and a future Realtime channel for live timetable sync.</p>
+  </section>
+
+  <section id="stack">
+    <div class="section-tag">04 — Implementation</div>
+    <h2>Technology Stack</h2>
+    <table class="stack-table">
+      <thead>
+        <tr>
+          <th>Layer</th>
+          <th>Technology</th>
+          <th>Rationale</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="3" class="group-label">Optimization Core</td></tr>
+        <tr>
+          <td class="layer-name">Solver</td>
+          <td><span class="tech-pill">Python</span><span class="tech-pill">OR-Tools CP-SAT</span></td>
+          <td class="tech-note">Industry-standard CSP/ILP solver; returns optimal solutions or proves infeasibility — essential for diagnosing unsolvable constraint sets.</td>
+        </tr>
+        <tr>
+          <td class="layer-name">Constraint storage</td>
+          <td><span class="tech-pill">DB-driven rules</span></td>
+          <td class="tech-note">Constraints (max classes/day, unavailable slots, preferred rooms) live as rows in the database, not hardcoded constants — the solver builds itself from data.</td>
+        </tr>
+
+        <tr><td colspan="3" class="group-label">Backend — API</td></tr>
+        <tr>
+          <td class="layer-name">API server</td>
+          <td><span class="tech-pill">FastAPI</span></td>
+          <td class="tech-note">Async Python framework; enqueues solve jobs instead of blocking on them, returns immediately with a job id.</td>
+        </tr>
+        <tr>
+          <td class="layer-name">Job queue</td>
+          <td><span class="tech-pill">Redis</span></td>
+          <td class="tech-note">Decouples request handling from solving. A 10–60s solve no longer ties up an API worker, and concurrent organizations can generate simultaneously.</td>
+        </tr>
+        <tr>
+          <td class="layer-name">Solver worker</td>
+          <td><span class="tech-pill">Python process</span><span class="tech-pill">RQ / Celery</span></td>
+          <td class="tech-note">Runs as a separate systemd service from the API. A solver crash or long-running job never takes the API down.</td>
+        </tr>
+        <tr>
+          <td class="layer-name">Background scheduler</td>
+          <td><span class="tech-pill">APScheduler</span></td>
+          <td class="tech-note">Nightly backups, cleanup jobs, and statistics generation — not urgent for MVP, slotted in early so the worker structure supports it later.</td>
+        </tr>
+
+        <tr><td colspan="3" class="group-label">Data & Auth</td></tr>
+        <tr>
+          <td class="layer-name">Database</td>
+          <td><span class="tech-pill">Supabase Postgres</span><span class="tech-pill">SQLAlchemy 2.0</span><span class="tech-pill">Alembic</span></td>
+          <td class="tech-note">Every table carries <code>organization_id</code> from day one — Organization → Teachers/Rooms/Subjects/Sections — so multiple institutions share one system with zero cross-tenant leakage.</td>
+        </tr>
+        <tr>
+          <td class="layer-name">Auth</td>
+          <td><span class="tech-pill">Supabase Auth</span></td>
+          <td class="tech-note">Role separation between org admins (full edit) and read-only mobile consumers, scoped per organization.</td>
+        </tr>
+        <tr>
+          <td class="layer-name">Object storage</td>
+          <td><span class="tech-pill">Supabase Storage</span></td>
+          <td class="tech-note">Exports, institution logos, profile pictures, and bulk imports — kept out of the relational DB.</td>
+        </tr>
+        <tr>
+          <td class="layer-name">Versioning & state</td>
+          <td><span class="tech-pill">draft / published</span></td>
+          <td class="tech-note">Each generation is immutable (V1, V2, V3…) with diffable scores; admins compare and roll back. End users only ever see the <b>published</b> version, never a draft mid-review.</td>
+        </tr>
+        <tr>
+          <td class="layer-name">Audit log</td>
+          <td><span class="tech-pill">audit_logs table</span></td>
+          <td class="tech-note">Tracks who changed a room, edited a slot, or deleted a teacher — required once more than one admin can touch the same organization.</td>
+        </tr>
+
+        <tr><td colspan="3" class="group-label">Client — Desktop / Web (Admin)</td></tr>
+        <tr>
+          <td class="layer-name">Web app</td>
+          <td><span class="tech-pill">React</span><span class="tech-pill">TypeScript</span><span class="tech-pill">Vite</span></td>
+          <td class="tech-note">Primary surface for all admin work: CRUD, constraint configuration, drag-and-drop timetable editing, version comparison.</td>
+        </tr>
+        <tr>
+          <td class="layer-name">Styling</td>
+          <td><span class="tech-pill">Tailwind CSS</span><span class="tech-pill">MUI v6</span></td>
+          <td class="tech-note">Material 3 Expressive–themed component system; restrained motion, no animation bloat.</td>
+        </tr>
+        <tr>
+          <td class="layer-name">Hosting</td>
+          <td><span class="tech-pill">Vercel</span></td>
+          <td class="tech-note">Static deploy for the React build, zero-config CI from git push.</td>
+        </tr>
+
+        <tr><td colspan="3" class="group-label">Client — Mobile (View-only)</td></tr>
+        <tr>
+          <td class="layer-name">Mobile app</td>
+          <td><span class="tech-pill">Flutter</span><span class="tech-pill">Dart</span></td>
+          <td class="tech-note">Native Material 3 Expressive rendering; consumes the same REST API for read-only schedule viewing and notifications. Also deployed via Vercel-adjacent CI for web preview builds.</td>
+        </tr>
+
+        <tr><td colspan="3" class="group-label">Export & Premium</td></tr>
+        <tr>
+          <td class="layer-name">Export service</td>
+          <td><span class="tech-pill">PDF</span><span class="tech-pill">Excel</span><span class="tech-pill">CSV</span></td>
+          <td class="tech-note">The first thing every institution asks for: a downloadable copy of the published timetable.</td>
+        </tr>
+        <tr>
+          <td class="layer-name">AI review</td>
+          <td><span class="tech-pill">LLM API</span></td>
+          <td class="tech-note">Backend endpoint feeds the solved schedule and its soft-constraint scores to an LLM for plain-language trade-off analysis and fairness flags.</td>
+        </tr>
+
+        <tr><td colspan="3" class="group-label">Deployment</td></tr>
+        <tr>
+          <td class="layer-name">Compute</td>
+          <td><span class="tech-pill">Oracle Cloud VPS</span></td>
+          <td class="tech-note">Hosts FastAPI, the solver worker, and Redis as independent services (<code>systemctl status slotforge-api</code> / <code>slotforge-worker</code>), separate from the Vercel-hosted frontends.</td>
+        </tr>
+        <tr>
+          <td class="layer-name">Database & storage</td>
+          <td><span class="tech-pill">Supabase</span></td>
+          <td class="tech-note">Managed Postgres, Auth, Storage, and a future Realtime channel — one provider instead of stitching together separate auth/DB/storage services.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section id="phasing">
+    <div class="section-tag">05 — Sequencing</div>
+    <h2>Build Phases</h2>
+    <div class="objectives">
+      <div class="objective-cell" style="border-left:3px solid var(--accent);">
+        <span class="num" style="color:var(--accent);">NOW</span>
+        <h3>Foundation — must ship in v1</h3>
+        <p>Redis job queue · separate API/worker processes · <code>organization_id</code> on every table · constraints stored as data · timetable versioning · draft/published states.</p>
+      </div>
+      <div class="objective-cell" style="border-left:3px solid var(--mono-grey);">
+        <span class="num" style="color:var(--mono-grey);">LATER</span>
+        <h3>Layered on top — can wait</h3>
+        <p>LLM review layer · push notifications · analytics dashboard · Supabase Realtime sync · multi-worker horizontal scaling.</p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>SlotForge — Mini Project</span>
+  </footer>
+
+</div>
+
+</body>
+</html>
