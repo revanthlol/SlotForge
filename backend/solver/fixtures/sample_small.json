@@ -1,0 +1,23 @@
+{
+  "teachers": [
+    {"id": "t1", "name": "Teacher A"},
+    {"id": "t2", "name": "Teacher B"}
+  ],
+  "rooms": [
+    {"id": "r1", "name": "Room 101", "capacity": 40, "type": "lecture"}
+  ],
+  "subjects": [
+    {"id": "s1", "name": "Mathematics", "weekly_hours": 4},
+    {"id": "s2", "name": "Physics", "weekly_hours": 3}
+  ],
+  "sections": [
+    {"id": "sec1", "name": "Grade 9-A", "size": 30}
+  ],
+  "slots": [
+    {"id": "mon-1", "day": "Mon", "period": 1},
+    {"id": "mon-2", "day": "Mon", "period": 2},
+    {"id": "tue-1", "day": "Tue", "period": 1},
+    {"id": "tue-2", "day": "Tue", "period": 2}
+  ],
+  "constraints": []
+}
