@@ -1,63 +1,140 @@
 import uuid
-from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
-from app.schemas.constraint import Constraint, ConstraintCreate, ConstraintUpdate
-from app.core.db_memory import db
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from app.schemas.constraint import Constraint as ConstraintSchema, ConstraintCreate, ConstraintUpdate
+from app.models.constraint import Constraint as ConstraintModel
+from app.core.db import get_db
+from app.core.auth import get_current_user_profile
+from app.models.profile import Profile
 
 router = APIRouter()
 
-@router.post("/", response_model=Constraint, status_code=201)
-def create_constraint(payload: ConstraintCreate):
-    with db.lock:
-        if payload.organization_id not in db.organizations:
-            raise HTTPException(status_code=400, detail="Invalid organization_id")
+@router.post("/", response_model=ConstraintSchema, status_code=201)
+def create_constraint(
+    payload: ConstraintCreate,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    constraint = ConstraintModel(
+        organization_id=current_user.organization_id,
+        constraint_type=payload.constraint_type,
+        payload=payload.payload,
+        weight=payload.weight
+    )
+    db.add(constraint)
+    db.commit()
+    db.refresh(constraint)
+    
+    return ConstraintSchema(
+        id=str(constraint.id),
+        organization_id=str(constraint.organization_id),
+        constraint_type=constraint.constraint_type,
+        payload=constraint.payload,
+        weight=constraint.weight
+    )
+
+@router.get("/", response_model=list[ConstraintSchema])
+def list_constraints(
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    constraints = db.query(ConstraintModel).filter(
+        ConstraintModel.organization_id == current_user.organization_id
+    ).all()
+    return [
+        ConstraintSchema(
+            id=str(c.id),
+            organization_id=str(c.organization_id),
+            constraint_type=c.constraint_type,
+            payload=c.payload,
+            weight=c.weight
+        ) for c in constraints
+    ]
+
+@router.get("/{constraint_id}", response_model=ConstraintSchema)
+def get_constraint(
+    constraint_id: str,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    try:
+        c_uuid = uuid.UUID(constraint_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Constraint not found")
         
-        constraint_id = str(uuid.uuid4())
-        constraint_data = {
-            "id": constraint_id,
-            "organization_id": payload.organization_id,
-            "constraint_type": payload.constraint_type,
-            "payload": payload.payload,
-            "weight": payload.weight
-        }
-        db.constraints[constraint_id] = constraint_data
-    return constraint_data
-
-@router.get("/", response_model=list[Constraint])
-def list_constraints(organization_id: Optional[str] = Query(None)):
-    with db.lock:
-        constraints = list(db.constraints.values())
-    if organization_id:
-        constraints = [c for c in constraints if c["organization_id"] == organization_id]
-    return constraints
-
-@router.get("/{constraint_id}", response_model=Constraint)
-def get_constraint(constraint_id: str):
-    with db.lock:
-        constraint = db.constraints.get(constraint_id)
+    constraint = db.query(ConstraintModel).filter(
+        ConstraintModel.id == c_uuid,
+        ConstraintModel.organization_id == current_user.organization_id
+    ).first()
+    
     if not constraint:
         raise HTTPException(status_code=404, detail="Constraint not found")
-    return constraint
-
-@router.put("/{constraint_id}", response_model=Constraint)
-def update_constraint(constraint_id: str, payload: ConstraintUpdate):
-    with db.lock:
-        constraint = db.constraints.get(constraint_id)
-        if not constraint:
-            raise HTTPException(status_code=404, detail="Constraint not found")
         
-        if payload.constraint_type is not None:
-            constraint["constraint_type"] = payload.constraint_type
-        if payload.payload is not None:
-            constraint["payload"] = payload.payload
-        if payload.weight is not None:
-            constraint["weight"] = payload.weight
-    return constraint
+    return ConstraintSchema(
+        id=str(constraint.id),
+        organization_id=str(constraint.organization_id),
+        constraint_type=constraint.constraint_type,
+        payload=constraint.payload,
+        weight=constraint.weight
+    )
+
+@router.put("/{constraint_id}", response_model=ConstraintSchema)
+def update_constraint(
+    constraint_id: str,
+    payload: ConstraintUpdate,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    try:
+        c_uuid = uuid.UUID(constraint_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Constraint not found")
+        
+    constraint = db.query(ConstraintModel).filter(
+        ConstraintModel.id == c_uuid,
+        ConstraintModel.organization_id == current_user.organization_id
+    ).first()
+    
+    if not constraint:
+        raise HTTPException(status_code=404, detail="Constraint not found")
+        
+    if payload.constraint_type is not None:
+        constraint.constraint_type = payload.constraint_type
+    if payload.payload is not None:
+        constraint.payload = payload.payload
+    if payload.weight is not None:
+        constraint.weight = payload.weight
+        
+    db.commit()
+    db.refresh(constraint)
+    
+    return ConstraintSchema(
+        id=str(constraint.id),
+        organization_id=str(constraint.organization_id),
+        constraint_type=constraint.constraint_type,
+        payload=constraint.payload,
+        weight=constraint.weight
+    )
 
 @router.delete("/{constraint_id}", status_code=204)
-def delete_constraint(constraint_id: str):
-    with db.lock:
-        if constraint_id not in db.constraints:
-            raise HTTPException(status_code=404, detail="Constraint not found")
-        del db.constraints[constraint_id]
+def delete_constraint(
+    constraint_id: str,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    try:
+        c_uuid = uuid.UUID(constraint_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Constraint not found")
+        
+    constraint = db.query(ConstraintModel).filter(
+        ConstraintModel.id == c_uuid,
+        ConstraintModel.organization_id == current_user.organization_id
+    ).first()
+    
+    if not constraint:
+        raise HTTPException(status_code=404, detail="Constraint not found")
+        
+    db.delete(constraint)
+    db.commit()
     return

@@ -1,57 +1,126 @@
 import uuid
-from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
-from app.schemas.teacher import Teacher, TeacherCreate, TeacherUpdate
-from app.core.db_memory import db
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from app.schemas.teacher import Teacher as TeacherSchema, TeacherCreate, TeacherUpdate
+from app.models.teacher import Teacher as TeacherModel
+from app.core.db import get_db
+from app.core.auth import get_current_user_profile
+from app.models.profile import Profile
 
 router = APIRouter()
 
-@router.post("/", response_model=Teacher, status_code=201)
-def create_teacher(payload: TeacherCreate):
-    with db.lock:
-        if payload.organization_id not in db.organizations:
-            raise HTTPException(status_code=400, detail="Invalid organization_id")
+@router.post("/", response_model=TeacherSchema, status_code=201)
+def create_teacher(
+    payload: TeacherCreate,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    teacher = TeacherModel(
+        organization_id=current_user.organization_id,
+        name=payload.name
+    )
+    db.add(teacher)
+    db.commit()
+    db.refresh(teacher)
+    
+    # Map model to schema (schema needs organization_id as str)
+    return TeacherSchema(
+        id=str(teacher.id),
+        organization_id=str(teacher.organization_id),
+        name=teacher.name
+    )
+
+@router.get("/", response_model=list[TeacherSchema])
+def list_teachers(
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    teachers = db.query(TeacherModel).filter(
+        TeacherModel.organization_id == current_user.organization_id
+    ).all()
+    return [
+        TeacherSchema(
+            id=str(t.id),
+            organization_id=str(t.organization_id),
+            name=t.name
+        ) for t in teachers
+    ]
+
+@router.get("/{teacher_id}", response_model=TeacherSchema)
+def get_teacher(
+    teacher_id: str,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    try:
+        t_uuid = uuid.UUID(teacher_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Teacher not found")
         
-        teacher_id = str(uuid.uuid4())
-        teacher_data = {
-            "id": teacher_id,
-            "organization_id": payload.organization_id,
-            "name": payload.name
-        }
-        db.teachers[teacher_id] = teacher_data
-    return teacher_data
-
-@router.get("/", response_model=list[Teacher])
-def list_teachers(organization_id: Optional[str] = Query(None)):
-    with db.lock:
-        teachers = list(db.teachers.values())
-    if organization_id:
-        teachers = [t for t in teachers if t["organization_id"] == organization_id]
-    return teachers
-
-@router.get("/{teacher_id}", response_model=Teacher)
-def get_teacher(teacher_id: str):
-    with db.lock:
-        teacher = db.teachers.get(teacher_id)
+    teacher = db.query(TeacherModel).filter(
+        TeacherModel.id == t_uuid,
+        TeacherModel.organization_id == current_user.organization_id
+    ).first()
+    
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher not found")
-    return teacher
-
-@router.put("/{teacher_id}", response_model=Teacher)
-def update_teacher(teacher_id: str, payload: TeacherUpdate):
-    with db.lock:
-        teacher = db.teachers.get(teacher_id)
-        if not teacher:
-            raise HTTPException(status_code=404, detail="Teacher not found")
         
-        if payload.name is not None:
-            teacher["name"] = payload.name
-    return teacher
+    return TeacherSchema(
+        id=str(teacher.id),
+        organization_id=str(teacher.organization_id),
+        name=teacher.name
+    )
+
+@router.put("/{teacher_id}", response_model=TeacherSchema)
+def update_teacher(
+    teacher_id: str,
+    payload: TeacherUpdate,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    try:
+        t_uuid = uuid.UUID(teacher_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+        
+    teacher = db.query(TeacherModel).filter(
+        TeacherModel.id == t_uuid,
+        TeacherModel.organization_id == current_user.organization_id
+    ).first()
+    
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+        
+    if payload.name is not None:
+        teacher.name = payload.name
+        db.commit()
+        db.refresh(teacher)
+        
+    return TeacherSchema(
+        id=str(teacher.id),
+        organization_id=str(teacher.organization_id),
+        name=teacher.name
+    )
 
 @router.delete("/{teacher_id}", status_code=204)
-def delete_teacher(teacher_id: str):
-    with db.lock:
-        if teacher_id not in db.teachers:
-            raise HTTPException(status_code=404, detail="Teacher not found")
-        del db.teachers[teacher_id]
+def delete_teacher(
+    teacher_id: str,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    try:
+        t_uuid = uuid.UUID(teacher_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+        
+    teacher = db.query(TeacherModel).filter(
+        TeacherModel.id == t_uuid,
+        TeacherModel.organization_id == current_user.organization_id
+    ).first()
+    
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Teacher not found")
+        
+    db.delete(teacher)
+    db.commit()
     return

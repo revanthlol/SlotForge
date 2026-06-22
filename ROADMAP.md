@@ -185,7 +185,7 @@ backend/
 ---
 
 ## Phase 3 — Supabase Integration (Database, Auth, Multi-Tenancy)
-**Status: NOT STARTED**
+**Status: ✅ COMPLETE**
 
 ### Objective
 Replace the in-memory store with real Supabase Postgres persistence. Introduce `organization_id` scoping on every table. Wire Supabase Auth JWT verification into FastAPI.
@@ -226,10 +226,10 @@ backend/
 6. Signup flow: a new endpoint `POST /auth/signup-organization` that creates a Supabase Auth user, an `organizations` row, and a `profiles` row (role=`org_admin`) atomically (wrap in a try/except that rolls back the org row if profile creation fails).
 
 ### Completion Criteria
-- [ ] Two test organizations created via the signup endpoint
-- [ ] Org A's JWT cannot read Org B's teachers — verified with an explicit test (`test_multi_tenancy_isolation.py`), not assumed
-- [ ] All Phase 2 CRUD endpoints now persist to and read from real Postgres (verified by restarting the API process and confirming data survives)
-- [ ] `alembic upgrade head` runs cleanly against a fresh Supabase database
+- [x] Two test organizations created via the signup endpoint
+- [x] Org A's JWT cannot read Org B's teachers — verified with an explicit test (`test_multi_tenancy_isolation.py`), not assumed
+- [x] All Phase 2 CRUD endpoints now persist to and read from real Postgres (verified by restarting the API process and confirming data survives)
+- [x] `alembic upgrade head` runs cleanly against a fresh Supabase database
 
 ---
 

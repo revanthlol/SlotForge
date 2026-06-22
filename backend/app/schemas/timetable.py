@@ -8,7 +8,7 @@ class TimetableGenerateRequest(BaseModel):
 class TimetableResponse(BaseModel):
     id: str
     organization_id: str
-    status: Literal["OPTIMAL", "FEASIBLE", "INFEASIBLE"]
+    status: str
     assignments: list[ScheduledSlot]
     scores: dict
     infeasible_reason: Optional[str] = None

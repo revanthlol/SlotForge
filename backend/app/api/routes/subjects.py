@@ -1,60 +1,133 @@
 import uuid
-from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
-from app.schemas.subject import Subject, SubjectCreate, SubjectUpdate
-from app.core.db_memory import db
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
+from app.schemas.subject import Subject as SubjectSchema, SubjectCreate, SubjectUpdate
+from app.models.subject import Subject as SubjectModel
+from app.core.db import get_db
+from app.core.auth import get_current_user_profile
+from app.models.profile import Profile
 
 router = APIRouter()
 
-@router.post("/", response_model=Subject, status_code=201)
-def create_subject(payload: SubjectCreate):
-    with db.lock:
-        if payload.organization_id not in db.organizations:
-            raise HTTPException(status_code=400, detail="Invalid organization_id")
+@router.post("/", response_model=SubjectSchema, status_code=201)
+def create_subject(
+    payload: SubjectCreate,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    subject = SubjectModel(
+        organization_id=current_user.organization_id,
+        name=payload.name,
+        weekly_hours=payload.weekly_hours
+    )
+    db.add(subject)
+    db.commit()
+    db.refresh(subject)
+    
+    return SubjectSchema(
+        id=str(subject.id),
+        organization_id=str(subject.organization_id),
+        name=subject.name,
+        weekly_hours=subject.weekly_hours
+    )
+
+@router.get("/", response_model=list[SubjectSchema])
+def list_subjects(
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    subjects = db.query(SubjectModel).filter(
+        SubjectModel.organization_id == current_user.organization_id
+    ).all()
+    return [
+        SubjectSchema(
+            id=str(s.id),
+            organization_id=str(s.organization_id),
+            name=s.name,
+            weekly_hours=s.weekly_hours
+        ) for s in subjects
+    ]
+
+@router.get("/{subject_id}", response_model=SubjectSchema)
+def get_subject(
+    subject_id: str,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    try:
+        s_uuid = uuid.UUID(subject_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Subject not found")
         
-        subject_id = str(uuid.uuid4())
-        subject_data = {
-            "id": subject_id,
-            "organization_id": payload.organization_id,
-            "name": payload.name,
-            "weekly_hours": payload.weekly_hours
-        }
-        db.subjects[subject_id] = subject_data
-    return subject_data
-
-@router.get("/", response_model=list[Subject])
-def list_subjects(organization_id: Optional[str] = Query(None)):
-    with db.lock:
-        subjects = list(db.subjects.values())
-    if organization_id:
-        subjects = [s for s in subjects if s["organization_id"] == organization_id]
-    return subjects
-
-@router.get("/{subject_id}", response_model=Subject)
-def get_subject(subject_id: str):
-    with db.lock:
-        subject = db.subjects.get(subject_id)
+    subject = db.query(SubjectModel).filter(
+        SubjectModel.id == s_uuid,
+        SubjectModel.organization_id == current_user.organization_id
+    ).first()
+    
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
-    return subject
-
-@router.put("/{subject_id}", response_model=Subject)
-def update_subject(subject_id: str, payload: SubjectUpdate):
-    with db.lock:
-        subject = db.subjects.get(subject_id)
-        if not subject:
-            raise HTTPException(status_code=404, detail="Subject not found")
         
-        if payload.name is not None:
-            subject["name"] = payload.name
-        if payload.weekly_hours is not None:
-            subject["weekly_hours"] = payload.weekly_hours
-    return subject
+    return SubjectSchema(
+        id=str(subject.id),
+        organization_id=str(subject.organization_id),
+        name=subject.name,
+        weekly_hours=subject.weekly_hours
+    )
+
+@router.put("/{subject_id}", response_model=SubjectSchema)
+def update_subject(
+    subject_id: str,
+    payload: SubjectUpdate,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    try:
+        s_uuid = uuid.UUID(subject_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Subject not found")
+        
+    subject = db.query(SubjectModel).filter(
+        SubjectModel.id == s_uuid,
+        SubjectModel.organization_id == current_user.organization_id
+    ).first()
+    
+    if not subject:
+        raise HTTPException(status_code=404, detail="Subject not found")
+        
+    if payload.name is not None:
+        subject.name = payload.name
+    if payload.weekly_hours is not None:
+        subject.weekly_hours = payload.weekly_hours
+        
+    db.commit()
+    db.refresh(subject)
+    
+    return SubjectSchema(
+        id=str(subject.id),
+        organization_id=str(subject.organization_id),
+        name=subject.name,
+        weekly_hours=subject.weekly_hours
+    )
 
 @router.delete("/{subject_id}", status_code=204)
-def delete_subject(subject_id: str):
-    with db.lock:
-        if subject_id not in db.subjects:
-            raise HTTPException(status_code=404, detail="Subject not found")
-        del db.subjects[subject_id]
+def delete_subject(
+    subject_id: str,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    try:
+        s_uuid = uuid.UUID(subject_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Subject not found")
+        
+    subject = db.query(SubjectModel).filter(
+        SubjectModel.id == s_uuid,
+        SubjectModel.organization_id == current_user.organization_id
+    ).first()
+    
+    if not subject:
+        raise HTTPException(status_code=404, detail="Subject not found")
+        
+    db.delete(subject)
+    db.commit()
     return
