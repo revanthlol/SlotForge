@@ -133,7 +133,7 @@ Constraints MUST be loaded from the `constraints` list in `ProblemInstance` — 
 ---
 
 ## Phase 2 — Synchronous API Layer
-**Status: NOT STARTED**
+**Status: ✅ COMPLETE**
 
 ### Objective
 Expose the Phase 1 solver over HTTP. Persistence is in-memory or SQLite at this stage — real Postgres comes in Phase 4. No job queue — `generate` blocks until the solver returns (acceptable since Redis is deferred; document this tradeoff inline in code comments).
@@ -177,10 +177,10 @@ backend/
 6. OpenAPI docs must be browsable at `/docs` with all routes visible and example payloads filled in (use Pydantic `Field(example=...)` where helpful).
 
 ### Completion Criteria
-- [ ] Full CRUD verified via automated test or documented `curl` sequence for at least one resource (e.g. teachers): create → list → get → update → delete
-- [ ] `POST /timetables/generate` with a small valid payload returns a `200` with a populated `SolverResult` body within the 30s solver timeout
-- [ ] `pytest backend/tests/integration/test_api_timetables.py` passes
-- [ ] `/docs` loads in browser and lists all 6 resource route groups
+- [x] Full CRUD verified via automated test or documented `curl` sequence for at least one resource (e.g. teachers): create → list → get → update → delete
+- [x] `POST /timetables/generate` with a small valid payload returns a `200` with a populated `SolverResult` body within the 30s solver timeout
+- [x] `pytest backend/tests/integration/test_api_timetables.py` passes
+- [x] `/docs` loads in browser and lists all 6 resource route groups
 
 ---
 

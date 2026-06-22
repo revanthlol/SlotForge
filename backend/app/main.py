@@ -17,5 +17,13 @@ def health():
 
 
 # Route modules get included here as they're built (Phase 2 onward):
-# from app.api.routes import organizations, teachers, rooms, subjects, sections, timetables
-# app.include_router(organizations.router, prefix="/organizations", tags=["organizations"])
+from app.api.routes import organizations, teachers, rooms, subjects, sections, constraints, timetables
+
+app.include_router(organizations.router, prefix="/organizations", tags=["organizations"])
+app.include_router(teachers.router, prefix="/teachers", tags=["teachers"])
+app.include_router(rooms.router, prefix="/rooms", tags=["rooms"])
+app.include_router(subjects.router, prefix="/subjects", tags=["subjects"])
+app.include_router(sections.router, prefix="/sections", tags=["sections"])
+app.include_router(constraints.router, prefix="/constraints", tags=["constraints"])
+app.include_router(timetables.router, prefix="/timetables", tags=["timetables"])
+
