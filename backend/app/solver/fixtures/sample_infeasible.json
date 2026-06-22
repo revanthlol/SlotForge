@@ -1,0 +1,19 @@
+{
+  "teachers": [
+    {"id": "t1", "name": "Teacher A"}
+  ],
+  "rooms": [
+    {"id": "r1", "name": "Room 101", "capacity": 20, "type": "lecture"}
+  ],
+  "subjects": [
+    {"id": "s1", "name": "Mathematics", "weekly_hours": 2}
+  ],
+  "sections": [
+    {"id": "sec1", "name": "Grade 9-A", "size": 30}
+  ],
+  "slots": [
+    {"id": "mon-1", "day": "Mon", "period": 1},
+    {"id": "mon-2", "day": "Mon", "period": 2}
+  ],
+  "constraints": []
+}

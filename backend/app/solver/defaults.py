@@ -1,0 +1,4 @@
+# Soft-constraint default weights/penalties
+TEACHER_GAP_PENALTY = 10
+DAILY_LOAD_BALANCE_PENALTY = 20
+TEACHER_PREFERRED_SLOT_REWARD = 15

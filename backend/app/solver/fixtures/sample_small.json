@@ -17,7 +17,11 @@
     {"id": "mon-1", "day": "Mon", "period": 1},
     {"id": "mon-2", "day": "Mon", "period": 2},
     {"id": "tue-1", "day": "Tue", "period": 1},
-    {"id": "tue-2", "day": "Tue", "period": 2}
+    {"id": "tue-2", "day": "Tue", "period": 2},
+    {"id": "wed-1", "day": "Wed", "period": 1},
+    {"id": "wed-2", "day": "Wed", "period": 2},
+    {"id": "thu-1", "day": "Thu", "period": 1},
+    {"id": "thu-2", "day": "Thu", "period": 2}
   ],
   "constraints": []
 }
