@@ -48,3 +48,12 @@ def get_current_user_profile(
         raise HTTPException(status_code=404, detail="User profile not found")
         
     return profile
+
+def require_org_admin(profile: Profile = Depends(get_current_user_profile)) -> Profile:
+    """
+    FastAPI dependency to ensure the user has the 'org_admin' role.
+    """
+    if profile.role != "org_admin":
+        raise HTTPException(status_code=403, detail="Forbidden: Admin role required")
+    return profile
+

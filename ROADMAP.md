@@ -234,7 +234,7 @@ backend/
 ---
 
 ## Phase 4 — Versioning, Draft/Publish, Audit Log
-**Status: NOT STARTED**
+**Status: ✅ COMPLETE**
 
 ### Objective
 Make timetable generations immutable and comparable; introduce a draft → published state machine; log mutating actions.
@@ -261,10 +261,10 @@ backend/
 6. Implement as FastAPI middleware or explicit service calls — pick one approach and apply it consistently across all mutating routes, not a mix of both.
 
 ### Completion Criteria
-- [ ] Generating 3 times for the same org produces `timetable_versions` rows `v1`, `v2`, `v3`, all retained
-- [ ] Publishing `v2` then `v3` results in exactly one `published` row (`v3`) and `v2` moved to `archived`
-- [ ] Deleting a teacher produces a row in `audit_logs` with `action="teacher.delete"` and a non-null `actor_id`
-- [ ] A non-admin (`role="viewer"`) JWT receives `403` on any `POST/PUT/DELETE` route
+- [x] Generating 3 times for the same org produces `timetable_versions` rows `v1`, `v2`, `v3`, all retained
+- [x] Publishing `v2` then `v3` results in exactly one `published` row (`v3`) and `v2` moved to `archived`
+- [x] Deleting a teacher produces a row in `audit_logs` with `action="teacher.delete"` and a non-null `actor_id`
+- [x] A non-admin (`role="viewer"`) JWT receives `403` on any `POST/PUT/DELETE` route
 
 ---
 

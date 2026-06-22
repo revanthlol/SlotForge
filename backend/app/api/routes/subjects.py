@@ -4,15 +4,16 @@ from sqlalchemy.orm import Session
 from app.schemas.subject import Subject as SubjectSchema, SubjectCreate, SubjectUpdate
 from app.models.subject import Subject as SubjectModel
 from app.core.db import get_db
-from app.core.auth import get_current_user_profile
+from app.core.auth import get_current_user_profile, require_org_admin
 from app.models.profile import Profile
+from app.services.audit_service import AuditService
 
 router = APIRouter()
 
 @router.post("/", response_model=SubjectSchema, status_code=201)
 def create_subject(
     payload: SubjectCreate,
-    current_user: Profile = Depends(get_current_user_profile),
+    current_user: Profile = Depends(require_org_admin),
     db: Session = Depends(get_db)
 ):
     subject = SubjectModel(
@@ -23,6 +24,16 @@ def create_subject(
     db.add(subject)
     db.commit()
     db.refresh(subject)
+    
+    AuditService.log_action(
+        db=db,
+        org_id=current_user.organization_id,
+        actor_id=current_user.id,
+        action="subject.create",
+        target_table="subjects",
+        target_id=subject.id,
+        diff={"new_values": {"name": subject.name, "weekly_hours": subject.weekly_hours}}
+    )
     
     return SubjectSchema(
         id=str(subject.id),
@@ -78,7 +89,7 @@ def get_subject(
 def update_subject(
     subject_id: str,
     payload: SubjectUpdate,
-    current_user: Profile = Depends(get_current_user_profile),
+    current_user: Profile = Depends(require_org_admin),
     db: Session = Depends(get_db)
 ):
     try:
@@ -94,13 +105,38 @@ def update_subject(
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
         
+    old_values = {
+        "name": subject.name,
+        "weekly_hours": subject.weekly_hours
+    }
+    
+    mutated = False
     if payload.name is not None:
         subject.name = payload.name
+        mutated = True
     if payload.weekly_hours is not None:
         subject.weekly_hours = payload.weekly_hours
+        mutated = True
         
-    db.commit()
-    db.refresh(subject)
+    if mutated:
+        db.commit()
+        db.refresh(subject)
+        
+        AuditService.log_action(
+            db=db,
+            org_id=current_user.organization_id,
+            actor_id=current_user.id,
+            action="subject.update",
+            target_table="subjects",
+            target_id=subject.id,
+            diff={
+                "old_values": old_values,
+                "new_values": {
+                    "name": subject.name,
+                    "weekly_hours": subject.weekly_hours
+                }
+            }
+        )
     
     return SubjectSchema(
         id=str(subject.id),
@@ -112,7 +148,7 @@ def update_subject(
 @router.delete("/{subject_id}", status_code=204)
 def delete_subject(
     subject_id: str,
-    current_user: Profile = Depends(get_current_user_profile),
+    current_user: Profile = Depends(require_org_admin),
     db: Session = Depends(get_db)
 ):
     try:
@@ -128,6 +164,23 @@ def delete_subject(
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
         
+    old_values = {
+        "name": subject.name,
+        "weekly_hours": subject.weekly_hours
+    }
+    subject_id_val = subject.id
+    
     db.delete(subject)
     db.commit()
+    
+    AuditService.log_action(
+        db=db,
+        org_id=current_user.organization_id,
+        actor_id=current_user.id,
+        action="subject.delete",
+        target_table="subjects",
+        target_id=subject_id_val,
+        diff={"old_values": old_values}
+    )
     return
+

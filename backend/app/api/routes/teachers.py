@@ -4,15 +4,16 @@ from sqlalchemy.orm import Session
 from app.schemas.teacher import Teacher as TeacherSchema, TeacherCreate, TeacherUpdate
 from app.models.teacher import Teacher as TeacherModel
 from app.core.db import get_db
-from app.core.auth import get_current_user_profile
+from app.core.auth import get_current_user_profile, require_org_admin
 from app.models.profile import Profile
+from app.services.audit_service import AuditService
 
 router = APIRouter()
 
 @router.post("/", response_model=TeacherSchema, status_code=201)
 def create_teacher(
     payload: TeacherCreate,
-    current_user: Profile = Depends(get_current_user_profile),
+    current_user: Profile = Depends(require_org_admin),
     db: Session = Depends(get_db)
 ):
     teacher = TeacherModel(
@@ -22,6 +23,16 @@ def create_teacher(
     db.add(teacher)
     db.commit()
     db.refresh(teacher)
+    
+    AuditService.log_action(
+        db=db,
+        org_id=current_user.organization_id,
+        actor_id=current_user.id,
+        action="teacher.create",
+        target_table="teachers",
+        target_id=teacher.id,
+        diff={"new_values": {"name": teacher.name}}
+    )
     
     # Map model to schema (schema needs organization_id as str)
     return TeacherSchema(
@@ -75,7 +86,7 @@ def get_teacher(
 def update_teacher(
     teacher_id: str,
     payload: TeacherUpdate,
-    current_user: Profile = Depends(get_current_user_profile),
+    current_user: Profile = Depends(require_org_admin),
     db: Session = Depends(get_db)
 ):
     try:
@@ -91,10 +102,21 @@ def update_teacher(
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher not found")
         
+    old_name = teacher.name
     if payload.name is not None:
         teacher.name = payload.name
         db.commit()
         db.refresh(teacher)
+        
+        AuditService.log_action(
+            db=db,
+            org_id=current_user.organization_id,
+            actor_id=current_user.id,
+            action="teacher.update",
+            target_table="teachers",
+            target_id=teacher.id,
+            diff={"old_values": {"name": old_name}, "new_values": {"name": teacher.name}}
+        )
         
     return TeacherSchema(
         id=str(teacher.id),
@@ -105,7 +127,7 @@ def update_teacher(
 @router.delete("/{teacher_id}", status_code=204)
 def delete_teacher(
     teacher_id: str,
-    current_user: Profile = Depends(get_current_user_profile),
+    current_user: Profile = Depends(require_org_admin),
     db: Session = Depends(get_db)
 ):
     try:
@@ -121,6 +143,20 @@ def delete_teacher(
     if not teacher:
         raise HTTPException(status_code=404, detail="Teacher not found")
         
+    old_name = teacher.name
+    teacher_id_val = teacher.id
+    
     db.delete(teacher)
     db.commit()
+    
+    AuditService.log_action(
+        db=db,
+        org_id=current_user.organization_id,
+        actor_id=current_user.id,
+        action="teacher.delete",
+        target_table="teachers",
+        target_id=teacher_id_val,
+        diff={"old_values": {"name": old_name}}
+    )
     return
+

@@ -4,15 +4,16 @@ from sqlalchemy.orm import Session
 from app.schemas.section import Section as SectionSchema, SectionCreate, SectionUpdate
 from app.models.section import Section as SectionModel
 from app.core.db import get_db
-from app.core.auth import get_current_user_profile
+from app.core.auth import get_current_user_profile, require_org_admin
 from app.models.profile import Profile
+from app.services.audit_service import AuditService
 
 router = APIRouter()
 
 @router.post("/", response_model=SectionSchema, status_code=201)
 def create_section(
     payload: SectionCreate,
-    current_user: Profile = Depends(get_current_user_profile),
+    current_user: Profile = Depends(require_org_admin),
     db: Session = Depends(get_db)
 ):
     section = SectionModel(
@@ -23,6 +24,16 @@ def create_section(
     db.add(section)
     db.commit()
     db.refresh(section)
+    
+    AuditService.log_action(
+        db=db,
+        org_id=current_user.organization_id,
+        actor_id=current_user.id,
+        action="section.create",
+        target_table="sections",
+        target_id=section.id,
+        diff={"new_values": {"name": section.name, "size": section.size}}
+    )
     
     return SectionSchema(
         id=str(section.id),
@@ -78,7 +89,7 @@ def get_section(
 def update_section(
     section_id: str,
     payload: SectionUpdate,
-    current_user: Profile = Depends(get_current_user_profile),
+    current_user: Profile = Depends(require_org_admin),
     db: Session = Depends(get_db)
 ):
     try:
@@ -94,13 +105,38 @@ def update_section(
     if not section:
         raise HTTPException(status_code=404, detail="Section not found")
         
+    old_values = {
+        "name": section.name,
+        "size": section.size
+    }
+    
+    mutated = False
     if payload.name is not None:
         section.name = payload.name
+        mutated = True
     if payload.size is not None:
         section.size = payload.size
+        mutated = True
         
-    db.commit()
-    db.refresh(section)
+    if mutated:
+        db.commit()
+        db.refresh(section)
+        
+        AuditService.log_action(
+            db=db,
+            org_id=current_user.organization_id,
+            actor_id=current_user.id,
+            action="section.update",
+            target_table="sections",
+            target_id=section.id,
+            diff={
+                "old_values": old_values,
+                "new_values": {
+                    "name": section.name,
+                    "size": section.size
+                }
+            }
+        )
     
     return SectionSchema(
         id=str(section.id),
@@ -112,7 +148,7 @@ def update_section(
 @router.delete("/{section_id}", status_code=204)
 def delete_section(
     section_id: str,
-    current_user: Profile = Depends(get_current_user_profile),
+    current_user: Profile = Depends(require_org_admin),
     db: Session = Depends(get_db)
 ):
     try:
@@ -128,6 +164,23 @@ def delete_section(
     if not section:
         raise HTTPException(status_code=404, detail="Section not found")
         
+    old_values = {
+        "name": section.name,
+        "size": section.size
+    }
+    section_id_val = section.id
+    
     db.delete(section)
     db.commit()
+    
+    AuditService.log_action(
+        db=db,
+        org_id=current_user.organization_id,
+        actor_id=current_user.id,
+        action="section.delete",
+        target_table="sections",
+        target_id=section_id_val,
+        diff={"old_values": old_values}
+    )
     return
+
