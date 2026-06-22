@@ -269,7 +269,7 @@ backend/
 ---
 
 ## Phase 5 — Export Service
-**Status: NOT STARTED**
+**Status: ✅ COMPLETE**
 
 ### Objective
 Allow a published timetable to be downloaded as PDF, Excel, or CSV.
@@ -291,9 +291,9 @@ backend/
 4. Export content: one row/section per timetable slot — section, subject, teacher, room, day, period — grouped and sorted by day then period.
 
 ### Completion Criteria
-- [ ] All three formats download successfully and open without corruption
-- [ ] A `viewer` role gets `403` attempting to export a `draft` version
-- [ ] Exported PDF/Excel content matches the actual slot assignments in the database (spot-check at least 5 rows)
+- [x] All three formats download successfully and open without corruption
+- [x] A `viewer` role gets `403` attempting to export a `draft` version
+- [x] Exported PDF/Excel content matches the actual slot assignments in the database (spot-check at least 5 rows)
 
 ---
 
