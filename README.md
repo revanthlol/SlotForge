@@ -4,7 +4,7 @@ SlotForge is an institutional scheduling and timetable optimization platform. It
 
 ---
 
-## 🚀 Current Project Status
+## Current Project Status
 
 SlotForge is currently **100% complete through Phase 5** of the engineering roadmap. The backend API is fully integrated with PostgreSQL, handles multi-tenancy, verifies Supabase JWTs, logs admin actions, tracks timetable version states (draft, published, archived), and generates downloadable PDF, Excel, and CSV export formats.
 
@@ -41,7 +41,7 @@ SlotForge is currently **100% complete through Phase 5** of the engineering road
 
 ---
 
-## 🛠️ Getting Started
+## Getting Started
 
 ### Local Setup
 1. **Initialize Backend Environment**:
@@ -70,7 +70,7 @@ SlotForge is currently **100% complete through Phase 5** of the engineering road
 
 ---
 
-## 🧪 Testing
+## Testing
 
 We maintain a comprehensive suite of unit, integration, and end-to-end tests. For details, refer to the [TESTING.md](file:///home/rev/Documents/projects/slotforge/TESTING.md) guide.
 
