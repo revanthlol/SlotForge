@@ -15,19 +15,23 @@ if [ ! -f "backend/.env" ]; then
     exit 1
 fi
 
-# Retrieve JWT Secret from .env
-JWT_SECRET=$(grep -E "^SUPABASE_JWT_SECRET=" backend/.env | cut -d'=' -f2 | tr -d '\r' | tr -d '"' | tr -d "'")
-if [ -z "$JWT_SECRET" ]; then
-    JWT_SECRET="your_jwt_secret_here"
-fi
-
-echo "Using JWT Secret: $JWT_SECRET"
+# Retrieve Supabase settings from .env
+SUPABASE_URL=$(grep -E "^SUPABASE_URL=" backend/.env | cut -d'=' -f2 | cut -d'#' -f1 | tr -d '\r' | tr -d '"' | tr -d "'")
+SUPABASE_PUBLISHABLE_KEY=$(grep -E "^SUPABASE_PUBLISHABLE_KEY=" backend/.env | cut -d'=' -f2 | cut -d'#' -f1 | tr -d '\r' | tr -d '"' | tr -d "'")
 
 # Start the uvicorn API server in the background
 echo "Starting FastAPI server in the background..."
 cd backend
-PYTHONPATH=. ./.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 &
-SERVER_PID=$!
+
+if [[ "$SUPABASE_URL" == *"YOUR_PROJECT_REF"* ]]; then
+    echo "Placeholder Supabase URL detected. Running E2E tests in MOCK mode (using self-signed tokens and test server wrapper)."
+    PYTHONPATH=. ./.venv/bin/python tests/run_test_server.py &
+    SERVER_PID=$!
+else
+    echo "Real Supabase URL detected. Running E2E tests against the real Supabase project."
+    PYTHONPATH=. ./.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 &
+    SERVER_PID=$!
+fi
 cd ..
 
 # Ensure we terminate the server on exit
@@ -67,8 +71,24 @@ USER_ID=$(echo "$SIGNUP_RES" | python3 -c "import sys, json; print(json.load(sys
 echo "Organization ID: $ORG_ID"
 echo "User ID: $USER_ID"
 
-# Generate admin JWT token
-TOKEN=$(backend/.venv/bin/python3 -c "import jwt; print(jwt.encode({'sub': '$USER_ID', 'aud': 'authenticated', 'role': 'authenticated'}, '$JWT_SECRET', algorithm='HS256'))")
+# Generate / retrieve JWT token
+if [[ "$SUPABASE_URL" == *"YOUR_PROJECT_REF"* ]]; then
+    echo "Generating mock self-signed token..."
+    TOKEN=$(backend/.venv/bin/python3 -c "import jwt; print(jwt.encode({'sub': '$USER_ID', 'aud': 'authenticated', 'role': 'authenticated'}, 'dummy-secret', algorithm='HS256'))")
+else
+    echo "Retrieving real JWT token from Supabase Auth API..."
+    LOGIN_RES=$(curl -s -X POST "${SUPABASE_URL}/auth/v1/token?grant_type=password" \
+      -H "apikey: ${SUPABASE_PUBLISHABLE_KEY}" \
+      -H "Content-Type: application/json" \
+      -d '{"email": "shell-admin@slotforge.com", "password": "pass123password"}')
+    TOKEN=$(echo "$LOGIN_RES" | python3 -c "import sys, json; print(json.load(sys.stdin).get('access_token', ''))")
+fi
+
+if [ -z "$TOKEN" ]; then
+    echo "Error: Failed to obtain access token."
+    exit 1
+fi
+
 AUTH_HEADER="Authorization: Bearer $TOKEN"
 
 echo "--------------------------------------------------"
@@ -137,5 +157,5 @@ for fmt in pdf xlsx csv; do
 done
 
 echo "=================================================="
-echo "   All tests passed successfully!"
+echo "   All E2E tests passed successfully!"
 echo "=================================================="

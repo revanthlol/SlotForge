@@ -19,6 +19,7 @@ from app.models.subject import Subject as SubjectModel
 from app.models.teacher import Teacher as TeacherModel
 from app.models.room import Room as RoomModel
 from app.core.config import settings
+from supabase import create_client
 
 class ExportService:
     @staticmethod
@@ -167,18 +168,20 @@ class ExportService:
     def upload_file(org_id: uuid.UUID, filename: str, file_bytes: bytes) -> str:
         """
         Uploads the file to Supabase Storage exports bucket.
-        Falls back to local static file serving if Supabase settings are placeholders or upload fails.
+        Falls back to local static file serving if settings.DEV_MODE is True,
+        if Supabase settings are placeholders, or if upload fails.
         """
         path = f"{org_id}/{filename}"
         
-        # Check if Supabase URL is placeholder
-        is_placeholder = "YOUR_PROJECT_REF" in settings.SUPABASE_URL
+        is_placeholder = (
+            "YOUR_PROJECT_REF" in settings.SUPABASE_URL or
+            "your_publishable_key_here" in settings.SUPABASE_PUBLISHABLE_KEY or
+            "your_secret_key_here" in settings.SUPABASE_SECRET_KEY
+        )
         
-        if not is_placeholder:
+        if not settings.DEV_MODE and not is_placeholder:
             try:
-                # Dynamic import to bypass Python 3.14 compilation issues with dependencies on local machine
-                from supabase import create_client
-                supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
+                supabase = create_client(settings.SUPABASE_URL, settings.SUPABASE_SECRET_KEY)
                 
                 # Upload file (with upsert Option)
                 supabase.storage.from_("exports").upload(

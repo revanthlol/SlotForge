@@ -25,7 +25,7 @@ def signup_organization(payload: SignupOrganizationRequest, db: Session = Depend
         try:
             url = f"{settings.SUPABASE_URL}/auth/v1/signup"
             headers = {
-                "apikey": settings.SUPABASE_ANON_KEY,
+                "apikey": settings.SUPABASE_PUBLISHABLE_KEY,
                 "Content-Type": "application/json"
             }
             json_payload = {

@@ -37,13 +37,13 @@ def setup_function():
         db.close()
 
 def get_auth_headers(user_id: str) -> dict:
-    """Helper to encode a valid JWT matching the APP secret."""
+    """Helper to encode a valid JWT matching the test payload."""
     payload = {
         "sub": user_id,
         "aud": "authenticated",
         "role": "authenticated"
     }
-    token = jwt.encode(payload, settings.SUPABASE_JWT_SECRET, algorithm="HS256")
+    token = jwt.encode(payload, "dummy-secret-key-for-tests", algorithm="HS256")
     return {"Authorization": f"Bearer {token}"}
 
 def create_test_user(org_name: str = "Test Org", role: str = "org_admin") -> tuple[str, str, dict]:

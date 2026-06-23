@@ -12,8 +12,8 @@ alembic==1.13.3
 psycopg[binary]>=3.3.4
 
 # --- Auth (Supabase JWT verification) ---
-python-jose[cryptography]==3.3.0
-PyJWT==2.9.0
+PyJWT[crypto]==2.13.0
+supabase==2.10.0
 
 
 # --- Job queue ---
