@@ -50,6 +50,8 @@ def signup_organization(payload: SignupOrganizationRequest, db: Session = Depend
             user_info = res_data.get("user")
             if user_info and "id" in user_info:
                 user_id = user_info["id"]
+            elif "id" in res_data:
+                user_id = res_data["id"]
         except Exception as e:
             if isinstance(e, HTTPException):
                 raise e
