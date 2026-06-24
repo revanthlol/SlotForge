@@ -2,15 +2,17 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
+from app.core.config import settings
 
 app = FastAPI(title="SlotForge API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # tighten before deploying to prod
+    allow_origins=[settings.FRONTEND_ORIGIN],
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Ensure static directory exists
 os.makedirs("app/static/exports", exist_ok=True)
