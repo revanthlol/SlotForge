@@ -26,3 +26,4 @@ dist/
 
 # DB
 *.sqlite3
+backend/app/static/exports/
