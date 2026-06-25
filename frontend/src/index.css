@@ -7,7 +7,7 @@
   --color-bg-surface: #0f172a;
   --color-bg-elevated: #1e293b;
   --color-bg-muted: #334155;
-  --color-accent: #6366f1;
+  --color-accent: #6a6cdc;
   --color-accent-light: #818cf8;
   --color-accent-amber: #fbbf24;
   --color-text-primary: #f1f5f9;
@@ -28,8 +28,10 @@ body {
   margin: 0;
   background: var(--color-bg-base);
   color: var(--color-text-primary);
-  font-family: var(--font-display);
+  body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
 }
 
 /* Ant Design dark theme overrides */

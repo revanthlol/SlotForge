@@ -21,9 +21,19 @@ const ACTIVITY = [
   { label: 'Section CS-B added', time: '2 days ago', type: 'info' },
 ];
 
+const getDynamicGreeting = (): string => {
+    const hour = new Date().getHours();
+
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const greeting = getDynamicGreeting();
+
 
   return (
     <div>
@@ -33,7 +43,7 @@ export default function DashboardPage() {
           Overview
         </p>
         <h1 style={{ margin: '4px 0 4px', fontSize: 24, fontWeight: 700, color: 'var(--color-text-primary)', letterSpacing: '-0.02em' }}>
-          Good morning, {user?.name?.split(' ')[0]} 👋
+          {greeting}, {user?.name?.split(' ')[0]} 
         </h1>
         <p style={{ margin: 0, color: 'var(--color-text-secondary)', fontSize: 14 }}>
           Here's the current state of your timetable configuration.

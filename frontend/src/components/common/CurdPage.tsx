@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { Table, Button, Modal, Form, Input, Tag, Space, Tooltip, Empty } from 'antd';
+import { Table, Button, Modal, Form, Input, Tag, Space, Tooltip, Empty, Popconfirm } from 'antd';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -27,6 +27,9 @@ export default function CrudPage<T extends { id: string; name: string }>({
   const [search, setSearch] = useState('');
   const [form] = Form.useForm();
 
+  // Filter out any duplicating 'actions' column provided by sub-views
+  const sanitizedColumns = columns.filter(col => col.key !== 'actions');
+
   const filtered = data.filter(d =>
     d.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -42,29 +45,62 @@ export default function CrudPage<T extends { id: string; name: string }>({
   };
 
   const actionCol: ColumnsType<T>[0] = {
-    key: 'actions', title: '', width: 80, align: 'right',
+    key: 'actions', 
+    title: '', 
+    width: 90, 
+    align: 'right',
     render: (_, record) => (
-      <Space size={4}>
-        <Tooltip title="Edit">
+      <Space size={4} className="row-actions-container">
+        <Tooltip title="Edit entry" mouseEnterDelay={0.4}>
           <Button
-            type="text" size="small" icon={<EditOutlined />}
+            type="text" 
+            size="small" 
+            icon={<EditOutlined />}
             onClick={() => openEdit(record)}
-            style={{ color: 'var(--color-text-muted)' }}
+            style={{ color: 'var(--color-text-secondary)' }}
           />
         </Tooltip>
-        <Tooltip title="Delete">
-          <Button
-            type="text" size="small" icon={<DeleteOutlined />}
-            onClick={() => onDelete(record.id)}
-            danger
-          />
-        </Tooltip>
+        <Popconfirm
+          title="Delete Entry"
+          description={`Are you sure you want to delete this ${title.toLowerCase().slice(0, -1)}?`}
+          onConfirm={() => onDelete(record.id)}
+          okText="Delete"
+          cancelText="Cancel"
+          okButtonProps={{ danger: true }}
+          placement="topRight"
+        >
+          <Tooltip title="Delete entry" mouseEnterDelay={0.4}>
+            <Button
+              type="text" 
+              size="small" 
+              icon={<DeleteOutlined />}
+              danger
+            />
+          </Tooltip>
+        </Popconfirm>
       </Space>
     ),
   };
 
   return (
     <div>
+      {/* Global CSS override inject for smooth desktop hover styling actions layer */}
+      <style>{`
+        .ant-table-row .row-actions-container {
+          opacity: 0.2;
+          transform: translateX(4px);
+          transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+        .ant-table-row:hover .row-actions-container {
+          opacity: 1;
+          transform: translateX(0);
+        }
+        .custom-search-input:focus, .custom-search-input-focused {
+          border-color: ${iconColor} !important;
+          box-shadow: 0 0 0 2px ${iconColor}15 !important;
+        }
+      `}</style>
+
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
@@ -85,27 +121,48 @@ export default function CrudPage<T extends { id: string; name: string }>({
             </h1>
           </div>
         </div>
-        <Button type="primary" icon={<PlusOutlined />} onClick={openAdd}>
+        <Button 
+          type="primary" 
+          icon={<PlusOutlined />} 
+          onClick={openAdd}
+          style={{ height: 38, fontWeight: 600, borderRadius: 6 }}
+        >
           {addLabel}
         </Button>
       </div>
 
-      {/* Search + count */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+      {/* Modern Search Row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
         <Input
-          prefix={<SearchOutlined style={{ color: 'var(--color-text-muted)' }} />}
-          placeholder={`Search ${title.toLowerCase()}...`}
+          className="custom-search-input"
+          prefix={<SearchOutlined style={{ color: iconColor, marginRight: 4, fontSize: 16 }} />}
+          placeholder={`Type to search...`}
           value={search}
           onChange={e => setSearch(e.target.value)}
-          style={{ maxWidth: 280 }}
+          style={{ 
+            maxWidth: 280, 
+            height: 38, 
+            borderRadius: 6,
+            background: 'var(--color-bg-surface)',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-text-primary)',
+          }}
           allowClear
         />
-        <Tag style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-strong)', color: 'var(--color-text-secondary)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+        <Tag style={{ 
+          background: 'var(--color-bg-elevated)', 
+          border: '1px solid var(--color-border-strong)', 
+          color: 'var(--color-text-secondary)', 
+          fontFamily: 'var(--font-mono)', 
+          fontSize: 11,
+          padding: '4px 8px',
+          borderRadius: 4
+        }}>
           {filtered.length} total
         </Tag>
       </div>
 
-      {/* Table */}
+      {/* Table Frame Wrapper */}
       <div style={{
         background: 'var(--color-bg-surface)',
         border: '1px solid var(--color-border)',
@@ -114,10 +171,10 @@ export default function CrudPage<T extends { id: string; name: string }>({
       }}>
         <Table
           dataSource={filtered}
-          columns={[...columns, actionCol]}
+          columns={[...sanitizedColumns, actionCol]}
           rowKey="id"
           pagination={{ pageSize: 10, size: 'small', style: { padding: '12px 16px' } }}
-          locale={{ emptyText: <Empty description="Nothing here yet — add your first entry above." /> }}
+          locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No matching spaces found." /> }}
           size="middle"
         />
       </div>
@@ -136,7 +193,7 @@ export default function CrudPage<T extends { id: string; name: string }>({
         width={480}
         destroyOnClose
       >
-        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+        <Form form={form} layout="vertical" style={{ marginTop: 20 }}>
           {formFields}
         </Form>
       </Modal>
