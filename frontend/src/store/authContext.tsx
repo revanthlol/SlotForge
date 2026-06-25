@@ -13,12 +13,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Mock auth — replace with real Supabase calls when backend is ready
 const MOCK_USER: User = {
   id: '1',
   name: 'Admin User',
   email: 'admin@slotforge.app',
-  avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Admin&backgroundColor=6366f1',
+  avatar: 'https://api.dicebear.com/7.x/initials/svg?seed=Admin&backgroundColor=14b8a6', // Updated avatar color to match your new Teal system
   role: 'admin',
 };
 
@@ -27,12 +26,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check persisted session
-    const stored = localStorage.getItem('slotforge_user');
-    if (stored) {
-      try { setUser(JSON.parse(stored)); } catch { localStorage.removeItem('slotforge_user'); }
-    }
-    setLoading(false);
+    // Simulated network session check (mimicking Supabase's initial initialization lag)
+    const initializeAuth = async () => {
+      const stored = localStorage.getItem('slotforge_user');
+      
+      // Simulate a brief 600ms network round-trip to verify token
+      await new Promise(r => setTimeout(r, 600));
+
+      if (stored) {
+        try { 
+          setUser(JSON.parse(stored)); 
+        } catch { 
+          localStorage.removeItem('slotforge_user'); 
+        }
+      }
+      setLoading(false);
+    };
+
+    initializeAuth();
   }, []);
 
   const persist = (u: User) => {
@@ -42,7 +53,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithGoogle = async () => {
     setLoading(true);
-    // TODO: replace with Supabase OAuth
     await new Promise(r => setTimeout(r, 800));
     persist(MOCK_USER);
     setLoading(false);
@@ -50,8 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginWithEmail = async (email: string, _password: string) => {
     setLoading(true);
-    // TODO: replace with Supabase email auth
-    await new Promise(r => setTimeout(r, 600));
+    await new Promise(r => setTimeout(r, 800));
     persist({ ...MOCK_USER, email });
     setLoading(false);
   };

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { Select, Button, Tooltip, Badge } from 'antd';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import type { DropResult } from '@hello-pangea/dnd';
@@ -72,13 +72,13 @@ export default function TimetablePage() {
     const [srcDay, srcSlot] = source.droppableId.split('||');
     const [dstDay, dstSlot] = destination.droppableId.split('||');
 
-    const srcEntry = data[srcDay][srcSlot];
-    const dstEntry = data[dstDay][dstSlot];
+    const srcEntry = data[srcDay]?.[srcSlot];
+    const dstEntry = data[dstDay]?.[dstSlot];
 
     setData(prev => ({
       ...prev,
-      [srcDay]: { ...prev[srcDay], [srcSlot]: dstEntry },
-      [dstDay]: { ...prev[dstDay], [dstSlot]: srcEntry },
+      [srcDay]: { ...prev[srcDay], [srcSlot]: dstEntry || null },
+      [dstDay]: { ...prev[dstDay], [dstSlot]: srcEntry || null },
     }));
   };
 
@@ -119,45 +119,49 @@ export default function TimetablePage() {
         ))}
       </div>
 
-      {/* Grid */}
+      {/* Grid container */}
       <div style={{ overflowX: 'auto' }}>
         <DragDropContext onDragEnd={onDragEnd}>
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '80px repeat(5, 1fr)',
+            // Updated to support 1 row header column + 8 timeline slot columns
+            gridTemplateColumns: '100px repeat(8, minmax(120px, 1fr))',
             gap: 1,
             background: 'var(--color-border)',
             borderRadius: 'var(--radius-md)',
             overflow: 'hidden',
-            minWidth: 700,
+            minWidth: 1060,
           }}>
-            {/* Header row */}
+            
+            {/* Top-Left Empty Anchor Corner Cell */}
             <div style={{ background: 'var(--color-bg-elevated)', padding: '10px 12px' }} />
-            {DAYS.map(day => (
-              <div key={day} style={{
+            
+            {/* Top Header Row: Horizontal Time Slots */}
+            {SLOTS.map(slot => (
+              <div key={slot} style={{
                 background: 'var(--color-bg-elevated)', padding: '10px 12px', textAlign: 'center',
                 fontSize: 11, fontWeight: 700, color: 'var(--color-text-secondary)',
-                letterSpacing: '0.1em', fontFamily: 'var(--font-mono)',
+                letterSpacing: '0.02em', fontFamily: 'var(--font-mono)',
               }}>
-                {day}
+                {slot}
               </div>
             ))}
 
-            {/* Slot rows */}
-            {SLOTS.map(slot => (
-              <>
-                {/* Time label */}
-                <div key={`label-${slot}`} style={{
-                  background: 'var(--color-bg-surface)', padding: '8px 12px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'flex-end',
-                  fontSize: 10, color: 'var(--color-text-muted)', fontFamily: 'var(--font-mono)',
-                  whiteSpace: 'nowrap',
+            {/* Vertical Row Render: Loops Days first, then populates horizontal time cells */}
+            {DAYS.map(day => (
+              <Fragment key={day}>
+                {/* Left Side Header Column: Day label */}
+                <div style={{
+                  background: 'var(--color-bg-elevated)', padding: '8px 12px',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 12, fontWeight: 700, color: 'var(--color-text-secondary)', 
+                  fontFamily: 'var(--font-mono)', letterSpacing: '0.08em'
                 }}>
-                  {slot.split('–')[0]}
+                  {day}
                 </div>
 
-                {/* Day cells */}
-                {DAYS.map(day => {
+                {/* Horizontal Content Cells for the specific day */}
+                {SLOTS.map(slot => {
                   const entry = data[day]?.[slot];
                   const droppableId = `${day}||${slot}`;
                   return (
@@ -168,8 +172,9 @@ export default function TimetablePage() {
                           {...provided.droppableProps}
                           style={{
                             background: snapshot.isDraggingOver ? 'rgba(99,102,241,0.08)' : 'var(--color-bg-surface)',
-                            minHeight: 64, padding: 4, position: 'relative',
+                            minHeight: 72, padding: 6, position: 'relative',
                             transition: 'background 0.15s',
+                            display: 'flex', flexDirection: 'column'
                           }}
                         >
                           {entry ? (
@@ -190,21 +195,24 @@ export default function TimetablePage() {
                                       cursor: 'grab',
                                       opacity: dragSnapshot.isDragging ? 0.8 : 1,
                                       transform: dragSnapshot.isDragging ? `${drag.draggableProps.style?.transform} rotate(1deg)` : drag.draggableProps.style?.transform,
-                                      height: '100%',
+                                      flexGrow: 1,
+                                      display: 'flex',
+                                      flexDirection: 'column',
+                                      justifyContent: 'center'
                                     }}
                                   >
                                     <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: entry.color, lineHeight: 1.2 }}>
                                       {entry.subject}
                                     </p>
                                     <p style={{ margin: '2px 0 0', fontSize: 10, color: 'var(--color-text-muted)', lineHeight: 1.3 }}>
-                                      {entry.teacher.split(' ').slice(-1)[0]}
+                                      {entry.teacher.split(' ').slice(-1)[0]} • {entry.room}
                                     </p>
                                   </div>
                                 </Tooltip>
                               )}
                             </Draggable>
                           ) : (
-                            <div style={{ height: '100%', minHeight: 56 }} />
+                            <div style={{ flexGrow: 1 }} />
                           )}
                           {provided.placeholder}
                         </div>
@@ -212,7 +220,7 @@ export default function TimetablePage() {
                     </Droppable>
                   );
                 })}
-              </>
+              </Fragment>
             ))}
           </div>
         </DragDropContext>
