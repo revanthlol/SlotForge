@@ -13,5 +13,6 @@ class Settings(BaseSettings):
     SUPABASE_JWKS_URL: str
     REDIS_URL: str = "redis://localhost:6379/0"
     DEV_MODE: bool = False
+    FRONTEND_ORIGIN: str = "http://localhost:5173"
 
 settings = Settings()
