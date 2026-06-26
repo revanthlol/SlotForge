@@ -38,11 +38,11 @@ export default function Sidebar() {
   const isParentActive = (path: string) => location.pathname.startsWith(path);
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-64 bg-paper-raised border-r-2 border-rule flex flex-col z-50">
+    <aside className="sidebar-shell fixed left-0 top-0 h-screen w-64 bg-paper-raised border-r-2 border-rule flex flex-col z-50">
       {/* Logo */}
       <div className="px-5 py-5 border-b border-rule">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
+          <div className="brand-mark w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
             <span className="material-symbols-outlined text-on-primary" style={{ fontSize: 20 }}>
               view_module
             </span>
@@ -67,7 +67,7 @@ export default function Sidebar() {
                 <div key={item.label}>
                   <button
                     onClick={() => setResourcesOpen(!resourcesOpen)}
-                    className={`w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
+                    className={`sidebar-nav-item w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
                       isParentActive(item.path)
                         ? 'bg-accent-soft text-primary font-semibold'
                         : 'text-on-surface-variant hover:bg-accent-soft/50'
@@ -98,7 +98,7 @@ export default function Sidebar() {
                         <Link
                           key={child.path}
                           to={child.path}
-                          className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
+                          className={`sidebar-nav-item flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all duration-150 ${
                             isActive(child.path)
                               ? 'bg-accent-soft text-primary font-semibold border-l-[3px] border-primary -ml-[11px] pl-[14px]'
                               : 'text-on-surface-variant hover:bg-accent-soft/50 hover:text-on-surface'
@@ -120,7 +120,7 @@ export default function Sidebar() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
+                className={`sidebar-nav-item flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-150 ${
                   isActive(item.path)
                     ? 'bg-accent-soft text-primary font-semibold border-l-[3px] border-primary'
                     : 'text-on-surface-variant hover:bg-accent-soft/50 hover:text-on-surface'
@@ -140,7 +140,7 @@ export default function Sidebar() {
       <div className="px-3 pb-4 space-y-2">
         <Link
           to="/solver"
-          className="flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors duration-150"
+          className="control-motion flex items-center justify-center gap-2 w-full px-4 py-2.5 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors duration-150"
         >
           <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
             play_circle

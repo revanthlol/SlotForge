@@ -7,7 +7,7 @@ interface PageHeaderProps {
 
 export default function PageHeader({ breadcrumb, title, subtitle, actions }: PageHeaderProps) {
   return (
-    <div className="mb-8">
+    <div className="page-header-animate mb-8">
       {breadcrumb && (
         <p className="text-label-caps text-mono-grey mb-3" style={{ fontSize: 11 }}>
           {breadcrumb}

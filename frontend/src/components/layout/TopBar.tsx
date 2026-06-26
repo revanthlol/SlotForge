@@ -6,7 +6,7 @@ export default function TopBar() {
   const { data: org } = useOrganization(organizationId);
 
   return (
-    <header className="h-14 bg-paper-raised border-b-2 border-rule flex items-center justify-between px-6 sticky top-0 z-40">
+    <header className="topbar-shell h-14 bg-paper-raised border-b-2 border-rule flex items-center justify-between px-6 sticky top-0 z-40">
       {/* Left: Organization badge */}
       <div className="flex items-center gap-3">
         <span
@@ -24,7 +24,7 @@ export default function TopBar() {
       {/* Right: Actions */}
       <div className="flex items-center gap-1">
         <button
-          className="p-2 rounded-lg hover:bg-accent-soft transition-colors"
+          className="topbar-action p-2 rounded-lg hover:bg-accent-soft transition-colors"
           title="Sync data"
         >
           <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 20 }}>
@@ -32,7 +32,7 @@ export default function TopBar() {
           </span>
         </button>
         <button
-          className="p-2 rounded-lg hover:bg-accent-soft transition-colors"
+          className="topbar-action p-2 rounded-lg hover:bg-accent-soft transition-colors"
           title="Notifications"
         >
           <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 20 }}>
@@ -40,7 +40,7 @@ export default function TopBar() {
           </span>
         </button>
         <button
-          className="p-2 rounded-lg hover:bg-accent-soft transition-colors"
+          className="topbar-action p-2 rounded-lg hover:bg-accent-soft transition-colors"
           title="Help"
         >
           <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 20 }}>
@@ -50,7 +50,7 @@ export default function TopBar() {
         <div className="w-px h-6 bg-rule mx-2" />
         <button
           onClick={() => signOut()}
-          className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-accent-soft transition-colors"
+          className="topbar-action flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-accent-soft transition-colors"
         >
           <div className="w-7 h-7 rounded-full bg-primary-container flex items-center justify-center">
             <span className="material-symbols-outlined text-on-primary-container" style={{ fontSize: 16 }}>
