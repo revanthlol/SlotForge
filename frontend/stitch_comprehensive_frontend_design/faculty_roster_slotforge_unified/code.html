@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Teachers Management - SlotForge</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "surface-bright": "#f7f9ff",
+                "secondary": "#9c440f",
+                "surface-container-highest": "#e0e3e8",
+                "background": "#f7f9ff",
+                "surface-container-low": "#f1f4f9",
+                "on-error": "#ffffff",
+                "surface": "#f7f9ff",
+                "on-surface": "#181c20",
+                "surface-tint": "#376759",
+                "on-primary": "#ffffff",
+                "surface-dim": "#d7dae0",
+                "on-tertiary-container": "#fcb9af",
+                "on-primary-fixed": "#002018",
+                "tertiary-fixed-dim": "#f9b6ac",
+                "on-secondary": "#ffffff",
+                "paper-raised": "#ffffff",
+                "on-tertiary": "#ffffff",
+                "inverse-primary": "#9fd1bf",
+                "rule": "rgba(27, 31, 35, 0.14)",
+                "on-tertiary-fixed-variant": "#693a33",
+                "mono-grey": "#6b6f73",
+                "surface-container-lowest": "#ffffff",
+                "on-secondary-fixed": "#351000",
+                "inverse-on-surface": "#eef1f6",
+                "surface-variant": "#e0e3e8",
+                "primary-container": "#2d5d4f",
+                "primary-fixed": "#baeddb",
+                "tertiary": "#5e312a",
+                "secondary-container": "#fd8e55",
+                "on-primary-fixed-variant": "#1e4f41",
+                "on-tertiary-fixed": "#34100b",
+                "surface-container": "#ebeef3",
+                "on-surface-variant": "#404945",
+                "error-container": "#ffdad6",
+                "primary-fixed-dim": "#9fd1bf",
+                "on-error-container": "#93000a",
+                "outline-variant": "#c0c8c4",
+                "signal-soft": "rgba(196, 98, 45, 0.12)",
+                "on-secondary-container": "#6e2a00",
+                "inverse-surface": "#2d3135",
+                "paper": "#f7f5f0",
+                "grid-line": "rgba(27, 31, 35, 0.08)",
+                "secondary-fixed-dim": "#ffb693",
+                "accent-soft": "rgba(45, 93, 79, 0.12)",
+                "tertiary-container": "#794740",
+                "on-secondary-fixed-variant": "#7a3000",
+                "outline": "#707975",
+                "error": "#ba1a1a",
+                "primary": "#124538",
+                "on-background": "#181c20",
+                "tertiary-fixed": "#ffdad5",
+                "surface-container-high": "#e5e8ee",
+                "secondary-fixed": "#ffdbcc",
+                "on-primary-container": "#a1d4c2"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+        },
+        "spacing": {
+                "stack-md": "32px",
+                "gutter": "16px",
+                "inset-standard": "24px 26px",
+                "stack-sm": "16px",
+                "inset-deep": "32px 36px",
+                "grid-unit": "64px",
+                "margin-page": "32px",
+                "stack-lg": "64px",
+                "inset-compact": "16px 18px"
+        },
+        "fontFamily": {
+                "display-lg": [
+                        "Fraunces"
+                ],
+                "display-lg-mobile": [
+                        "Fraunces"
+                ],
+                "headline-sm": [
+                        "Fraunces"
+                ],
+                "headline-md": [
+                        "Fraunces"
+                ],
+                "data-table": [
+                        "JetBrains Mono"
+                ],
+                "code-snippet": [
+                        "JetBrains Mono"
+                ],
+                "body-sm": [
+                        "IBM Plex Sans"
+                ],
+                "body-lg": [
+                        "IBM Plex Sans"
+                ],
+                "label-caps": [
+                        "JetBrains Mono"
+                ]
+        },
+        "fontSize": {
+                "display-lg": [
+                        "64px",
+                        {
+                                "lineHeight": "1.1",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "display-lg-mobile": [
+                        "40px",
+                        {
+                                "lineHeight": "1.2",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-sm": [
+                        "18px",
+                        {
+                                "lineHeight": "1.4",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-md": [
+                        "30px",
+                        {
+                                "lineHeight": "1.3",
+                                "fontWeight": "600"
+                        }
+                ],
+                "data-table": [
+                        "12px",
+                        {
+                                "lineHeight": "1.2",
+                                "fontWeight": "400"
+                        }
+                ],
+                "code-snippet": [
+                        "12.5px",
+                        {
+                                "lineHeight": "1.5",
+                                "fontWeight": "400"
+                        }
+                ],
+                "body-sm": [
+                        "14px",
+                        {
+                                "lineHeight": "1.5",
+                                "fontWeight": "400"
+                        }
+                ],
+                "body-lg": [
+                        "16.5px",
+                        {
+                                "lineHeight": "1.6",
+                                "fontWeight": "400"
+                        }
+                ],
+                "label-caps": [
+                        "13px",
+                        {
+                                "lineHeight": "1",
+                                "letterSpacing": "0.12em",
+                                "fontWeight": "500"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body {
+            background-color: theme('colors.paper');
+            background-image: linear-gradient(to right, theme('colors.grid-line') 1px, transparent 1px),
+                              linear-gradient(to bottom, theme('colors.grid-line') 1px, transparent 1px);
+            background-size: 64px 64px;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Custom Scrollbar for high-density tables */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: theme('colors.outline-variant');
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: theme('colors.outline');
+        }
+    </style>
+</head>
+<body class="text-on-background font-body-sm overflow-hidden h-screen flex">
+<!-- SideNavBar -->
+<nav class="docked left-0 h-screen w-64 border-r-2 border-on-background dark:border-outline-variant bg-paper dark:bg-inverse-surface flex flex-col py-stack-md z-40 hidden md:flex shrink-0">
+<div class="px-gutter mb-stack-md">
+<div class="flex items-center gap-4 mb-4">
+<div class="w-12 h-12 bg-primary-container rounded flex items-center justify-center shrink-0 border border-on-background">
+<span class="material-symbols-outlined text-on-primary-container" data-weight="fill">account_balance</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">SlotForge</h1>
+<p class="font-label-caps text-label-caps text-on-surface-variant dark:text-surface-variant">Institutional Admin</p>
+</div>
+</div>
+<button class="w-full bg-primary text-paper-raised rounded font-label-caps text-label-caps py-3 px-4 flex items-center justify-center gap-2 hover:bg-on-primary-fixed-variant transition-colors border-2 border-transparent">
+<span class="material-symbols-outlined text-[18px]">build</span>
+                Generate Schedule
+            </button>
+</div>
+<div class="flex-1 overflow-y-auto">
+<ul class="flex flex-col">
+<li>
+<a class="flex items-center gap-4 px-gutter py-4 text-on-surface-variant dark:text-surface-variant hover:bg-accent-soft hover:text-primary dark:hover:text-primary-fixed-dim transition-all duration-150 ease-in-out font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined text-[20px]">dashboard</span>
+                        Dashboard
+                    </a>
+</li>
+<li>
+<!-- Active State for Resources/Teachers -->
+<a class="flex items-center gap-4 px-gutter py-4 text-primary dark:text-primary-fixed font-bold border-r-4 border-primary dark:border-primary-fixed bg-accent-soft transition-all duration-150 ease-in-out font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined text-[20px]" data-weight="fill">calendar_view_day</span>
+                        Resources
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-4 px-gutter py-4 text-on-surface-variant dark:text-surface-variant hover:bg-accent-soft hover:text-primary dark:hover:text-primary-fixed-dim transition-all duration-150 ease-in-out font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined text-[20px]">bolt</span>
+                        Solver Engine
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-4 px-gutter py-4 text-on-surface-variant dark:text-surface-variant hover:bg-accent-soft hover:text-primary dark:hover:text-primary-fixed-dim transition-all duration-150 ease-in-out font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined text-[20px]">history</span>
+                        Version History
+                    </a>
+</li>
+<li>
+<a class="flex items-center gap-4 px-gutter py-4 text-on-surface-variant dark:text-surface-variant hover:bg-accent-soft hover:text-primary dark:hover:text-primary-fixed-dim transition-all duration-150 ease-in-out font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+                        Settings
+                    </a>
+</li>
+</ul>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-screen overflow-hidden relative">
+<!-- TopAppBar -->
+<header class="docked top-0 w-full border-b-2 border-on-background dark:border-outline-variant bg-paper-raised dark:bg-surface-container-highest h-16 flex justify-between items-center px-margin-page shrink-0 z-30">
+<div class="font-label-caps text-label-caps tracking-widest text-secondary dark:text-secondary-fixed">
+                Organization: Central University
+            </div>
+<div class="flex items-center gap-6">
+<button class="text-on-surface-variant dark:text-surface-variant hover:text-secondary dark:hover:text-secondary-fixed transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined">sync</span>
+</button>
+<button class="text-on-surface-variant dark:text-surface-variant hover:text-secondary dark:hover:text-secondary-fixed transition-colors flex items-center justify-center relative">
+<span class="material-symbols-outlined">notifications_active</span>
+<span class="absolute top-0 right-0 w-2 h-2 bg-secondary rounded-full"></span>
+</button>
+<button class="text-on-surface-variant dark:text-surface-variant hover:text-secondary dark:hover:text-secondary-fixed transition-colors flex items-center justify-center mr-4">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="h-8 w-[1px] bg-rule"></div>
+<button class="flex items-center gap-3 text-on-surface-variant dark:text-surface-variant hover:text-secondary transition-colors pl-4">
+<span class="font-label-caps text-label-caps hidden sm:block">User Profile</span>
+<div class="w-8 h-8 rounded-full border border-on-background overflow-hidden bg-surface-variant">
+<img alt="Administrator Avatar" class="w-full h-full object-cover" data-alt="A small, professional headshot avatar of an academic administrator. Neutral background, high quality, soft studio lighting. 50-100 words detailed prompt describing the administrator avatar image used in the top bar of the application." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDxMwvC0BanCIWsPGG1yGt-o6TZgwwzcgKDRBftny6NEVN8dvkr7lzXilM2YH7QI7s1gNgHmLY1AHobOVVOriH_Kb8O-rp6MxHn0Y40euZ_6a_jsQCBpjvHmLz2jIWFN5uFWtOzmiu6h687ySlT27IZp--V16bETfgHT_ypST50vIURG2bTrqG9jMTuEFiu_tNDJUx5BPRvL424IBwCsZpG7t_yyW5NosNcPCf_w_DC9W3oqMYIHXtHTYnB-secxLrlIr_lICw4Y48"/>
+</div>
+</button>
+</div>
+</header>
+<!-- Canvas -->
+<div class="flex-1 overflow-y-auto p-margin-page scroll-smooth">
+<div class="max-w-[980px] mx-auto">
+<!-- Page Header & Actions -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-stack-md gap-4">
+<div>
+<div class="flex items-center gap-2 mb-2">
+<span class="font-label-caps text-label-caps text-mono-grey">RESOURCES / </span>
+<span class="font-label-caps text-label-caps text-on-background">TEACHERS</span>
+</div>
+<h2 class="font-display-lg-mobile md:font-display-lg text-display-lg-mobile md:text-display-lg text-on-background">Faculty Roster</h2>
+</div>
+<div class="flex gap-4 w-full md:w-auto">
+<div class="relative flex-1 md:w-64">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-mono-grey text-[18px]">search</span>
+<input class="w-full bg-paper-raised border-b border-on-background border-t-0 border-l-0 border-r-0 pl-10 pr-4 py-2 font-body-sm text-on-background focus:border-primary focus:ring-0 transition-colors bg-transparent placeholder-mono-grey" placeholder="Search faculty..." type="text"/>
+</div>
+<button class="bg-primary text-paper-raised px-4 py-2 rounded shrink-0 font-label-caps text-label-caps border border-transparent hover:bg-on-primary-fixed-variant transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">add</span>
+                            Add Teacher
+                        </button>
+</div>
+</div>
+<!-- High Density Data Table -->
+<div class="bg-paper-raised border border-on-background rounded flex flex-col mb-stack-lg shadow-sm">
+<!-- Table Header -->
+<div class="grid grid-cols-12 gap-4 px-inset-compact py-3 bg-on-background text-paper-raised border-b border-on-background font-data-table text-data-table rounded-t">
+<div class="col-span-3 flex items-center">TEACHER NAME</div>
+<div class="col-span-2 flex items-center">DEPARTMENT</div>
+<div class="col-span-2 flex items-center justify-end pr-4">LOAD (HRS)</div>
+<div class="col-span-4 flex items-center">ACTIVE CONSTRAINTS</div>
+<div class="col-span-1 flex items-center justify-end">ACTIONS</div>
+</div>
+<!-- Table Rows -->
+<div class="flex flex-col">
+<!-- Row 1 -->
+<div class="grid grid-cols-12 gap-4 px-inset-compact py-4 border-b border-rule hover:bg-surface-bright transition-colors group items-center">
+<div class="col-span-3 font-body-sm font-medium text-on-background">Dr. Aris Thorne</div>
+<div class="col-span-2 font-data-table text-data-table text-mono-grey">Mathematics</div>
+<div class="col-span-2 flex items-center justify-end pr-4">
+<div class="w-full flex items-center gap-2 justify-end">
+<span class="font-data-table text-data-table">18/20</span>
+<div class="w-16 h-1.5 bg-rule rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[90%]"></div>
+</div>
+</div>
+</div>
+<div class="col-span-4 flex flex-wrap gap-2">
+<span class="px-2 py-0.5 border border-dashed border-outline text-on-surface-variant font-data-table text-data-table rounded text-[11px] bg-paper">No Morning Classes</span>
+<span class="px-2 py-0.5 border border-dashed border-outline text-on-surface-variant font-data-table text-data-table rounded text-[11px] bg-paper">Lab Req</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-mono-grey hover:text-primary transition-colors"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+<button class="text-mono-grey hover:text-error transition-colors"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+</div>
+</div>
+<!-- Row 2 -->
+<div class="grid grid-cols-12 gap-4 px-inset-compact py-4 border-b border-rule hover:bg-surface-bright transition-colors group items-center">
+<div class="col-span-3 font-body-sm font-medium text-on-background flex items-center gap-2">
+                                Prof. Elena Rostova
+                                <span class="w-1.5 h-1.5 bg-error rounded-full" title="Constraint Conflict"></span>
+</div>
+<div class="col-span-2 font-data-table text-data-table text-mono-grey">Physics</div>
+<div class="col-span-2 flex items-center justify-end pr-4">
+<div class="w-full flex items-center gap-2 justify-end">
+<span class="font-data-table text-data-table text-error">22/20</span>
+<div class="w-16 h-1.5 bg-error-container rounded-full overflow-hidden">
+<div class="h-full bg-error w-full"></div>
+</div>
+</div>
+</div>
+<div class="col-span-4 flex flex-wrap gap-2">
+<span class="px-2 py-0.5 border border-dashed border-error text-error font-data-table text-data-table rounded text-[11px] bg-signal-soft flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">warning</span> Overload
+                                </span>
+<span class="px-2 py-0.5 border border-dashed border-outline text-on-surface-variant font-data-table text-data-table rounded text-[11px] bg-paper">Adjunct</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-mono-grey hover:text-primary transition-colors"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+<button class="text-mono-grey hover:text-error transition-colors"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+</div>
+</div>
+<!-- Row 3 -->
+<div class="grid grid-cols-12 gap-4 px-inset-compact py-4 border-b border-rule hover:bg-surface-bright transition-colors group items-center">
+<div class="col-span-3 font-body-sm font-medium text-on-background">Dr. Marcus Vance</div>
+<div class="col-span-2 font-data-table text-data-table text-mono-grey">Computer Sci</div>
+<div class="col-span-2 flex items-center justify-end pr-4">
+<div class="w-full flex items-center gap-2 justify-end">
+<span class="font-data-table text-data-table">12/15</span>
+<div class="w-16 h-1.5 bg-rule rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[80%]"></div>
+</div>
+</div>
+</div>
+<div class="col-span-4 flex flex-wrap gap-2">
+<span class="px-2 py-0.5 border border-dashed border-outline text-on-surface-variant font-data-table text-data-table rounded text-[11px] bg-paper">T-TH Only</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-mono-grey hover:text-primary transition-colors"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+<button class="text-mono-grey hover:text-error transition-colors"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+</div>
+</div>
+<!-- Row 4 -->
+<div class="grid grid-cols-12 gap-4 px-inset-compact py-4 hover:bg-surface-bright transition-colors group items-center">
+<div class="col-span-3 font-body-sm font-medium text-on-background">Sarah Jenkins, MFA</div>
+<div class="col-span-2 font-data-table text-data-table text-mono-grey">Fine Arts</div>
+<div class="col-span-2 flex items-center justify-end pr-4">
+<div class="w-full flex items-center gap-2 justify-end">
+<span class="font-data-table text-data-table">6/10</span>
+<div class="w-16 h-1.5 bg-rule rounded-full overflow-hidden">
+<div class="h-full bg-primary w-[60%]"></div>
+</div>
+</div>
+</div>
+<div class="col-span-4 flex flex-wrap gap-2">
+<span class="px-2 py-0.5 border border-dashed border-outline text-on-surface-variant font-data-table text-data-table rounded text-[11px] bg-paper">Studio Block Req</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="text-mono-grey hover:text-primary transition-colors"><span class="material-symbols-outlined text-[18px]">edit</span></button>
+<button class="text-mono-grey hover:text-error transition-colors"><span class="material-symbols-outlined text-[18px]">more_vert</span></button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Floating Action Controls (Undo/Redo) -->
+<div class="absolute bottom-margin-page right-margin-page flex items-center gap-2 bg-paper-raised border-2 border-on-background rounded-full px-2 py-2 shadow-[4px_4px_0px_0px_rgba(24,28,32,1)] z-40">
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-background hover:bg-surface-variant transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+<span class="material-symbols-outlined">undo</span>
+</button>
+<div class="w-[1px] h-6 bg-rule"></div>
+<button class="w-10 h-10 flex items-center justify-center rounded-full text-on-background hover:bg-surface-variant transition-colors opacity-50 cursor-not-allowed">
+<span class="material-symbols-outlined">redo</span>
+</button>
+</div>
+</main>
+</body></html>

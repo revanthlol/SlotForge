@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SlotForge - Rooms</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "mono-grey": "#6b6f73",
+                      "primary-container": "#2d5d4f",
+                      "surface-variant": "#e0e3e8",
+                      "surface-container-highest": "#e0e3e8",
+                      "on-tertiary-container": "#fcb9af",
+                      "signal-soft": "rgba(196, 98, 45, 0.12)",
+                      "on-secondary-fixed-variant": "#7a3000",
+                      "surface-bright": "#f7f9ff",
+                      "secondary-container": "#fd8e55",
+                      "secondary": "#9c440f",
+                      "on-primary-container": "#a1d4c2",
+                      "on-tertiary-fixed": "#34100b",
+                      "inverse-on-surface": "#eef1f6",
+                      "surface-container-lowest": "#ffffff",
+                      "paper-raised": "#ffffff",
+                      "on-surface": "#181c20",
+                      "background": "#f7f9ff",
+                      "surface-container-low": "#f1f4f9",
+                      "on-primary": "#ffffff",
+                      "on-primary-fixed": "#002018",
+                      "grid-line": "rgba(27, 31, 35, 0.08)",
+                      "error": "#ba1a1a",
+                      "on-tertiary-fixed-variant": "#693a33",
+                      "rule": "rgba(27, 31, 35, 0.14)",
+                      "primary-fixed-dim": "#9fd1bf",
+                      "surface-dim": "#d7dae0",
+                      "tertiary": "#5e312a",
+                      "paper": "#f7f5f0",
+                      "on-background": "#181c20",
+                      "error-container": "#ffdad6",
+                      "on-secondary-fixed": "#351000",
+                      "on-error": "#ffffff",
+                      "tertiary-fixed-dim": "#f9b6ac",
+                      "tertiary-fixed": "#ffdad5",
+                      "surface-container": "#ebeef3",
+                      "on-secondary-container": "#6e2a00",
+                      "surface-container-high": "#e5e8ee",
+                      "accent-soft": "rgba(45, 93, 79, 0.12)",
+                      "on-error-container": "#93000a",
+                      "tertiary-container": "#794740",
+                      "primary-fixed": "#baeddb",
+                      "outline": "#707975",
+                      "primary": "#124538",
+                      "inverse-surface": "#2d3135",
+                      "secondary-fixed-dim": "#ffb693",
+                      "secondary-fixed": "#ffdbcc",
+                      "on-tertiary": "#ffffff",
+                      "surface": "#f7f9ff",
+                      "on-surface-variant": "#404945",
+                      "on-primary-fixed-variant": "#1e4f41",
+                      "inverse-primary": "#9fd1bf",
+                      "surface-tint": "#376759",
+                      "outline-variant": "#c0c8c4",
+                      "on-secondary": "#ffffff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "spacing": {
+                      "grid-unit": "64px",
+                      "stack-md": "32px",
+                      "inset-standard": "24px 26px",
+                      "margin-page": "32px",
+                      "gutter": "16px",
+                      "inset-deep": "32px 36px",
+                      "inset-compact": "16px 18px",
+                      "stack-lg": "64px",
+                      "stack-sm": "16px"
+              },
+              "fontFamily": {
+                      "data-table": [
+                              "JetBrains Mono"
+                      ],
+                      "body-lg": [
+                              "IBM Plex Sans"
+                      ],
+                      "headline-md": [
+                              "Fraunces"
+                      ],
+                      "body-sm": [
+                              "IBM Plex Sans"
+                      ],
+                      "headline-sm": [
+                              "Fraunces"
+                      ],
+                      "display-lg-mobile": [
+                              "Fraunces"
+                      ],
+                      "code-snippet": [
+                              "JetBrains Mono"
+                      ],
+                      "label-caps": [
+                              "JetBrains Mono"
+                      ],
+                      "display-lg": [
+                              "Fraunces"
+                      ]
+              },
+              "fontSize": {
+                      "data-table": [
+                              "12px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-lg": [
+                              "16.5px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-md": [
+                              "30px",
+                              {
+                                      "lineHeight": "1.3",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-sm": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-sm": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg-mobile": [
+                              "40px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "code-snippet": [
+                              "12.5px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "label-caps": [
+                              "13px",
+                              {
+                                      "lineHeight": "1",
+                                      "letterSpacing": "0.12em",
+                                      "fontWeight": "500"
+                              }
+                      ],
+                      "display-lg": [
+                              "64px",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&amp;family=IBM+Plex+Sans:wght@400;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        body {
+            background-image: linear-gradient(var(--tw-colors-grid-line) 1px, transparent 1px),
+            linear-gradient(90deg, var(--tw-colors-grid-line) 1px, transparent 1px);
+            background-size: 64px 64px;
+        }
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 24
+        }
+    </style>
+</head>
+<body class="bg-paper text-on-background min-h-screen flex antialiased">
+<!-- SideNavBar -->
+<nav class="fixed docked left-0 h-screen w-64 border-r-2 border-on-background dark:border-outline-variant bg-paper z-50 flex flex-col transition-all duration-150 ease-in-out">
+<div class="px-inset-standard py-stack-md">
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">SlotForge</h1>
+<p class="font-body-sm text-body-sm text-mono-grey mt-1">Institutional Admin</p>
+</div>
+<div class="flex-1 overflow-y-auto flex flex-col gap-1 px-4 mt-stack-md">
+<a class="flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-on-surface-variant dark:text-surface-variant hover:bg-accent-soft transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-caps text-label-caps">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-primary dark:text-primary-fixed font-bold border-l-4 border-primary bg-accent-soft" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_view_day">calendar_view_day</span>
+<span class="font-label-caps text-label-caps">Resources</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-on-surface-variant dark:text-surface-variant hover:bg-accent-soft transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="bolt">bolt</span>
+<span class="font-label-caps text-label-caps">Solver Engine</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-on-surface-variant dark:text-surface-variant hover:bg-accent-soft transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="font-label-caps text-label-caps">Version History</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-on-surface-variant dark:text-surface-variant hover:bg-accent-soft transition-colors" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span class="font-label-caps text-label-caps">Settings</span>
+</a>
+</div>
+<div class="mt-auto">
+<button class="w-full bg-primary text-paper-raised font-label-caps text-label-caps py-4 hover:bg-opacity-90 transition-opacity">
+                Generate Schedule
+            </button>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 ml-64 flex flex-col min-h-screen">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center px-margin-page h-16 w-full docked top-0 border-b-2 border-on-background dark:border-outline-variant bg-paper-raised z-40">
+<div class="font-label-caps text-label-caps tracking-widest text-secondary dark:text-secondary-fixed">
+                Organization: Central University
+            </div>
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant dark:text-surface-variant hover:text-secondary dark:hover:text-secondary-fixed transition-colors">
+<span class="material-symbols-outlined" data-icon="sync">sync</span>
+</button>
+<button class="text-on-surface-variant dark:text-surface-variant hover:text-secondary dark:hover:text-secondary-fixed transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications_active">notifications_active</span>
+</button>
+<button class="text-on-surface-variant dark:text-surface-variant hover:text-secondary dark:hover:text-secondary-fixed transition-colors">
+<span class="material-symbols-outlined" data-icon="help_outline">help_outline</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-surface-dim overflow-hidden ml-2 cursor-pointer border border-on-background">
+<img alt="Administrator Avatar" class="w-full h-full object-cover" data-alt="A small, professional portrait photo of a university administrator in a light grey suit against a neutral white background. Clean, high-fidelity corporate headshot style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFIShnaEd4fTWXzJL7fnFjrefCRjQiZ_fZLrzBKDEXJIddfVbnXyG_F7BvfCgx75CfkNM11Ox6k4M_65Q6W9v9pHbWsgD8ZDWenfikwHydBlnwi_-inR8uLg5n2hK_yLYhDRlPjCnF35Olt4zTCbTcK6vkK1gtv6kimk6GAOAeS8bpArd0KqKbyDetC_sLrH-kILiGt6_9a4yTLhM3SFPtZeNPUGPy2UIEaogLwvis3eBWxm81JVOCFr8V0Gp0p1XoXelZctC09JM"/>
+</div>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 p-margin-page overflow-auto">
+<div class="max-w-[1200px] mx-auto w-full">
+<!-- Toolbar -->
+<div class="flex justify-between items-end mb-stack-md pb-stack-sm border-b-[1px] border-rule">
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-background">Rooms Management</h2>
+<p class="font-body-sm text-body-sm text-mono-grey mt-1">Configure physical spaces for solver allocation</p>
+</div>
+<div class="flex items-center gap-gutter">
+<!-- Undo/Redo -->
+<div class="flex items-center border-[1px] border-on-background rounded-DEFAULT overflow-hidden bg-paper-raised">
+<button class="p-2 text-on-surface-variant hover:bg-accent-soft hover:text-primary transition-colors border-r-[1px] border-on-background" title="Undo">
+<span class="material-symbols-outlined text-[20px]" data-icon="undo">undo</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-accent-soft hover:text-primary transition-colors opacity-50 cursor-not-allowed" disabled="" title="Redo">
+<span class="material-symbols-outlined text-[20px]" data-icon="redo">redo</span>
+</button>
+</div>
+<!-- View Toggle -->
+<div class="flex items-center border-[1px] border-on-background rounded-DEFAULT overflow-hidden bg-paper-raised">
+<button class="p-2 bg-accent-soft text-primary transition-colors border-r-[1px] border-on-background" title="Grid View">
+<span class="material-symbols-outlined text-[20px]" data-icon="grid_view">grid_view</span>
+</button>
+<button class="p-2 text-on-surface-variant hover:bg-accent-soft hover:text-primary transition-colors" title="List View">
+<span class="material-symbols-outlined text-[20px]" data-icon="view_list">view_list</span>
+</button>
+</div>
+<!-- Primary Action -->
+<button class="bg-primary text-paper-raised font-label-caps text-label-caps px-4 py-2 rounded-DEFAULT flex items-center gap-2 hover:bg-opacity-90 transition-opacity">
+<span class="material-symbols-outlined text-[18px]" data-icon="add">add</span>
+                            New Room
+                        </button>
+</div>
+</div>
+<!-- Grid View -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-stack-md">
+<!-- Room Card 1 -->
+<div class="bg-paper-raised border-[1px] border-rule hover:border-on-background hover:border-[1.5px] transition-all rounded-DEFAULT p-inset-standard flex flex-col h-full group">
+<div class="flex justify-between items-start mb-4">
+<div>
+<span class="font-data-table text-data-table text-mono-grey block mb-1">ID: SCI-101</span>
+<h3 class="font-headline-sm text-headline-sm text-on-background">Physics Lab A</h3>
+</div>
+<div class="bg-accent-soft text-primary font-data-table text-data-table px-2 py-1 rounded-[1px] flex items-center gap-1 border border-primary/20">
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                                Available
+                            </div>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-4 pb-4 border-b-[1px] border-dashed border-rule">
+<div>
+<span class="font-data-table text-data-table text-mono-grey block mb-1 uppercase tracking-wider text-[10px]">Capacity</span>
+<span class="font-body-lg text-body-lg text-on-background font-semibold">32 Seats</span>
+</div>
+<div>
+<span class="font-data-table text-data-table text-mono-grey block mb-1 uppercase tracking-wider text-[10px]">Type</span>
+<span class="font-body-sm text-body-sm text-on-background">Laboratory</span>
+</div>
+</div>
+<div class="mb-6 flex-1">
+<span class="font-data-table text-data-table text-mono-grey block mb-2 uppercase tracking-wider text-[10px]">Equipment</span>
+<div class="flex flex-wrap gap-2">
+<span class="border-[1px] border-rule text-on-surface-variant font-data-table text-[11px] px-2 py-0.5 rounded-sm bg-surface">Fume Hoods (4)</span>
+<span class="border-[1px] border-rule text-on-surface-variant font-data-table text-[11px] px-2 py-0.5 rounded-sm bg-surface">Gas Lines</span>
+<span class="border-[1px] border-rule text-on-surface-variant font-data-table text-[11px] px-2 py-0.5 rounded-sm bg-surface">Safety Shower</span>
+</div>
+</div>
+<div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity mt-auto">
+<button class="border-[1px] border-on-background text-on-background font-label-caps text-label-caps px-3 py-1.5 rounded-DEFAULT hover:bg-accent-soft transition-colors text-[11px]">
+                                Edit
+                            </button>
+</div>
+</div>
+<!-- Room Card 2 -->
+<div class="bg-paper-raised border-[1px] border-rule hover:border-on-background hover:border-[1.5px] transition-all rounded-DEFAULT p-inset-standard flex flex-col h-full group">
+<div class="flex justify-between items-start mb-4">
+<div>
+<span class="font-data-table text-data-table text-mono-grey block mb-1">ID: HUM-204</span>
+<h3 class="font-headline-sm text-headline-sm text-on-background">Seminar Room</h3>
+</div>
+<div class="bg-accent-soft text-primary font-data-table text-data-table px-2 py-1 rounded-[1px] flex items-center gap-1 border border-primary/20">
+<div class="w-1.5 h-1.5 rounded-full bg-primary"></div>
+                                Available
+                            </div>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-4 pb-4 border-b-[1px] border-dashed border-rule">
+<div>
+<span class="font-data-table text-data-table text-mono-grey block mb-1 uppercase tracking-wider text-[10px]">Capacity</span>
+<span class="font-body-lg text-body-lg text-on-background font-semibold">16 Seats</span>
+</div>
+<div>
+<span class="font-data-table text-data-table text-mono-grey block mb-1 uppercase tracking-wider text-[10px]">Type</span>
+<span class="font-body-sm text-body-sm text-on-background">Classroom</span>
+</div>
+</div>
+<div class="mb-6 flex-1">
+<span class="font-data-table text-data-table text-mono-grey block mb-2 uppercase tracking-wider text-[10px]">Equipment</span>
+<div class="flex flex-wrap gap-2">
+<span class="border-[1px] border-rule text-on-surface-variant font-data-table text-[11px] px-2 py-0.5 rounded-sm bg-surface">Projector</span>
+<span class="border-[1px] border-rule text-on-surface-variant font-data-table text-[11px] px-2 py-0.5 rounded-sm bg-surface">Whiteboard</span>
+<span class="border-[1px] border-rule text-on-surface-variant font-data-table text-[11px] px-2 py-0.5 rounded-sm bg-surface">Video Conf</span>
+</div>
+</div>
+<div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity mt-auto">
+<button class="border-[1px] border-on-background text-on-background font-label-caps text-label-caps px-3 py-1.5 rounded-DEFAULT hover:bg-accent-soft transition-colors text-[11px]">
+                                Edit
+                            </button>
+</div>
+</div>
+<!-- Room Card 3 (Conflict) -->
+<div class="bg-paper-raised border-[1px] border-rule hover:border-on-background hover:border-[1.5px] transition-all rounded-DEFAULT p-inset-standard flex flex-col h-full group relative overflow-hidden">
+<!-- Conflict Marker Left Border -->
+<div class="absolute left-0 top-0 bottom-0 w-[4px] bg-[#9c440f]"></div>
+<div class="flex justify-between items-start mb-4 pl-2">
+<div>
+<span class="font-data-table text-data-table text-mono-grey block mb-1">ID: AUD-Main</span>
+<h3 class="font-headline-sm text-headline-sm text-on-background">Main Auditorium</h3>
+</div>
+<div class="bg-signal-soft text-secondary font-data-table text-data-table px-2 py-1 rounded-[1px] flex items-center gap-1 border border-secondary/20">
+<span class="material-symbols-outlined text-[14px]" data-icon="warning">warning</span>
+                                Maint. Conflict
+                            </div>
+</div>
+<div class="grid grid-cols-2 gap-4 mb-4 pb-4 border-b-[1px] border-dashed border-rule pl-2">
+<div>
+<span class="font-data-table text-data-table text-mono-grey block mb-1 uppercase tracking-wider text-[10px]">Capacity</span>
+<span class="font-body-lg text-body-lg text-on-background font-semibold">450 Seats</span>
+</div>
+<div>
+<span class="font-data-table text-data-table text-mono-grey block mb-1 uppercase tracking-wider text-[10px]">Type</span>
+<span class="font-body-sm text-body-sm text-on-background">Lecture Hall</span>
+</div>
+</div>
+<div class="mb-6 flex-1 pl-2">
+<span class="font-data-table text-data-table text-mono-grey block mb-2 uppercase tracking-wider text-[10px]">Equipment</span>
+<div class="flex flex-wrap gap-2">
+<span class="border-[1px] border-rule text-on-surface-variant font-data-table text-[11px] px-2 py-0.5 rounded-sm bg-surface">Dual Projectors</span>
+<span class="border-[1px] border-rule text-on-surface-variant font-data-table text-[11px] px-2 py-0.5 rounded-sm bg-surface">PA System</span>
+<span class="border-[1px] border-rule text-on-surface-variant font-data-table text-[11px] px-2 py-0.5 rounded-sm bg-surface">Recording Rig</span>
+</div>
+<div class="mt-4 p-2 border-[1px] border-secondary/30 bg-signal-soft rounded-sm">
+<span class="font-data-table text-[10px] text-secondary block">ERR_MAINT_OVERLAP: Scheduled HVAC repair blocks afternoon slots.</span>
+</div>
+</div>
+<div class="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity mt-auto pl-2">
+<button class="border-[1px] border-on-background text-on-background font-label-caps text-label-caps px-3 py-1.5 rounded-DEFAULT hover:bg-accent-soft transition-colors text-[11px]">
+                                Edit
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SlotForge - Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,100..900;1,9..144,100..900&amp;family=IBM+Plex+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;1,100;1,200;1,300;1,400;1,500;1,600;1,700&amp;family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-bright": "#f7f9ff",
+                        "secondary": "#9c440f",
+                        "surface-container-highest": "#e0e3e8",
+                        "background": "#f7f9ff",
+                        "surface-container-low": "#f1f4f9",
+                        "on-error": "#ffffff",
+                        "surface": "#f7f9ff",
+                        "on-surface": "#181c20",
+                        "surface-tint": "#376759",
+                        "on-primary": "#ffffff",
+                        "surface-dim": "#d7dae0",
+                        "on-tertiary-container": "#fcb9af",
+                        "on-primary-fixed": "#002018",
+                        "tertiary-fixed-dim": "#f9b6ac",
+                        "on-secondary": "#ffffff",
+                        "paper-raised": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "inverse-primary": "#9fd1bf",
+                        "rule": "rgba(27, 31, 35, 0.14)",
+                        "on-tertiary-fixed-variant": "#693a33",
+                        "mono-grey": "#6b6f73",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed": "#351000",
+                        "inverse-on-surface": "#eef1f6",
+                        "surface-variant": "#e0e3e8",
+                        "primary-container": "#2d5d4f",
+                        "primary-fixed": "#baeddb",
+                        "tertiary": "#5e312a",
+                        "secondary-container": "#fd8e55",
+                        "on-primary-fixed-variant": "#1e4f41",
+                        "on-tertiary-fixed": "#34100b",
+                        "surface-container": "#ebeef3",
+                        "on-surface-variant": "#404945",
+                        "error-container": "#ffdad6",
+                        "primary-fixed-dim": "#9fd1bf",
+                        "on-error-container": "#93000a",
+                        "outline-variant": "#c0c8c4",
+                        "signal-soft": "rgba(196, 98, 45, 0.12)",
+                        "on-secondary-container": "#6e2a00",
+                        "inverse-surface": "#2d3135",
+                        "paper": "#f7f5f0",
+                        "grid-line": "rgba(27, 31, 35, 0.08)",
+                        "secondary-fixed-dim": "#ffb693",
+                        "accent-soft": "rgba(45, 93, 79, 0.12)",
+                        "tertiary-container": "#794740",
+                        "on-secondary-fixed-variant": "#7a3000",
+                        "outline": "#707975",
+                        "error": "#ba1a1a",
+                        "primary": "#124538",
+                        "on-background": "#181c20",
+                        "tertiary-fixed": "#ffdad5",
+                        "surface-container-high": "#e5e8ee",
+                        "secondary-fixed": "#ffdbcc",
+                        "on-primary-container": "#a1d4c2"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "stack-md": "32px",
+                        "gutter": "16px",
+                        "inset-standard": "24px 26px",
+                        "stack-sm": "16px",
+                        "inset-deep": "32px 36px",
+                        "grid-unit": "64px",
+                        "margin-page": "32px",
+                        "stack-lg": "64px",
+                        "inset-compact": "16px 18px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Fraunces"],
+                        "display-lg-mobile": ["Fraunces"],
+                        "headline-sm": ["Fraunces"],
+                        "headline-md": ["Fraunces"],
+                        "data-table": ["JetBrains Mono"],
+                        "code-snippet": ["JetBrains Mono"],
+                        "body-sm": ["IBM Plex Sans"],
+                        "body-lg": ["IBM Plex Sans"],
+                        "label-caps": ["JetBrains Mono"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["64px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "600" }],
+                        "display-lg-mobile": ["40px", { "lineHeight": "1.2", "fontWeight": "600" }],
+                        "headline-sm": ["18px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "headline-md": ["30px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                        "data-table": ["12px", { "lineHeight": "1.2", "fontWeight": "400" }],
+                        "code-snippet": ["12.5px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "body-sm": ["14px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "body-lg": ["16.5px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "label-caps": ["13px", { "lineHeight": "1", "letterSpacing": "0.12em", "fontWeight": "500" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.paper');
+            background-image: linear-gradient(theme('colors.grid-line') 1px, transparent 1px),
+                              linear-gradient(90deg, theme('colors.grid-line') 1px, transparent 1px);
+            background-size: theme('spacing.grid-unit') theme('spacing.grid-unit');
+        }
+        
+        /* Custom Checkbox/Radio/Toggle resets to align with Industrial Academic style */
+        [type="checkbox"]:checked, [type="radio"]:checked {
+            background-color: theme('colors.primary');
+            border-color: theme('colors.primary');
+        }
+        [type="checkbox"]:focus, [type="radio"]:focus {
+            ring-color: theme('colors.primary-fixed-dim');
+        }
+
+        /* Toggle Switch */
+        .toggle-switch {
+            appearance: none;
+            width: 40px;
+            height: 20px;
+            background: theme('colors.surface-variant');
+            border-radius: theme('borderRadius.full');
+            position: relative;
+            cursor: pointer;
+            outline: none;
+            border: 1px solid theme('colors.rule');
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 1px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            background: theme('colors.surface-container-lowest');
+            border-radius: 50%;
+            transition: transform 0.2s;
+            border: 1px solid theme('colors.rule');
+        }
+        .toggle-switch:checked {
+            background: theme('colors.primary');
+            border-color: theme('colors.primary');
+        }
+        .toggle-switch:checked::after {
+            transform: translateX(20px);
+            border-color: theme('colors.surface-container-lowest');
+        }
+
+        /* Input Fields */
+        .academic-input {
+            background-color: theme('colors.paper-raised');
+            border: none;
+            border-bottom: 1px solid theme('colors.on-surface');
+            border-radius: theme('borderRadius.DEFAULT') theme('borderRadius.DEFAULT') 0 0;
+            padding: 8px 12px;
+            transition: border-bottom-color 0.2s;
+        }
+        .academic-input:focus {
+            outline: none;
+            border-bottom: 2px solid theme('colors.primary');
+            background-color: theme('colors.surface-bright');
+        }
+        
+        .section-card {
+            background-color: theme('colors.paper-raised');
+            border: 1px solid var(--tw-colors-rule);
+            padding: theme('spacing.inset-deep');
+            margin-bottom: theme('spacing.stack-md');
+        }
+    </style>
+</head>
+<body class="font-body-lg text-body-lg text-on-surface antialiased min-h-screen flex">
+<!-- SideNavBar (Semantic Shell: Settings is a top-level destination) -->
+<nav class="docked left-0 h-screen w-64 border-r-2 border-on-background bg-paper flex flex-col h-full py-stack-md fixed z-20 hidden md:flex">
+<div class="px-gutter mb-stack-md">
+<h1 class="font-headline-md text-headline-md font-bold text-primary mb-1">SlotForge</h1>
+<p class="font-label-caps text-label-caps text-on-surface-variant">Institutional Admin</p>
+</div>
+<div class="flex-1 overflow-y-auto">
+<ul class="space-y-2">
+<!-- Dashboard -->
+<li>
+<a class="flex items-center px-gutter py-3 text-on-surface-variant hover:bg-accent-soft hover:text-primary transition-colors transition-all duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined mr-3">dashboard</span>
+<span class="font-label-caps text-label-caps">Dashboard</span>
+</a>
+</li>
+<!-- Resources -->
+<li>
+<a class="flex items-center px-gutter py-3 text-on-surface-variant hover:bg-accent-soft hover:text-primary transition-colors transition-all duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined mr-3">calendar_view_day</span>
+<span class="font-label-caps text-label-caps">Resources</span>
+</a>
+</li>
+<!-- Solver Engine -->
+<li>
+<a class="flex items-center px-gutter py-3 text-on-surface-variant hover:bg-accent-soft hover:text-primary transition-colors transition-all duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined mr-3">bolt</span>
+<span class="font-label-caps text-label-caps">Solver Engine</span>
+</a>
+</li>
+<!-- Version History -->
+<li>
+<a class="flex items-center px-gutter py-3 text-on-surface-variant hover:bg-accent-soft hover:text-primary transition-colors transition-all duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined mr-3">history</span>
+<span class="font-label-caps text-label-caps">Version History</span>
+</a>
+</li>
+<!-- Settings (ACTIVE) -->
+<li>
+<a class="flex items-center px-gutter py-3 text-primary font-bold border-r-4 border-primary bg-accent-soft transition-all duration-150 ease-in-out" href="#">
+<span class="material-symbols-outlined mr-3" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-label-caps text-label-caps">Settings</span>
+</a>
+</li>
+</ul>
+</div>
+<div class="px-gutter mt-auto pt-stack-md">
+<button class="w-full bg-primary text-paper-raised font-label-caps text-label-caps py-3 rounded-DEFAULT hover:opacity-90 transition-opacity">
+                Generate Schedule
+            </button>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col md:ml-64 min-h-screen">
+<!-- TopAppBar -->
+<header class="docked top-0 w-full border-b-2 border-on-background bg-paper-raised flex justify-between items-center px-margin-page h-16 sticky z-10">
+<div class="flex items-center gap-4">
+<span class="font-label-caps text-label-caps tracking-widest text-secondary">Organization: Central University</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="flex items-center gap-4 text-on-surface-variant">
+<button aria-label="sync" class="hover:text-secondary transition-colors">
+<span class="material-symbols-outlined">sync</span>
+</button>
+<button aria-label="notifications_active" class="hover:text-secondary transition-colors">
+<span class="material-symbols-outlined">notifications_active</span>
+</button>
+<button aria-label="help_outline" class="hover:text-secondary transition-colors">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+</div>
+<div class="h-8 w-px bg-rule"></div>
+<button class="flex items-center gap-2 hover:text-secondary transition-colors">
+<img alt="Administrator Avatar" class="w-8 h-8 rounded-full object-cover border border-outline-variant" data-alt="A professional headshot avatar of an institutional administrator. The portrait is sharply focused, well-lit with high-key lighting, emphasizing clarity and authority within an industrial academic setting. The background is a stark, minimal white or subtle textured grey to maintain a technical aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKq0S9SgVguFDCsKJGmXVEBbujn4VZnBGvMbmc-C7eB4w9cICzTGqk6zLRruN0KQcS4RVyyuOKc-le5JcZLC19qXSdAtfNEKybcMQQK8e_Y0e31-zZlyx1xKAEaNeBRu92ykegUOBH6drP-VccHy7qSnR8zT0N390xZG1f4WTkfQwq_4QtJLwJ0CLAhi91aiYzikBqpeO-dosMbCY0oc1h385Jce6pkei8RIsVmoLGZzRpk_Z4VK364EuqIvrphN0xrR9uvtRU7Lo"/>
+<span class="font-label-caps text-label-caps hidden sm:block">User Profile</span>
+</button>
+</div>
+</header>
+<!-- Canvas -->
+<main class="flex-1 p-margin-page overflow-y-auto">
+<div class="max-w-[980px] mx-auto">
+<!-- Page Header -->
+<div class="mb-stack-lg border-b-2 border-on-surface pb-stack-sm flex justify-between items-end">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-2">Engine Configuration</h2>
+<p class="font-body-lg text-body-lg text-mono-grey">Manage global parameters, identity, and operational limits.</p>
+</div>
+</div>
+<!-- Bento-ish Layout Container -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-stack-md">
+<!-- Left Column: Primary Settings -->
+<div class="lg:col-span-8 space-y-stack-md">
+<!-- General / Identity -->
+<section class="section-card">
+<h3 class="font-headline-sm text-headline-sm text-primary mb-6 border-b border-dashed border-rule pb-2">Institutional Identity</h3>
+<div class="space-y-6">
+<div class="flex flex-col">
+<label class="font-label-caps text-label-caps text-on-surface-variant mb-2" for="org-name">Organization Name</label>
+<input class="academic-input font-body-lg text-body-lg w-full max-w-md" id="org-name" type="text" value="Central University"/>
+<span class="font-body-sm text-body-sm text-mono-grey mt-1">This name appears on generated schedules and reports.</span>
+</div>
+<div class="flex flex-col">
+<label class="font-label-caps text-label-caps text-on-surface-variant mb-2">Institutional Emblem</label>
+<div class="flex items-center gap-4">
+<div class="w-16 h-16 border-2 border-dashed border-outline-variant bg-surface-container flex items-center justify-center">
+<span class="material-symbols-outlined text-mono-grey">domain</span>
+</div>
+<button class="border border-on-surface text-on-surface font-label-caps text-label-caps px-4 py-2 hover:bg-accent-soft transition-colors">
+                                            Upload Replacement
+                                        </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Solver Preferences -->
+<section class="section-card relative overflow-hidden">
+<!-- Subtle technical background texture -->
+<div class="absolute inset-0 opacity-[0.03] pointer-events-none" style="background-image: radial-gradient(circle at 2px 2px, black 1px, transparent 0); background-size: 16px 16px;"></div>
+<h3 class="font-headline-sm text-headline-sm text-primary mb-6 border-b border-dashed border-rule pb-2 flex justify-between items-center relative z-10">
+<span>Solver Parameters</span>
+<span class="font-code-snippet text-code-snippet text-mono-grey bg-surface px-2 py-1 border border-rule">v2.4.1-engine</span>
+</h3>
+<div class="space-y-6 relative z-10">
+<!-- Strictness Level -->
+<div>
+<label class="font-label-caps text-label-caps text-on-surface-variant mb-2 block">Constraint Strictness</label>
+<div class="grid grid-cols-3 gap-4">
+<label class="border border-rule p-4 cursor-pointer hover:border-primary transition-colors group">
+<input class="hidden" name="strictness" type="radio" value="relaxed"/>
+<div class="font-headline-sm text-headline-sm mb-1 group-hover:text-primary">Relaxed</div>
+<div class="font-body-sm text-body-sm text-mono-grey">Prioritizes completion over soft constraints.</div>
+</label>
+<label class="border-2 border-primary bg-accent-soft p-4 cursor-pointer relative">
+<input checked="" class="hidden" name="strictness" type="radio" value="balanced"/>
+<div class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full"></div>
+<div class="font-headline-sm text-headline-sm text-primary mb-1">Balanced</div>
+<div class="font-body-sm text-body-sm text-mono-grey">Standard operational mode. Optimal trade-off.</div>
+</label>
+<label class="border border-rule p-4 cursor-pointer hover:border-primary transition-colors group">
+<input class="hidden" name="strictness" type="radio" value="absolute"/>
+<div class="font-headline-sm text-headline-sm mb-1 group-hover:text-primary">Absolute</div>
+<div class="font-body-sm text-body-sm text-mono-grey">Will fail if any constraint is breached.</div>
+</label>
+</div>
+</div>
+<div class="border-t border-dashed border-rule pt-6">
+<div class="flex items-center justify-between mb-4">
+<div>
+<div class="font-label-caps text-label-caps text-on-surface mb-1">Max Execution Time (Seconds)</div>
+<div class="font-body-sm text-body-sm text-mono-grey">Hard limit before engine timeout.</div>
+</div>
+<input class="academic-input font-code-snippet text-code-snippet w-24 text-right" type="number" value="3600"/>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<div class="font-label-caps text-label-caps text-on-surface mb-1">Heuristic Depth Search</div>
+<div class="font-body-sm text-body-sm text-mono-grey">Deeper searches take longer but yield tighter schedules.</div>
+</div>
+<input class="w-48 accent-primary" max="10" min="1" type="range" value="7"/>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Secondary Settings & Actions -->
+<div class="lg:col-span-4 space-y-stack-md">
+<!-- Notifications -->
+<section class="section-card">
+<h3 class="font-headline-sm text-headline-sm text-primary mb-6 border-b border-dashed border-rule pb-2">Event Telemetry</h3>
+<ul class="space-y-4">
+<li class="flex items-start justify-between">
+<div>
+<div class="font-body-lg text-body-lg">Engine Success</div>
+<div class="font-body-sm text-body-sm text-mono-grey">Alert when schedule generated.</div>
+</div>
+<input checked="" class="toggle-switch mt-1" type="checkbox"/>
+</li>
+<li class="flex items-start justify-between">
+<div>
+<div class="font-body-lg text-body-lg">Constraint Violation</div>
+<div class="font-body-sm text-body-sm text-mono-grey">Alert on hard failures.</div>
+</div>
+<input checked="" class="toggle-switch mt-1" type="checkbox"/>
+</li>
+<li class="flex items-start justify-between">
+<div>
+<div class="font-body-lg text-body-lg">System Updates</div>
+<div class="font-body-sm text-body-sm text-mono-grey">SlotForge versioning news.</div>
+</div>
+<input class="toggle-switch mt-1" type="checkbox"/>
+</li>
+</ul>
+</section>
+<!-- Danger Zone -->
+<section class="border border-error/30 bg-error-container/20 p-inset-compact">
+<h3 class="font-label-caps text-label-caps text-error mb-2 flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">warning</span>
+                                Critical Operations
+                            </h3>
+<p class="font-body-sm text-body-sm mb-4">Resetting the engine clears all current heuristic cache and custom parameters.</p>
+<button class="w-full border border-error text-error font-label-caps text-label-caps py-2 hover:bg-error-container transition-colors">
+                                Reset Engine Defaults
+                            </button>
+</section>
+</div>
+</div>
+<!-- Fixed Bottom Actions -->
+<div class="mt-stack-lg border-t-2 border-on-surface pt-stack-sm flex justify-between items-center bg-paper/90 backdrop-blur pb-8">
+<div class="flex gap-4">
+<button class="flex items-center gap-2 text-on-surface-variant hover:text-on-surface transition-colors font-label-caps text-label-caps px-2 py-1">
+<span class="material-symbols-outlined text-[18px]">undo</span>
+                            Undo Changes
+                        </button>
+<button class="flex items-center gap-2 text-mono-grey cursor-not-allowed font-label-caps text-label-caps px-2 py-1" disabled="">
+<span class="material-symbols-outlined text-[18px]">redo</span>
+                            Redo
+                        </button>
+</div>
+<div class="flex gap-4">
+<button class="border border-on-surface text-on-surface font-label-caps text-label-caps px-6 py-2 hover:bg-accent-soft transition-colors">
+                            Discard
+                        </button>
+<button class="bg-primary text-paper-raised font-label-caps text-label-caps px-6 py-2 rounded-DEFAULT hover:opacity-90 transition-opacity">
+                            Commit Configuration
+                        </button>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

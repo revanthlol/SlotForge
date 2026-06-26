@@ -5,7 +5,6 @@ from sqlalchemy.orm import Session
 
 from app.solver.models import ProblemInstance, Teacher, Room, Subject, Section, Constraint as SolverConstraint, TimeSlot
 from app.solver.engine import solve
-from app.solver.defaults import DEFAULT_SLOTS
 
 from app.models.organization import Organization as OrgModel
 from app.models.teacher import Teacher as TeacherModel
@@ -52,8 +51,42 @@ class TimetableService:
             SolverConstraint(id=str(c.id), constraint_type=c.constraint_type, payload=c.payload, weight=c.weight)
             for c in db_constraints
         ]
+        
+        # Dynamically generate slots based on organization configuration
+        scheduling_mode = getattr(org, "scheduling_mode", "fixed_weekday")
+        cycle_length = getattr(org, "cycle_length", 6) or 6
+        periods_per_day = getattr(org, "periods_per_day", 5) or 5
+        
+        if scheduling_mode == "day_order":
+            roman_numerals = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV"]
+            def get_roman(num):
+                if num < len(roman_numerals):
+                    return roman_numerals[num]
+                return str(num)
+            
+            slots_list = [
+                {
+                    "id": f"day_order_{get_roman(i).lower()}-{p}",
+                    "day": f"Day Order {get_roman(i)}",
+                    "period": p
+                }
+                for i in range(1, cycle_length + 1)
+                for p in range(1, periods_per_day + 1)
+            ]
+        else:
+            # fixed_weekday: Mon-Fri with the configured periods_per_day
+            slots_list = [
+                {
+                    "id": f"{day.lower()}-{p}",
+                    "day": day,
+                    "period": p
+                }
+                for day in ["Mon", "Tue", "Wed", "Thu", "Fri"]
+                for p in range(1, periods_per_day + 1)
+            ]
+            
         org_slots = [
-            TimeSlot(id=s["id"], day=s["day"], period=s["period"]) for s in DEFAULT_SLOTS
+            TimeSlot(id=s["id"], day=s["day"], period=s["period"]) for s in slots_list
         ]
         
         # 4. Build ProblemInstance
@@ -87,7 +120,7 @@ class TimetableService:
         db.flush()  # populate version.id
         
         # 8. Create slots if solve is successful
-        slot_details = {s["id"]: (s["day"], s["period"]) for s in DEFAULT_SLOTS}
+        slot_details = {s["id"]: (s["day"], s["period"]) for s in slots_list}
         
         if solver_result.status in ("OPTIMAL", "FEASIBLE"):
             for a in solver_result.assignments:
@@ -112,7 +145,10 @@ class TimetableService:
         assignments = []
         for sc in slots_created:
             # Map back day/period to slot_id
-            found_slot_id = f"{sc.day.lower()}-{sc.period}"
+            if sc.day.startswith("Day Order "):
+                found_slot_id = f"{sc.day.lower().replace(' ', '_')}-{sc.period}"
+            else:
+                found_slot_id = f"{sc.day.lower()}-{sc.period}"
             assignments.append({
                 "section_id": str(sc.section_id),
                 "subject_id": str(sc.subject_id),
@@ -146,7 +182,10 @@ class TimetableService:
         slots = db.query(SlotModel).filter(SlotModel.timetable_version_id == version.id).all()
         assignments = []
         for sc in slots:
-            found_slot_id = f"{sc.day.lower()}-{sc.period}"
+            if sc.day.startswith("Day Order "):
+                found_slot_id = f"{sc.day.lower().replace(' ', '_')}-{sc.period}"
+            else:
+                found_slot_id = f"{sc.day.lower()}-{sc.period}"
             assignments.append({
                 "section_id": str(sc.section_id),
                 "subject_id": str(sc.subject_id),

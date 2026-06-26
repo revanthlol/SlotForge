@@ -1,63 +1,86 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ConfigProvider, theme } from 'antd';
-import { AuthProvider } from './store/authContext';
-import ProtectedRoute from './components/common/ProtectedRoute';
-import AppLayout from './layouts/AppLayout';
-import LoginPage from './components/pages/auth/LoginPage';
-import DashboardPage from './components/pages/dashboard/DashboardPage';
-import TeachersPage from './components/pages/teachers/TeachersPage';
-import RoomsPage from './components/pages/rooms/RoomsPage';
-import SubjectsPage from './components/pages/subjects/SubjectsPage';
-import SectionsPage from './components/pages/sections/SectionPage';
-import ConstraintsPage from './components/pages/constraints/ConstraintsPage';
-import TimetablePage from './components/pages/timetable/TimetablePage';
-import CanvasPage from './components/pages/timetable/CanvasPage';
-import GeneratePage from './components/pages/timetable/GeneratePage';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+import AppLayout from './components/layout/AppLayout';
 
-const ANT_THEME = {
-  algorithm: theme.darkAlgorithm,
-  token: {
-    colorPrimary: '#6366f1',
-    colorBgBase: '#0a0f1e',
-    colorBgContainer: '#0f172a',
-    colorBgElevated: '#1e293b',
-    colorBorder: '#1e293b',
-    colorText: '#f1f5f9',
-    colorTextSecondary: '#94a3b8',
-    borderRadius: 8,
-    fontFamily: "'Inter', sans-serif",
-    colorLink: '#818cf8',
-    colorLinkHover: '#a5b4fc',
-  },
-};
+// Page imports
+import LoginPage from './pages/LoginPage';
+import SignupPage from './pages/SignupPage';
+import DashboardPage from './pages/DashboardPage';
+import TeachersPage from './pages/TeachersPage';
+import RoomsPage from './pages/RoomsPage';
+import SubjectsPage from './pages/SubjectsPage';
+import SectionsPage from './pages/SectionsPage';
+import TimetablePage from './pages/TimetablePage';
+import CanvasViewPage from './pages/CanvasViewPage';
+import SolverEnginePage from './pages/SolverEnginePage';
+import VersionHistoryPage from './pages/VersionHistoryPage';
+import SettingsPage from './pages/SettingsPage';
+
+function ProtectedRoute({ children }: { children: React.JSX.Element }) {
+  const { organizationId, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-paper">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm font-semibold text-primary font-mono animate-pulse">
+            SlotForge Engine Initializing...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if we have organizationId (implies signed up/in successfully)
+  if (!organizationId) {
+    return <Navigate to="/login" replace />;
+  }
+
+  return children;
+}
 
 export default function App() {
   return (
-    <ConfigProvider theme={ANT_THEME}>
-      <AuthProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* Public Auth Routes */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
+
+          {/* Protected Application Routes */}
+          <Route
+            path="/"
+            element={
               <ProtectedRoute>
                 <AppLayout />
               </ProtectedRoute>
-            }>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<DashboardPage />} />
+            }
+          >
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<DashboardPage />} />
+            
+            {/* Resources Sub-routes */}
+            <Route path="resources">
+              <Route index element={<Navigate to="teachers" replace />} />
               <Route path="teachers" element={<TeachersPage />} />
               <Route path="rooms" element={<RoomsPage />} />
               <Route path="subjects" element={<SubjectsPage />} />
               <Route path="sections" element={<SectionsPage />} />
-              <Route path="constraints" element={<ConstraintsPage />} />
-              <Route path="timetable" element={<TimetablePage />} />
-              <Route path="canvas" element={<CanvasPage />} />
-              <Route path="generate" element={<GeneratePage />} />
             </Route>
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
-          </Routes>
-        </BrowserRouter>
-      </AuthProvider>
-    </ConfigProvider>
+
+            <Route path="timetable" element={<TimetablePage />} />
+            <Route path="canvas" element={<CanvasViewPage />} />
+            <Route path="solver" element={<SolverEnginePage />} />
+            <Route path="versions" element={<VersionHistoryPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
+
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
