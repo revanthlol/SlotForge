@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { ShortcutHint, useShortcutAction } from '../contexts/ShortcutContext';
 import { useRooms, type Room } from '../hooks/useApi';
 import api from '../lib/api';
 import PageHeader from '../components/ui/PageHeader';
@@ -10,6 +11,7 @@ export default function RoomsPage() {
   const { data: rooms, loading, refetch } = useRooms(organizationId);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [search, setSearch] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingRoom, setEditingRoom] = useState<Room | null>(null);
   const [formName, setFormName] = useState('');
@@ -29,6 +31,34 @@ export default function RoomsPage() {
     setFormType('lecture');
     setModalOpen(true);
   };
+
+  useEffect(() => {
+    const maybeOpen = (resource?: string) => {
+      const pending = resource || window.sessionStorage.getItem('slotforge:create-resource');
+      if (pending === 'room') {
+        window.sessionStorage.removeItem('slotforge:create-resource');
+        openCreate();
+      }
+    };
+    const onCreate = (event: Event) => maybeOpen((event as CustomEvent<string>).detail);
+    maybeOpen();
+    window.addEventListener('slotforge:create-resource', onCreate);
+    return () => window.removeEventListener('slotforge:create-resource', onCreate);
+  }, []);
+
+  useShortcutAction(useMemo(() => ({
+    id: 'rooms.create',
+    label: 'Create Room',
+    shortcut: 'c r',
+    handler: openCreate,
+  }), []));
+
+  useShortcutAction(useMemo(() => ({
+    id: 'rooms.search',
+    label: 'Focus Room Search',
+    shortcut: '/',
+    handler: () => searchRef.current?.focus(),
+  }), []));
 
   const openEdit = (r: Room) => {
     setEditingRoom(r);
@@ -107,6 +137,7 @@ export default function RoomsPage() {
             >
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
               New Room
+              <ShortcutHint shortcut="c r" />
             </button>
           </>
         }
@@ -119,12 +150,16 @@ export default function RoomsPage() {
             search
           </span>
           <input
+            ref={searchRef}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="academic-input w-full pl-10"
             placeholder="Search rooms..."
           />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+            <ShortcutHint shortcut="/" />
+          </div>
         </div>
       </div>
 

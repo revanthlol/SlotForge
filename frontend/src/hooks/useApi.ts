@@ -63,6 +63,7 @@ export interface Section {
   organization_id: string;
   name: string;
   size: number;
+  class_teacher_id: string | null;
 }
 
 export interface Constraint {
@@ -71,6 +72,21 @@ export interface Constraint {
   constraint_type: string;
   payload: Record<string, unknown>;
   weight: number | null;
+}
+
+export interface TeacherSubjectAssignment {
+  id: string;
+  organization_id: string;
+  teacher_id: string;
+  subject_id: string;
+}
+
+export interface SectionSubjectTeacherAssignment {
+  id: string;
+  organization_id: string;
+  section_id: string;
+  subject_id: string;
+  teacher_id: string;
 }
 
 export interface Organization {
@@ -127,6 +143,14 @@ export function useSections(orgId: string | null) {
 
 export function useConstraints(orgId: string | null) {
   return useApiGet<Constraint[]>(orgId ? `/constraints?organization_id=${orgId}` : null);
+}
+
+export function useTeacherSubjectAssignments(orgId: string | null) {
+  return useApiGet<TeacherSubjectAssignment[]>(orgId ? `/assignments/teacher-subjects?organization_id=${orgId}` : null);
+}
+
+export function useSectionSubjectTeacherAssignments(orgId: string | null) {
+  return useApiGet<SectionSubjectTeacherAssignment[]>(orgId ? `/assignments/section-subject-teachers?organization_id=${orgId}` : null);
 }
 
 export function useOrganization(orgId: string | null) {

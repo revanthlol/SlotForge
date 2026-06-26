@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { ShortcutProvider } from './contexts/ShortcutContext';
 import AppLayout from './components/layout/AppLayout';
 
 // Page imports
@@ -54,7 +55,9 @@ export default function App() {
             path="/"
             element={
               <ProtectedRoute>
-                <AppLayout />
+                <ShortcutProvider>
+                  <AppLayout />
+                </ShortcutProvider>
               </ProtectedRoute>
             }
           >

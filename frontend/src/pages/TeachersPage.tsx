@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useTeachers, useConstraints, type Teacher } from '../hooks/useApi';
+import { ShortcutHint, useShortcutAction } from '../contexts/ShortcutContext';
+import { useTeachers, useSubjects, useTeacherSubjectAssignments, type Teacher } from '../hooks/useApi';
 import api from '../lib/api';
 import PageHeader from '../components/ui/PageHeader';
 import Modal from '../components/ui/Modal';
@@ -8,27 +9,60 @@ import Modal from '../components/ui/Modal';
 export default function TeachersPage() {
   const { organizationId } = useAuth();
   const { data: teachers, loading, refetch } = useTeachers(organizationId);
-  const { data: constraints } = useConstraints(organizationId);
+  const { data: subjects } = useSubjects(organizationId);
+  const { data: teacherSubjects, refetch: refetchTeacherSubjects } = useTeacherSubjectAssignments(organizationId);
   const [search, setSearch] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [formName, setFormName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [subjectModalTeacher, setSubjectModalTeacher] = useState<Teacher | null>(null);
+  const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
 
   const filtered = teachers?.filter(t =>
     t.name.toLowerCase().includes(search.toLowerCase())
   ) || [];
 
-  const getTeacherConstraints = (teacherId: string) =>
-    constraints?.filter(c =>
-      c.payload && (c.payload as Record<string, unknown>).teacher_id === teacherId
-    ) || [];
+  const subjectById = useMemo(() => new Map((subjects || []).map(subject => [subject.id, subject])), [subjects]);
+
+  const getTeacherSubjects = (teacherId: string) =>
+    teacherSubjects?.filter(row => row.teacher_id === teacherId).map(row => subjectById.get(row.subject_id)).filter(Boolean) || [];
 
   const openCreate = () => {
     setEditingTeacher(null);
     setFormName('');
     setModalOpen(true);
   };
+
+  useEffect(() => {
+    const maybeOpen = (resource?: string) => {
+      const pending = resource || window.sessionStorage.getItem('slotforge:create-resource');
+      if (pending === 'teacher') {
+        window.sessionStorage.removeItem('slotforge:create-resource');
+        openCreate();
+      }
+    };
+    const onCreate = (event: Event) => maybeOpen((event as CustomEvent<string>).detail);
+    maybeOpen();
+    window.addEventListener('slotforge:create-resource', onCreate);
+    return () => window.removeEventListener('slotforge:create-resource', onCreate);
+  }, []);
+
+  useShortcutAction(useMemo(() => ({
+    id: 'teachers.create',
+    label: 'Create Teacher',
+    shortcut: 'c t',
+    keywords: ['faculty add'],
+    handler: openCreate,
+  }), []));
+
+  useShortcutAction(useMemo(() => ({
+    id: 'teachers.search',
+    label: 'Focus Teacher Search',
+    shortcut: '/',
+    handler: () => searchRef.current?.focus(),
+  }), []));
 
   const openEdit = (t: Teacher) => {
     setEditingTeacher(t);
@@ -60,6 +94,37 @@ export default function TeachersPage() {
     refetch();
   };
 
+  const openSubjectModal = (teacher: Teacher) => {
+    setSubjectModalTeacher(teacher);
+    setSelectedSubjectIds((teacherSubjects || [])
+      .filter(row => row.teacher_id === teacher.id)
+      .map(row => row.subject_id));
+  };
+
+  const saveTeacherSubjects = async () => {
+    if (!subjectModalTeacher) return;
+    setSaving(true);
+    try {
+      await api.put(`/assignments/teacher-subjects/${subjectModalTeacher.id}`, {
+        subject_ids: selectedSubjectIds,
+      });
+      setSubjectModalTeacher(null);
+      refetchTeacherSubjects();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const toggleSubject = (subjectId: string) => {
+    setSelectedSubjectIds(prev =>
+      prev.includes(subjectId)
+        ? prev.filter(id => id !== subjectId)
+        : [...prev, subjectId]
+    );
+  };
+
   return (
     <div>
       <PageHeader
@@ -73,6 +138,7 @@ export default function TeachersPage() {
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
             Add Teacher
+            <ShortcutHint shortcut="c t" />
           </button>
         }
       />
@@ -84,22 +150,26 @@ export default function TeachersPage() {
             search
           </span>
           <input
+            ref={searchRef}
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="academic-input w-full pl-10"
             placeholder="Search teachers..."
           />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
+            <ShortcutHint shortcut="/" />
+          </div>
         </div>
       </div>
 
       {/* Data Table */}
       <div className="bg-paper-raised border-2 border-rule rounded-xl overflow-hidden">
         {/* Header */}
-        <div className="grid grid-cols-12 bg-on-background text-paper-raised px-6 py-3">
+          <div className="grid grid-cols-12 bg-on-background text-paper-raised px-6 py-3">
           <div className="col-span-1 text-data-table font-semibold">#</div>
           <div className="col-span-4 text-data-table font-semibold">Teacher Name</div>
-          <div className="col-span-3 text-data-table font-semibold">Active Constraints</div>
+          <div className="col-span-3 text-data-table font-semibold">Subjects</div>
           <div className="col-span-2 text-data-table font-semibold">ID</div>
           <div className="col-span-2 text-data-table font-semibold text-right">Actions</div>
         </div>
@@ -116,7 +186,7 @@ export default function TeachersPage() {
         ) : (
           <div className="divide-y divide-rule">
             {filtered.map((t, idx) => {
-              const tc = getTeacherConstraints(t.id);
+              const assignedSubjects = getTeacherSubjects(t.id);
               return (
                 <div
                   key={t.id}
@@ -132,22 +202,32 @@ export default function TeachersPage() {
                     <span className="text-sm font-medium text-on-surface">{t.name}</span>
                   </div>
                   <div className="col-span-3 flex items-center gap-1.5 flex-wrap">
-                    {tc.length > 0 ? tc.map(c => (
+                    {assignedSubjects.length > 0 ? assignedSubjects.slice(0, 3).map(subject => (
                       <span
-                        key={c.id}
+                        key={subject!.id}
                         className="inline-flex items-center px-2 py-0.5 text-[10px] border border-dashed border-primary/30 text-primary rounded-full bg-accent-soft/50"
                         style={{ fontFamily: 'var(--font-mono)' }}
                       >
-                        {c.constraint_type}
+                        {subject!.name}
                       </span>
                     )) : (
                       <span className="text-data-table text-mono-grey">—</span>
+                    )}
+                    {assignedSubjects.length > 3 && (
+                      <span className="text-data-table text-mono-grey">+{assignedSubjects.length - 3}</span>
                     )}
                   </div>
                   <div className="col-span-2">
                     <span className="text-code-snippet text-mono-grey">{t.id.slice(0, 8)}</span>
                   </div>
                   <div className="col-span-2 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => openSubjectModal(t)}
+                      className="p-1.5 rounded-lg hover:bg-accent-soft transition-colors"
+                      title="Subjects"
+                    >
+                      <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 18 }}>rule</span>
+                    </button>
                     <button
                       onClick={() => openEdit(t)}
                       className="p-1.5 rounded-lg hover:bg-accent-soft transition-colors"
@@ -212,6 +292,38 @@ export default function TeachersPage() {
             placeholder="Dr. Jane Smith"
             autoFocus
           />
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!subjectModalTeacher}
+        onClose={() => setSubjectModalTeacher(null)}
+        title={`Subjects for ${subjectModalTeacher?.name || ''}`}
+        maxWidth="max-w-xl"
+        actions={
+          <>
+            <button onClick={() => setSubjectModalTeacher(null)} className="px-4 py-2 text-sm text-on-surface-variant border border-rule rounded-lg hover:bg-surface-container transition-colors">Cancel</button>
+            <button onClick={saveTeacherSubjects} disabled={saving} className="px-4 py-2 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors disabled:opacity-50">
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </>
+        }
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          {(subjects || []).map(subject => {
+            const selected = selectedSubjectIds.includes(subject.id);
+            return (
+              <button
+                key={subject.id}
+                type="button"
+                onClick={() => toggleSubject(subject.id)}
+                className={`flex items-center justify-between rounded-lg border px-3 py-2 text-left text-sm transition-colors ${selected ? 'border-primary bg-accent-soft text-primary' : 'border-rule text-on-surface hover:bg-surface-container'}`}
+              >
+                <span>{subject.name}</span>
+                {selected && <span className="material-symbols-outlined" style={{ fontSize: 18 }}>check</span>}
+              </button>
+            );
+          })}
         </div>
       </Modal>
     </div>
