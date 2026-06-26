@@ -172,6 +172,11 @@ export function ShortcutProvider({ children }: { children: ReactNode }) {
   ], [navigate, openHelp, openPalette, openResourceCreate]);
 
   const allActions = useMemo(() => [...globalActions, ...actions], [globalActions, actions]);
+  const contextValue = useMemo(() => ({
+    registerAction,
+    openPalette,
+    openHelp,
+  }), [registerAction, openPalette, openHelp]);
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -217,7 +222,7 @@ export function ShortcutProvider({ children }: { children: ReactNode }) {
   }, [allActions]);
 
   return (
-    <ShortcutContext.Provider value={{ registerAction, openPalette, openHelp }}>
+    <ShortcutContext.Provider value={contextValue}>
       {children}
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={allActions} />
       <ShortcutHelp open={helpOpen} onClose={() => setHelpOpen(false)} actions={allActions} />

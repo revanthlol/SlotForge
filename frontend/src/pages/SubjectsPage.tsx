@@ -115,10 +115,12 @@ export default function SubjectsPage() {
     if (!teacherModalSubject) return;
     setSaving(true);
     try {
+      const validTeacherIds = new Set((teachers || []).map(teacher => teacher.id));
       const currentTeacherIds = new Set((teacherSubjects || [])
         .filter(row => row.subject_id === teacherModalSubject.id)
-        .map(row => row.teacher_id));
-      const nextTeacherIds = new Set(selectedTeacherIds);
+        .map(row => row.teacher_id)
+        .filter(teacherId => validTeacherIds.has(teacherId)));
+      const nextTeacherIds = new Set(selectedTeacherIds.filter(teacherId => validTeacherIds.has(teacherId)));
       const touchedTeacherIds = Array.from(new Set([...currentTeacherIds, ...nextTeacherIds]));
 
       await Promise.all(touchedTeacherIds.map(async teacherId => {
