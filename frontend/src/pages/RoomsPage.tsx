@@ -5,6 +5,7 @@ import { useRooms, type Room } from '../hooks/useApi';
 import api from '../lib/api';
 import PageHeader from '../components/ui/PageHeader';
 import Modal from '../components/ui/Modal';
+import SearchInput from '../components/ui/SearchInput';
 
 export default function RoomsPage() {
   const { organizationId } = useAuth();
@@ -145,22 +146,13 @@ export default function RoomsPage() {
 
       {/* Search */}
       <div className="mb-5">
-        <div className="relative max-w-md">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-mono-grey" style={{ fontSize: 20 }}>
-            search
-          </span>
-          <input
-            ref={searchRef}
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="academic-input w-full pl-10"
-            placeholder="Search rooms..."
-          />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-            <ShortcutHint shortcut="/" />
-          </div>
-        </div>
+        <SearchInput
+          inputRef={searchRef}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search rooms..."
+          shortcut="/"
+        />
       </div>
 
       {loading ? (

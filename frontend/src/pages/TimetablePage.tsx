@@ -12,13 +12,15 @@ import {
 import PageHeader from '../components/ui/PageHeader';
 import TimetableGrid from '../components/ui/TimetableGrid';
 import StatusBadge from '../components/ui/StatusBadge';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 
 export default function TimetablePage() {
   const { organizationId } = useAuth();
+  const location = useLocation();
   const { data: organization } = useOrganization(organizationId);
   const { data: versions, loading: loadingVersions } = useTimetableVersions(organizationId);
   const [selectedVersionId, setSelectedVersionId] = useState<string>('');
+  const selectedVersionFromQuery = new URLSearchParams(location.search).get('version');
 
   const { data: teachersData } = useTeachers(organizationId);
   const { data: roomsData } = useRooms(organizationId);
@@ -30,17 +32,22 @@ export default function TimetablePage() {
   const subjects = subjectsData || [];
   const sections = sectionsData || [];
 
-  // Find the active/published version, or default to the latest version
+  // Prefer an explicit query-string version, otherwise keep the current selection
+  // and fall back to the latest known version.
   useEffect(() => {
-    if (versions && versions.length > 0) {
-      const published = versions.find((v) => v.status === 'published');
-      if (published) {
-        setSelectedVersionId(published.id);
-      } else {
-        setSelectedVersionId(versions[0].id);
-      }
-    }
-  }, [versions]);
+    if (!versions || versions.length === 0) return;
+
+    const queryVersion = selectedVersionFromQuery && versions.some((v) => v.id === selectedVersionFromQuery)
+      ? selectedVersionFromQuery
+      : null;
+    const latestVersion = versions[0]?.id || '';
+
+    setSelectedVersionId((current) => {
+      if (queryVersion) return queryVersion;
+      if (current && versions.some((v) => v.id === current)) return current;
+      return latestVersion;
+    });
+  }, [versions, selectedVersionFromQuery]);
 
   const { data: timetable, loading: loadingTimetable } = useTimetable(selectedVersionId || null);
 

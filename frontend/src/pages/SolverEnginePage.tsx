@@ -4,6 +4,7 @@ import { useConstraints, useTimetableVersions, type Constraint } from '../hooks/
 import api from '../lib/api';
 import PageHeader from '../components/ui/PageHeader';
 import StatusBadge from '../components/ui/StatusBadge';
+import { Link } from 'react-router-dom';
 
 export default function SolverEnginePage() {
   const { organizationId } = useAuth();
@@ -295,7 +296,7 @@ export default function SolverEnginePage() {
                       Schedule Generated (SAT/OPTIMAL)
                     </div>
                     <p className="text-on-surface-variant text-[11px]">
-                      Successfully promoted to a new draft version.
+                      Saved as a new draft version.
                     </p>
                   </div>
                 )}
@@ -327,6 +328,17 @@ export default function SolverEnginePage() {
                       </div>
                     </>
                   )}
+                </div>
+                <div>
+                  <Link
+                    to={`/timetable?version=${generateResult.version_id}`}
+                    className="inline-flex items-center gap-2 rounded-lg border border-rule px-3 py-2 text-xs font-semibold text-primary hover:bg-accent-soft transition-colors"
+                  >
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                      table_view
+                    </span>
+                    View timetable
+                  </Link>
                 </div>
               </div>
             ) : versions && versions.length > 0 ? (

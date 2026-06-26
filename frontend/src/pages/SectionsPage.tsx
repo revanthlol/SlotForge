@@ -12,6 +12,7 @@ import {
 import api from '../lib/api';
 import PageHeader from '../components/ui/PageHeader';
 import Modal from '../components/ui/Modal';
+import SearchInput from '../components/ui/SearchInput';
 
 export default function SectionsPage() {
   const { organizationId } = useAuth();
@@ -151,13 +152,13 @@ export default function SectionsPage() {
       />
 
       <div className="mb-5">
-        <div className="relative max-w-md">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-mono-grey" style={{ fontSize: 20 }}>search</span>
-          <input ref={searchRef} type="text" value={search} onChange={(e) => setSearch(e.target.value)} className="academic-input w-full pl-10" placeholder="Search sections..." />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-            <ShortcutHint shortcut="/" />
-          </div>
-        </div>
+        <SearchInput
+          inputRef={searchRef}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search sections..."
+          shortcut="/"
+        />
       </div>
 
       <div className="bg-paper-raised border-2 border-rule rounded-xl overflow-hidden">
