@@ -24,7 +24,11 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       // Session expired — redirect to login
-      window.location.href = '/login';
+      const currentPath = `${window.location.pathname}${window.location.search}`;
+      const publicPath = window.location.pathname === '/' || window.location.pathname === '/login' || window.location.pathname === '/signup';
+      if (!publicPath) {
+        window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
+      }
     }
     return Promise.reject(error);
   }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function LoginPage() {
@@ -9,6 +9,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { signIn } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -16,7 +18,7 @@ export default function LoginPage() {
     setError('');
     try {
       await signIn(email, password);
-      navigate('/dashboard');
+      navigate(redirectTo.startsWith('/') ? redirectTo : '/dashboard', { replace: true });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Sign in failed');
     } finally {
@@ -28,7 +30,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="flex items-center gap-3 mb-10">
+        <Link to="/" className="flex items-center gap-3 mb-10">
           <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
             <span className="material-symbols-outlined text-on-primary" style={{ fontSize: 28 }}>
               view_module
@@ -40,7 +42,7 @@ export default function LoginPage() {
               Institutional Scheduling
             </p>
           </div>
-        </div>
+        </Link>
 
         {/* Card */}
         <div className="bg-paper-raised border-2 border-rule rounded-xl p-8 shadow-lg">

@@ -7,6 +7,8 @@ interface AuthState {
   user: User | null;
   session: Session | null;
   organizationId: string | null;
+  role: string | null;
+  fullName: string | null;
   loading: boolean;
   signUp: (email: string, password: string, fullName: string, orgName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
@@ -19,26 +21,65 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
+  const [role, setRole] = useState<string | null>(null);
+  const [fullName, setFullName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const clearProfile = () => {
+    setOrganizationId(null);
+    setRole(null);
+    setFullName(null);
+    localStorage.removeItem('slotforge_org_id');
+  };
+
+  const loadProfile = async () => {
+    const { data } = await api.get('/auth/me');
+    setOrganizationId(data.organization_id);
+    setRole(data.role);
+    setFullName(data.full_name);
+    localStorage.setItem('slotforge_org_id', data.organization_id);
+    return data;
+  };
+
   useEffect(() => {
-    // Restore session on mount
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    let mounted = true;
+
+    const restoreSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!mounted) return;
+
       setSession(session);
       setUser(session?.user ?? null);
-      // Try to get org_id from local storage
-      const storedOrgId = localStorage.getItem('slotforge_org_id');
-      if (storedOrgId) setOrganizationId(storedOrgId);
-      setLoading(false);
-    });
+
+      if (!session) {
+        clearProfile();
+        setLoading(false);
+        return;
+      }
+
+      try {
+        await loadProfile();
+      } catch (err) {
+        console.error('Failed to load signed-in profile:', err);
+        clearProfile();
+      } finally {
+        if (mounted) setLoading(false);
+      }
+    };
+
+    restoreSession();
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      if (!session) clearProfile();
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   const signUp = async (email: string, password: string, fullName: string, orgName: string) => {
@@ -53,26 +94,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('slotforge_org_id', data.organization_id);
 
     // Also sign in via Supabase to get a session
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       // If Supabase auth isn't configured, store org_id anyway
       console.warn('Supabase sign-in failed (may be in dev mode):', error.message);
+      return;
     }
+    setSession(signInData.session);
+    setUser(signInData.user);
+    await loadProfile();
   };
 
   const signIn = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    setSession(data.session);
+    setUser(data.user);
+    await loadProfile();
   };
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    setOrganizationId(null);
-    localStorage.removeItem('slotforge_org_id');
+    setSession(null);
+    setUser(null);
+    clearProfile();
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, organizationId, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, organizationId, role, fullName, loading, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

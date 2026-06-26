@@ -1,8 +1,10 @@
 import { useAuth } from '../../contexts/AuthContext';
+import { useTheme } from '../../contexts/ThemeContext';
 import { useOrganization } from '../../hooks/useApi';
 
 export default function TopBar() {
-  const { organizationId, signOut } = useAuth();
+  const { organizationId, signOut, fullName } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const { data: org } = useOrganization(organizationId);
 
   return (
@@ -47,6 +49,15 @@ export default function TopBar() {
             help_outline
           </span>
         </button>
+        <button
+          onClick={toggleTheme}
+          className="topbar-action p-2 rounded-lg hover:bg-accent-soft transition-colors"
+          title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+        >
+          <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 20 }}>
+            {theme === 'dark' ? 'light_mode' : 'dark_mode'}
+          </span>
+        </button>
         <div className="w-px h-6 bg-rule mx-2" />
         <button
           onClick={() => signOut()}
@@ -57,7 +68,7 @@ export default function TopBar() {
               person
             </span>
           </div>
-          <span className="text-sm text-on-surface-variant">Admin</span>
+          <span className="text-sm text-on-surface-variant">{fullName || 'Admin'}</span>
         </button>
       </div>
     </header>

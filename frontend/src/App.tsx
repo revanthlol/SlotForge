@@ -1,9 +1,11 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ShortcutProvider } from './contexts/ShortcutContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import AppLayout from './components/layout/AppLayout';
 
 // Page imports
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignupPage from './pages/SignupPage';
 import DashboardPage from './pages/DashboardPage';
@@ -19,6 +21,7 @@ import SettingsPage from './pages/SettingsPage';
 
 function ProtectedRoute({ children }: { children: React.JSX.Element }) {
   const { organizationId, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -35,7 +38,31 @@ function ProtectedRoute({ children }: { children: React.JSX.Element }) {
 
   // Check if we have organizationId (implies signed up/in successfully)
   if (!organizationId) {
-    return <Navigate to="/login" replace />;
+    const redirect = encodeURIComponent(`${location.pathname}${location.search}`);
+    return <Navigate to={`/login?redirect=${redirect}`} replace />;
+  }
+
+  return children;
+}
+
+function PublicAuthRoute({ children }: { children: React.JSX.Element }) {
+  const { organizationId, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-paper">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="text-sm font-semibold text-primary font-mono animate-pulse">
+            SlotForge Engine Initializing...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (organizationId) {
+    return <Navigate to="/dashboard" replace />;
   }
 
   return children;
@@ -43,47 +70,48 @@ function ProtectedRoute({ children }: { children: React.JSX.Element }) {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          {/* Public Auth Routes */}
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/signup" element={<SignupPage />} />
+    <ThemeProvider>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/login" element={<PublicAuthRoute><LoginPage /></PublicAuthRoute>} />
+            <Route path="/signup" element={<PublicAuthRoute><SignupPage /></PublicAuthRoute>} />
 
-          {/* Protected Application Routes */}
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <ShortcutProvider>
-                  <AppLayout />
-                </ShortcutProvider>
-              </ProtectedRoute>
-            }
-          >
-            <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<DashboardPage />} />
-            
-            {/* Resources Sub-routes */}
-            <Route path="resources">
-              <Route index element={<Navigate to="teachers" replace />} />
-              <Route path="teachers" element={<TeachersPage />} />
-              <Route path="rooms" element={<RoomsPage />} />
-              <Route path="subjects" element={<SubjectsPage />} />
-              <Route path="sections" element={<SectionsPage />} />
+            {/* Protected Application Routes */}
+            <Route
+              element={
+                <ProtectedRoute>
+                  <ShortcutProvider>
+                    <AppLayout />
+                  </ShortcutProvider>
+                </ProtectedRoute>
+              }
+            >
+              <Route path="/dashboard" element={<DashboardPage />} />
+              
+              {/* Resources Sub-routes */}
+              <Route path="/resources">
+                <Route index element={<Navigate to="/resources/teachers" replace />} />
+                <Route path="teachers" element={<TeachersPage />} />
+                <Route path="rooms" element={<RoomsPage />} />
+                <Route path="subjects" element={<SubjectsPage />} />
+                <Route path="sections" element={<SectionsPage />} />
+              </Route>
+
+              <Route path="/timetable" element={<TimetablePage />} />
+              <Route path="/canvas" element={<CanvasViewPage />} />
+              <Route path="/solver" element={<SolverEnginePage />} />
+              <Route path="/versions" element={<VersionHistoryPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
             </Route>
 
-            <Route path="timetable" element={<TimetablePage />} />
-            <Route path="canvas" element={<CanvasViewPage />} />
-            <Route path="solver" element={<SolverEnginePage />} />
-            <Route path="versions" element={<VersionHistoryPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-          </Route>
-
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/dashboard" replace />} />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

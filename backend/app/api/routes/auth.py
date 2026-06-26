@@ -4,12 +4,23 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.auth import get_current_user_profile
 from app.core.db import get_db
 from app.models.organization import Organization
 from app.models.profile import Profile
-from app.schemas.auth import SignupOrganizationRequest, SignupOrganizationResponse
+from app.schemas.auth import AuthMeResponse, SignupOrganizationRequest, SignupOrganizationResponse
 
 router = APIRouter()
+
+
+@router.get("/me", response_model=AuthMeResponse)
+def get_me(current_user: Profile = Depends(get_current_user_profile)):
+    return AuthMeResponse(
+        user_id=str(current_user.id),
+        organization_id=str(current_user.organization_id),
+        role=current_user.role,
+        full_name=current_user.full_name,
+    )
 
 @router.post("/signup-organization", response_model=SignupOrganizationResponse, status_code=201)
 def signup_organization(payload: SignupOrganizationRequest, db: Session = Depends(get_db)):

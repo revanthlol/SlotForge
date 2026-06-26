@@ -30,7 +30,7 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo */}
-        <div className="flex items-center gap-3 mb-10">
+        <Link to="/" className="flex items-center gap-3 mb-10">
           <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
             <span className="material-symbols-outlined text-on-primary" style={{ fontSize: 28 }}>
               view_module
@@ -42,7 +42,7 @@ export default function SignupPage() {
               Institutional Scheduling
             </p>
           </div>
-        </div>
+        </Link>
 
         {/* Card */}
         <div className="bg-paper-raised border-2 border-rule rounded-xl p-8 shadow-lg">
