@@ -6,6 +6,7 @@ from app.models.room import Room
 from app.models.subject import Subject
 from app.models.section import Section
 from app.models.constraint import Constraint
+from app.models.assignment import TeacherSubjectAssignment, SectionSubjectTeacherAssignment
 from app.models.timetable_version import TimetableVersion
 from app.models.timetable_slot import TimetableSlot
 from app.models.audit_log import AuditLog
@@ -19,6 +20,8 @@ __all__ = [
     "Subject",
     "Section",
     "Constraint",
+    "TeacherSubjectAssignment",
+    "SectionSubjectTeacherAssignment",
     "TimetableVersion",
     "TimetableSlot",
     "AuditLog"

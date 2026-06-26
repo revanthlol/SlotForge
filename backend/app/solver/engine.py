@@ -118,6 +118,7 @@ def _solve_model(
     # Teacher subject qualifications
     teacher_qualified_subjects = defaultdict(set)
     has_qualification_constraints = False
+    section_subject_teachers = {}
     for c in instance.constraints:
         if c.constraint_type == "teacher_subject" and c.weight is None:
             t_id = c.payload.get("teacher_id")
@@ -125,6 +126,12 @@ def _solve_model(
             if t_id and sub_id:
                 teacher_qualified_subjects[sub_id].add(t_id)
                 has_qualification_constraints = True
+        elif c.constraint_type == "section_subject_teacher" and c.weight is None:
+            sec_id = c.payload.get("section_id")
+            sub_id = c.payload.get("subject_id")
+            t_id = c.payload.get("teacher_id")
+            if sec_id and sub_id and t_id:
+                section_subject_teachers[(sec_id, sub_id)] = t_id
                 
     # Teacher unavailability
     unavailable_teacher_slots = set()
@@ -162,6 +169,9 @@ def _solve_model(
     for sec in instance.sections:
         for sub in instance.subjects:
             for t in instance.teachers:
+                required_teacher = section_subject_teachers.get((sec.id, sub.id))
+                if required_teacher and t.id != required_teacher:
+                    continue
                 # Qualification check
                 if has_qualification_constraints and t.id not in teacher_qualified_subjects[sub.id]:
                     continue

@@ -14,5 +14,11 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
     DEV_MODE: bool = False
     FRONTEND_ORIGIN: str = "http://localhost:5173"
+    FRONTEND_ORIGINS: str | None = None
+
+    @property
+    def cors_origins(self) -> list[str]:
+        raw_origins = self.FRONTEND_ORIGINS or self.FRONTEND_ORIGIN
+        return [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
 
 settings = Settings()

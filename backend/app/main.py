@@ -8,7 +8,7 @@ app = FastAPI(title="SlotForge API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.FRONTEND_ORIGIN],
+    allow_origins=settings.cors_origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -23,7 +23,7 @@ def health():
     return {"status": "ok"}
 
 # Route modules get included here as they're built (Phase 2 onward):
-from app.api.routes import auth, organizations, teachers, rooms, subjects, sections, constraints, timetables, exports
+from app.api.routes import auth, organizations, teachers, rooms, subjects, sections, constraints, timetables, exports, assignments
 
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
@@ -35,5 +35,4 @@ app.include_router(sections.router, prefix="/sections", tags=["sections"])
 app.include_router(constraints.router, prefix="/constraints", tags=["constraints"])
 app.include_router(timetables.router, prefix="/timetables", tags=["timetables"])
 app.include_router(exports.router, prefix="/timetables", tags=["exports"])
-
-
+app.include_router(assignments.router, prefix="/assignments", tags=["assignments"])

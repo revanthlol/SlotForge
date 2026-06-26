@@ -3,12 +3,39 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.schemas.section import Section as SectionSchema, SectionCreate, SectionUpdate
 from app.models.section import Section as SectionModel
+from app.models.teacher import Teacher as TeacherModel
 from app.core.db import get_db
 from app.core.auth import get_current_user_profile, require_org_admin
 from app.models.profile import Profile
 from app.services.audit_service import AuditService
 
 router = APIRouter()
+
+
+def _section_schema(section: SectionModel) -> SectionSchema:
+    return SectionSchema(
+        id=str(section.id),
+        organization_id=str(section.organization_id),
+        name=section.name,
+        size=section.size,
+        class_teacher_id=str(section.class_teacher_id) if section.class_teacher_id else None
+    )
+
+
+def _validate_class_teacher(db: Session, teacher_id: str | None, org_id: uuid.UUID) -> uuid.UUID | None:
+    if not teacher_id:
+        return None
+    try:
+        teacher_uuid = uuid.UUID(teacher_id)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid class_teacher_id")
+    teacher = db.query(TeacherModel).filter(
+        TeacherModel.id == teacher_uuid,
+        TeacherModel.organization_id == org_id
+    ).first()
+    if not teacher:
+        raise HTTPException(status_code=404, detail="Class teacher not found")
+    return teacher_uuid
 
 @router.post("/", response_model=SectionSchema, status_code=201)
 def create_section(
@@ -19,7 +46,8 @@ def create_section(
     section = SectionModel(
         organization_id=current_user.organization_id,
         name=payload.name,
-        size=payload.size
+        size=payload.size,
+        class_teacher_id=_validate_class_teacher(db, payload.class_teacher_id, current_user.organization_id)
     )
     db.add(section)
     db.commit()
@@ -35,12 +63,7 @@ def create_section(
         diff={"new_values": {"name": section.name, "size": section.size}}
     )
     
-    return SectionSchema(
-        id=str(section.id),
-        organization_id=str(section.organization_id),
-        name=section.name,
-        size=section.size
-    )
+    return _section_schema(section)
 
 @router.get("/", response_model=list[SectionSchema])
 def list_sections(
@@ -50,14 +73,7 @@ def list_sections(
     sections = db.query(SectionModel).filter(
         SectionModel.organization_id == current_user.organization_id
     ).all()
-    return [
-        SectionSchema(
-            id=str(s.id),
-            organization_id=str(s.organization_id),
-            name=s.name,
-            size=s.size
-        ) for s in sections
-    ]
+    return [_section_schema(s) for s in sections]
 
 @router.get("/{section_id}", response_model=SectionSchema)
 def get_section(
@@ -78,12 +94,7 @@ def get_section(
     if not section:
         raise HTTPException(status_code=404, detail="Section not found")
         
-    return SectionSchema(
-        id=str(section.id),
-        organization_id=str(section.organization_id),
-        name=section.name,
-        size=section.size
-    )
+    return _section_schema(section)
 
 @router.put("/{section_id}", response_model=SectionSchema)
 def update_section(
@@ -107,7 +118,8 @@ def update_section(
         
     old_values = {
         "name": section.name,
-        "size": section.size
+        "size": section.size,
+        "class_teacher_id": str(section.class_teacher_id) if section.class_teacher_id else None
     }
     
     mutated = False
@@ -116,6 +128,9 @@ def update_section(
         mutated = True
     if payload.size is not None:
         section.size = payload.size
+        mutated = True
+    if "class_teacher_id" in payload.model_fields_set:
+        section.class_teacher_id = _validate_class_teacher(db, payload.class_teacher_id, current_user.organization_id)
         mutated = True
         
     if mutated:
@@ -133,17 +148,13 @@ def update_section(
                 "old_values": old_values,
                 "new_values": {
                     "name": section.name,
-                    "size": section.size
+                    "size": section.size,
+                    "class_teacher_id": str(section.class_teacher_id) if section.class_teacher_id else None
                 }
             }
         )
     
-    return SectionSchema(
-        id=str(section.id),
-        organization_id=str(section.organization_id),
-        name=section.name,
-        size=section.size
-    )
+    return _section_schema(section)
 
 @router.delete("/{section_id}", status_code=204)
 def delete_section(
@@ -183,4 +194,3 @@ def delete_section(
         diff={"old_values": old_values}
     )
     return
-

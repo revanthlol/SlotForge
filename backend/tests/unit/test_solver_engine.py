@@ -83,3 +83,29 @@ def test_infeasible_solve_teacher_availability():
     
     assert result.status == "INFEASIBLE"
     assert "teacher availability" in result.infeasible_reason.lower()
+
+
+def test_section_subject_teacher_constraint_forces_teacher():
+    path = os.path.join(FIXTURES_DIR, "sample_small.json")
+    with open(path, "r") as f:
+        data = json.load(f)
+
+    data["constraints"] = [
+        {
+            "id": "sst1",
+            "constraint_type": "section_subject_teacher",
+            "payload": {"section_id": "sec1", "subject_id": "s1", "teacher_id": "t2"},
+            "weight": None,
+        }
+    ]
+
+    instance = ProblemInstance.model_validate(data)
+    result = solve(instance)
+
+    assert result.status in ("OPTIMAL", "FEASIBLE")
+    forced_assignments = [
+        slot for slot in result.assignments
+        if slot.section_id == "sec1" and slot.subject_id == "s1"
+    ]
+    assert forced_assignments
+    assert {slot.teacher_id for slot in forced_assignments} == {"t2"}
