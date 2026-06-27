@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
-import api from '../lib/api';
+import api, { setApiAccessToken } from '../lib/api';
 import type { Session, User } from '@supabase/supabase-js';
 
 interface AuthState {
@@ -50,6 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setSession(session);
       setUser(session?.user ?? null);
+      setApiAccessToken(session?.access_token ?? null);
 
       if (!session) {
         clearProfile();
@@ -73,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setApiAccessToken(session?.access_token ?? null);
       if (!session) clearProfile();
     });
 
@@ -100,6 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.warn('Supabase sign-in failed (may be in dev mode):', error.message);
       return;
     }
+    setApiAccessToken(signInData.session?.access_token ?? null);
     setSession(signInData.session);
     setUser(signInData.user);
     await loadProfile();
@@ -108,6 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    setApiAccessToken(data.session?.access_token ?? null);
     setSession(data.session);
     setUser(data.user);
     await loadProfile();
@@ -115,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    setApiAccessToken(null);
     setSession(null);
     setUser(null);
     clearProfile();

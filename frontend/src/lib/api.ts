@@ -10,12 +10,16 @@ const api = axios.create({
 
 let currentAccessToken: string | null = null;
 
+export function setApiAccessToken(token: string | null) {
+  currentAccessToken = token;
+}
+
 supabase.auth.onAuthStateChange((_event, session) => {
-  currentAccessToken = session?.access_token ?? null;
+  setApiAccessToken(session?.access_token ?? null);
 });
 
 supabase.auth.getSession().then(({ data }) => {
-  currentAccessToken = data.session?.access_token ?? null;
+  setApiAccessToken(data.session?.access_token ?? null);
 });
 
 // Attach the cached Supabase JWT to every request.
