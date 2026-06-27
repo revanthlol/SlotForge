@@ -26,6 +26,7 @@ const navItems: NavItem[] = [
   { label: 'Solver Engine', path: '/solver', icon: 'precision_manufacturing' },
   { label: 'Version History', path: '/versions', icon: 'history' },
   { label: 'Settings', path: '/settings', icon: 'settings' },
+  { label: 'Profile', path: '/profile', icon: 'account_circle' },
 ];
 
 export default function Sidebar() {

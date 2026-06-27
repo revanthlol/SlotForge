@@ -18,6 +18,7 @@ import CanvasViewPage from './pages/CanvasViewPage';
 import SolverEnginePage from './pages/SolverEnginePage';
 import VersionHistoryPage from './pages/VersionHistoryPage';
 import SettingsPage from './pages/SettingsPage';
+import ProfilePage from './pages/ProfilePage';
 
 function ProtectedRoute({ children }: { children: React.JSX.Element }) {
   const { organizationId, loading } = useAuth();
@@ -105,6 +106,7 @@ export default function App() {
               <Route path="/solver" element={<SolverEnginePage />} />
               <Route path="/versions" element={<VersionHistoryPage />} />
               <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
             </Route>
 
             {/* Fallback */}
