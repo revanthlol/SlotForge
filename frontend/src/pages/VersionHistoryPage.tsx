@@ -188,12 +188,15 @@ export default function VersionHistoryPage() {
                 </div>
               ) : timetable ? (
                 <TimetableGrid
+                  timetableId={timetable.id}
                   assignments={timetable.assignments}
                   teachers={teachers}
                   rooms={rooms}
                   subjects={subjects}
                   sections={sections}
                   organization={organization || null}
+                  editable={false}
+                  onChanged={() => {}}
                 />
               ) : (
                 <div className="bg-paper-raised border-2 border-rule rounded-xl p-12 text-center text-body-sm text-mono-grey">

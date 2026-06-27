@@ -16,8 +16,8 @@
   --color-paper-raised: #ffffff;
   --color-grid-line: rgba(27, 31, 35, 0.08);
   --color-rule: rgba(27, 31, 35, 0.14);
-  --color-accent-soft: rgba(45, 93, 79, 0.12);
-  --color-signal-soft: rgba(196, 98, 45, 0.12);
+  --color-accent-soft: rgba(20, 116, 91, 0.16);
+  --color-signal-soft: rgba(255, 122, 45, 0.16);
   --color-mono-grey: #6b6f73;
 
   /* ─ Colors: Surfaces ─ */
@@ -30,7 +30,7 @@
   --color-surface-container-high: #e5e8ee;
   --color-surface-container-highest: #e0e3e8;
   --color-surface-variant: #e0e3e8;
-  --color-surface-tint: #376759;
+  --color-surface-tint: #14745b;
 
   /* ─ Colors: On-surfaces ─ */
   --color-on-surface: #181c20;
@@ -41,33 +41,33 @@
   /* ─ Colors: Inverse ─ */
   --color-inverse-surface: #2d3135;
   --color-inverse-on-surface: #eef1f6;
-  --color-inverse-primary: #9fd1bf;
+  --color-inverse-primary: #7fe0bd;
 
   /* ─ Colors: Primary (Deep Pine) ─ */
-  --color-primary: #124538;
+  --color-primary: #0f5a46;
   --color-on-primary: #ffffff;
-  --color-primary-container: #2d5d4f;
-  --color-on-primary-container: #a1d4c2;
+  --color-primary-container: #14745b;
+  --color-on-primary-container: #d7fff0;
   --color-primary-fixed: #baeddb;
   --color-primary-fixed-dim: #9fd1bf;
   --color-on-primary-fixed: #002018;
-  --color-on-primary-fixed-variant: #1e4f41;
+  --color-on-primary-fixed-variant: #11624e;
 
   /* ─ Colors: Secondary (Burnt Orange) ─ */
-  --color-secondary: #9c440f;
+  --color-secondary: #c45113;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #fd8e55;
-  --color-on-secondary-container: #6e2a00;
+  --color-secondary-container: #ff8a3d;
+  --color-on-secondary-container: #531b00;
   --color-secondary-fixed: #ffdbcc;
   --color-secondary-fixed-dim: #ffb693;
   --color-on-secondary-fixed: #351000;
   --color-on-secondary-fixed-variant: #7a3000;
 
   /* ─ Colors: Tertiary ─ */
-  --color-tertiary: #5e312a;
+  --color-tertiary: #8f372c;
   --color-on-tertiary: #ffffff;
-  --color-tertiary-container: #794740;
-  --color-on-tertiary-container: #fcb9af;
+  --color-tertiary-container: #b55246;
+  --color-on-tertiary-container: #fff0ed;
   --color-tertiary-fixed: #ffdad5;
   --color-tertiary-fixed-dim: #f9b6ac;
   --color-on-tertiary-fixed: #34100b;
@@ -136,8 +136,8 @@ body {
   --color-paper-raised: #171b1e;
   --color-grid-line: rgba(226, 232, 229, 0.055);
   --color-rule: rgba(226, 232, 229, 0.16);
-  --color-accent-soft: rgba(110, 177, 153, 0.16);
-  --color-signal-soft: rgba(242, 151, 95, 0.16);
+  --color-accent-soft: rgba(101, 214, 173, 0.22);
+  --color-signal-soft: rgba(255, 157, 92, 0.22);
   --color-mono-grey: #9ca5a1;
 
   --color-surface: #15191c;
@@ -149,7 +149,7 @@ body {
   --color-surface-container-high: #252b2f;
   --color-surface-container-highest: #30373b;
   --color-surface-variant: #30373b;
-  --color-surface-tint: #8ec6b2;
+  --color-surface-tint: #65d6ad;
 
   --color-on-surface: #eef3f0;
   --color-on-surface-variant: #c3ccc8;
@@ -158,29 +158,29 @@ body {
 
   --color-inverse-surface: #e4ebe7;
   --color-inverse-on-surface: #1b2023;
-  --color-inverse-primary: #124538;
+  --color-inverse-primary: #0f5a46;
 
-  --color-primary: #8ec6b2;
+  --color-primary: #65d6ad;
   --color-on-primary: #06271f;
-  --color-primary-container: #1f5a4b;
+  --color-primary-container: #19745c;
   --color-on-primary-container: #c9f2e4;
   --color-primary-fixed: #baeddb;
   --color-primary-fixed-dim: #9fd1bf;
   --color-on-primary-fixed: #002018;
-  --color-on-primary-fixed-variant: #1e4f41;
+  --color-on-primary-fixed-variant: #11624e;
 
-  --color-secondary: #ffb083;
+  --color-secondary: #ff9d5c;
   --color-on-secondary: #3b1400;
-  --color-secondary-container: #8f3d0d;
+  --color-secondary-container: #aa4a12;
   --color-on-secondary-container: #ffdccb;
   --color-secondary-fixed: #ffdbcc;
   --color-secondary-fixed-dim: #ffb693;
   --color-on-secondary-fixed: #351000;
   --color-on-secondary-fixed-variant: #7a3000;
 
-  --color-tertiary: #e8b9af;
+  --color-tertiary: #ffaaa0;
   --color-on-tertiary: #43201a;
-  --color-tertiary-container: #663a33;
+  --color-tertiary-container: #8d4038;
   --color-on-tertiary-container: #ffdad5;
   --color-tertiary-fixed: #ffdad5;
   --color-tertiary-fixed-dim: #f9b6ac;

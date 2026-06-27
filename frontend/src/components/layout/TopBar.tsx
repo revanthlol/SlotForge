@@ -1,11 +1,18 @@
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../contexts/ThemeContext';
 import { useOrganization } from '../../hooks/useApi';
+import { useNavigate } from 'react-router-dom';
 
 export default function TopBar() {
   const { organizationId, signOut, fullName } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { data: org } = useOrganization(organizationId);
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/', { replace: true });
+  };
 
   return (
     <header className="topbar-shell h-14 bg-paper-raised border-b-2 border-rule flex items-center justify-between px-6 sticky top-0 z-40">
@@ -60,8 +67,8 @@ export default function TopBar() {
         </button>
         <div className="w-px h-6 bg-rule mx-2" />
         <button
-          onClick={() => signOut()}
-          className="topbar-action flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-accent-soft transition-colors"
+          className="topbar-action flex items-center gap-2 px-3 py-1.5 rounded-lg"
+          title={fullName || 'Admin'}
         >
           <div className="w-7 h-7 rounded-full bg-primary-container flex items-center justify-center">
             <span className="material-symbols-outlined text-on-primary-container" style={{ fontSize: 16 }}>
@@ -69,6 +76,16 @@ export default function TopBar() {
             </span>
           </div>
           <span className="text-sm text-on-surface-variant">{fullName || 'Admin'}</span>
+        </button>
+        <button
+          onClick={handleSignOut}
+          className="topbar-action flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-error-container text-on-surface-variant hover:text-error transition-colors"
+          title="Logout"
+        >
+          <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+            logout
+          </span>
+          <span className="text-sm font-semibold">Logout</span>
         </button>
       </div>
     </header>

@@ -56,6 +56,7 @@ export interface Subject {
   organization_id: string;
   name: string;
   weekly_hours: number;
+  session_length: number;
 }
 
 export interface Section {
@@ -98,12 +99,15 @@ export interface Organization {
 }
 
 export interface ScheduledSlot {
-  day: number;
+  id: string;
+  day: string;
   period: number;
+  slot_id: string;
   section_id: string;
   teacher_id: string;
   subject_id: string;
   room_id: string;
+  duration_periods: number;
 }
 
 export interface TimetableVersion {
@@ -118,8 +122,11 @@ export interface TimetableVersion {
 
 export interface TimetableResponse {
   id: string;
+  version_id?: string;
   organization_id: string;
   status: string;
+  version_status: string | null;
+  version_number: number | null;
   assignments: ScheduledSlot[];
   scores: Record<string, number>;
   infeasible_reason: string | null;

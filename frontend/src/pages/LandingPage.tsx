@@ -9,9 +9,20 @@ const workflow = [
   { label: 'Published', icon: 'verified' },
 ];
 
-const featureRows = [
-  ['Teacher load', 'Room capacity', 'Section demand'],
-  ['Version history', 'Conflict checks', 'Export-ready grids'],
+const previewRows = [
+  ['I', 'AJ', 'OR', 'MAD', 'ST/SE', 'CN', ''],
+  ['II', 'AJ', 'BD', 'ST/SE', 'BD LAB', '', ''],
+  ['III', 'AJ LAB', 'AJ LAB', 'CN', 'OR', 'MAD', ''],
+  ['IV', 'OR', 'ST/SE', 'MAD', 'AJ', 'BD', ''],
+  ['V', 'MAD', 'AJ', 'CN', 'BD', 'OR', ''],
+  ['VI', 'CN', 'MAD LAB', 'MAD LAB', 'ST/SE', 'AJ', ''],
+];
+
+const facultyRows = [
+  ['AJ', 'Advanced Java', 'S. Swapna', '5+2'],
+  ['BD', 'Big Data Analytics', 'Sri Meghana', '3'],
+  ['MAD', 'Mobile App Development', 'K. Hima Bindu', '4+2'],
+  ['OR', 'Operations Research', 'D. Sravani', '5'],
 ];
 
 export default function LandingPage() {
@@ -104,39 +115,57 @@ export default function LandingPage() {
             <div className="flex items-center justify-between border-b border-rule px-4 py-3">
               <div>
                 <p className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>
-                  Solver Preview
+                  Day-order preview
                 </p>
-                <p className="text-sm font-semibold text-on-surface">Weekly schedule draft</p>
+                <p className="text-sm font-semibold text-on-surface">Third year odd semester</p>
               </div>
               <span className="inline-flex items-center rounded-full border border-primary/20 bg-accent-soft px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
-                Feasible
+                Draft v8
               </span>
             </div>
-            <div className="grid grid-cols-5 border-b border-rule bg-on-background text-paper-raised">
-              {['Mon', 'Tue', 'Wed', 'Thu', 'Fri'].map((day) => (
-                <div key={day} className="px-3 py-2 text-center text-data-table font-semibold">
-                  {day}
+            <div className="grid grid-cols-[70px_repeat(6,1fr)] border-b border-rule bg-on-background text-paper-raised">
+              {['Day', 'I', 'II', 'III', 'IV', 'V', 'VI'].map((hour) => (
+                <div key={hour} className="border-r border-rule px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">
+                  {hour}
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-5 grid-rows-4">
-              {Array.from({ length: 20 }).map((_, index) => {
-                const active = [1, 4, 7, 9, 13, 16].includes(index);
-                return (
-                  <div key={index} className="min-h-20 border-b border-r border-rule p-2">
-                    {active ? (
-                      <div className="h-full rounded-lg border border-primary/20 bg-accent-soft p-2">
-                        <p className="text-[10px] font-semibold text-primary">
-                          {index % 3 === 0 ? 'DBMS' : index % 2 === 0 ? 'AI' : 'SE'}
-                        </p>
-                        <p className="mt-1 text-[10px] text-on-surface-variant">Room {100 + index}</p>
-                      </div>
-                    ) : (
-                      <span className="text-[10px] italic text-mono-grey">Open</span>
-                    )}
+            <div className="grid">
+              {previewRows.map((row) => (
+                <div key={row[0]} className="grid grid-cols-[70px_repeat(6,1fr)] border-b border-rule last:border-b-0">
+                  {row.map((cell, index) => (
+                    <div key={`${row[0]}-${index}`} className="min-h-12 border-r border-rule px-2 py-2 text-center text-[11px]">
+                      {index === 0 ? (
+                        <span className="font-bold text-on-surface">{cell}</span>
+                      ) : cell ? (
+                        <span className={`inline-flex min-w-12 justify-center rounded border px-2 py-1 font-semibold ${cell.includes('LAB') ? 'border-secondary/30 bg-signal-soft text-secondary' : 'border-primary/20 bg-accent-soft text-primary'}`}>
+                          {cell}
+                        </span>
+                      ) : (
+                        <span className="text-mono-grey/40">-</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-rule bg-surface-container-low px-4 py-3">
+              <div className="grid grid-cols-[60px_1fr_1fr_60px] gap-2 text-[10px] text-mono-grey">
+                <span>Code</span>
+                <span>Course</span>
+                <span>Faculty</span>
+                <span>Hours</span>
+              </div>
+              <div className="mt-2 grid gap-1">
+                {facultyRows.map((row) => (
+                  <div key={row[0]} className="grid grid-cols-[60px_1fr_1fr_60px] gap-2 text-[11px] text-on-surface">
+                    <span className="font-bold text-primary">{row[0]}</span>
+                    <span>{row[1]}</span>
+                    <span className="text-on-surface-variant">{row[2]}</span>
+                    <span>{row[3]}</span>
                   </div>
-                );
-              })}
+                ))}
+              </div>
             </div>
           </div>
         </section>
@@ -156,19 +185,16 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="mt-10 grid gap-4 md:grid-cols-2">
-          {featureRows.map((row, rowIndex) => (
-            <div key={rowIndex} className="bg-paper-raised border-2 border-rule rounded-xl p-5">
-              <div className="grid gap-3">
-                {row.map((feature) => (
-                  <div key={feature} className="flex items-center justify-between border-b border-rule pb-3 last:border-b-0 last:pb-0">
-                    <span className="text-sm font-semibold text-on-surface">{feature}</span>
-                    <span className="material-symbols-outlined text-primary" style={{ fontSize: 18 }}>
-                      check_circle
-                    </span>
-                  </div>
-                ))}
-              </div>
+        <section className="mt-10 grid gap-4 md:grid-cols-3">
+          {[
+            ['rule', 'Qualification-aware', 'Teachers are matched to subjects and sections before solving.'],
+            ['view_week', 'Lab-ready grids', 'Double-period blocks render as merged timetable cells.'],
+            ['history', 'Version controlled', 'Draft schedules can be edited before publication.'],
+          ].map(([icon, title, body]) => (
+            <div key={title} className="border-t-2 border-rule pt-4">
+              <span className="material-symbols-outlined text-primary" style={{ fontSize: 22 }}>{icon}</span>
+              <h2 className="mt-3 text-headline-sm text-on-surface">{title}</h2>
+              <p className="mt-2 text-body-sm text-on-surface-variant">{body}</p>
             </div>
           ))}
         </section>

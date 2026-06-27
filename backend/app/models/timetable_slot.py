@@ -15,3 +15,4 @@ class TimetableSlot(Base):
     room_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("rooms.id"), nullable=False)
     day: Mapped[str] = mapped_column(String, nullable=False)
     period: Mapped[int] = mapped_column(Integer, nullable=False)
+    duration_periods: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)

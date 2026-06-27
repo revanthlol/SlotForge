@@ -42,7 +42,7 @@ class TimetableService:
             Room(id=str(r.id), name=r.name, capacity=r.capacity, type=r.room_type) for r in db_rooms
         ]
         org_subjects = [
-            Subject(id=str(s.id), name=s.name, weekly_hours=s.weekly_hours) for s in db_subjects
+            Subject(id=str(s.id), name=s.name, weekly_hours=s.weekly_hours, session_length=s.session_length) for s in db_subjects
         ]
         org_sections = [
             Section(id=str(sec.id), name=sec.name, size=sec.size) for sec in db_sections
@@ -133,7 +133,8 @@ class TimetableService:
                     teacher_id=uuid.UUID(a.teacher_id),
                     room_id=uuid.UUID(a.room_id),
                     day=day,
-                    period=period
+                    period=period,
+                    duration_periods=a.duration_periods,
                 )
                 db.add(slot)
                 
@@ -142,25 +143,15 @@ class TimetableService:
         
         # Load slots to return
         slots_created = db.query(SlotModel).filter(SlotModel.timetable_version_id == version.id).all()
-        assignments = []
-        for sc in slots_created:
-            # Map back day/period to slot_id
-            if sc.day.startswith("Day Order "):
-                found_slot_id = f"{sc.day.lower().replace(' ', '_')}-{sc.period}"
-            else:
-                found_slot_id = f"{sc.day.lower()}-{sc.period}"
-            assignments.append({
-                "section_id": str(sc.section_id),
-                "subject_id": str(sc.subject_id),
-                "teacher_id": str(sc.teacher_id),
-                "room_id": str(sc.room_id),
-                "slot_id": found_slot_id
-            })
+        assignments = [TimetableService._slot_schema(sc) for sc in slots_created]
             
         return {
             "id": str(version.id),
+            "version_id": str(version.id),
             "organization_id": str(version.organization_id),
             "status": solver_result.status,
+            "version_status": version.status,
+            "version_number": version.version_number,
             "assignments": assignments,
             "scores": version.scores,
             "infeasible_reason": solver_result.infeasible_reason
@@ -180,25 +171,34 @@ class TimetableService:
             return None
             
         slots = db.query(SlotModel).filter(SlotModel.timetable_version_id == version.id).all()
-        assignments = []
-        for sc in slots:
-            if sc.day.startswith("Day Order "):
-                found_slot_id = f"{sc.day.lower().replace(' ', '_')}-{sc.period}"
-            else:
-                found_slot_id = f"{sc.day.lower()}-{sc.period}"
-            assignments.append({
-                "section_id": str(sc.section_id),
-                "subject_id": str(sc.subject_id),
-                "teacher_id": str(sc.teacher_id),
-                "room_id": str(sc.room_id),
-                "slot_id": found_slot_id
-            })
+        assignments = [TimetableService._slot_schema(sc) for sc in slots]
             
         return {
             "id": str(version.id),
+            "version_id": str(version.id),
             "organization_id": str(version.organization_id),
             "status": version.status,
+            "version_status": version.status,
+            "version_number": version.version_number,
             "assignments": assignments,
             "scores": version.scores,
-            "infeasible_reason": None if version.status in ("OPTIMAL", "FEASIBLE") else "Infeasible"
+            "infeasible_reason": None if slots else "No assignments saved for this version"
+        }
+
+    @staticmethod
+    def _slot_schema(slot: SlotModel) -> dict:
+        if slot.day.startswith("Day Order "):
+            found_slot_id = f"{slot.day.lower().replace(' ', '_')}-{slot.period}"
+        else:
+            found_slot_id = f"{slot.day.lower()}-{slot.period}"
+        return {
+            "id": str(slot.id),
+            "section_id": str(slot.section_id),
+            "subject_id": str(slot.subject_id),
+            "teacher_id": str(slot.teacher_id),
+            "room_id": str(slot.room_id),
+            "slot_id": found_slot_id,
+            "day": slot.day,
+            "period": slot.period,
+            "duration_periods": slot.duration_periods,
         }

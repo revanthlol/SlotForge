@@ -10,16 +10,33 @@ from app.services.audit_service import AuditService
 
 router = APIRouter()
 
+def _validate_session_length(weekly_hours: int, session_length: int) -> None:
+    if session_length not in (1, 2):
+        raise HTTPException(status_code=422, detail="session_length must be 1 or 2")
+    if weekly_hours % session_length != 0:
+        raise HTTPException(status_code=422, detail="weekly_hours must be divisible by session_length")
+
+def _subject_schema(subject: SubjectModel) -> SubjectSchema:
+    return SubjectSchema(
+        id=str(subject.id),
+        organization_id=str(subject.organization_id),
+        name=subject.name,
+        weekly_hours=subject.weekly_hours,
+        session_length=subject.session_length,
+    )
+
 @router.post("/", response_model=SubjectSchema, status_code=201)
 def create_subject(
     payload: SubjectCreate,
     current_user: Profile = Depends(require_org_admin),
     db: Session = Depends(get_db)
 ):
+    _validate_session_length(payload.weekly_hours, payload.session_length)
     subject = SubjectModel(
         organization_id=current_user.organization_id,
         name=payload.name,
-        weekly_hours=payload.weekly_hours
+        weekly_hours=payload.weekly_hours,
+        session_length=payload.session_length,
     )
     db.add(subject)
     db.commit()
@@ -32,15 +49,10 @@ def create_subject(
         action="subject.create",
         target_table="subjects",
         target_id=subject.id,
-        diff={"new_values": {"name": subject.name, "weekly_hours": subject.weekly_hours}}
+        diff={"new_values": {"name": subject.name, "weekly_hours": subject.weekly_hours, "session_length": subject.session_length}}
     )
     
-    return SubjectSchema(
-        id=str(subject.id),
-        organization_id=str(subject.organization_id),
-        name=subject.name,
-        weekly_hours=subject.weekly_hours
-    )
+    return _subject_schema(subject)
 
 @router.get("/", response_model=list[SubjectSchema])
 def list_subjects(
@@ -50,14 +62,7 @@ def list_subjects(
     subjects = db.query(SubjectModel).filter(
         SubjectModel.organization_id == current_user.organization_id
     ).all()
-    return [
-        SubjectSchema(
-            id=str(s.id),
-            organization_id=str(s.organization_id),
-            name=s.name,
-            weekly_hours=s.weekly_hours
-        ) for s in subjects
-    ]
+    return [_subject_schema(s) for s in subjects]
 
 @router.get("/{subject_id}", response_model=SubjectSchema)
 def get_subject(
@@ -78,12 +83,7 @@ def get_subject(
     if not subject:
         raise HTTPException(status_code=404, detail="Subject not found")
         
-    return SubjectSchema(
-        id=str(subject.id),
-        organization_id=str(subject.organization_id),
-        name=subject.name,
-        weekly_hours=subject.weekly_hours
-    )
+    return _subject_schema(subject)
 
 @router.put("/{subject_id}", response_model=SubjectSchema)
 def update_subject(
@@ -107,8 +107,12 @@ def update_subject(
         
     old_values = {
         "name": subject.name,
-        "weekly_hours": subject.weekly_hours
+        "weekly_hours": subject.weekly_hours,
+        "session_length": subject.session_length,
     }
+    next_weekly_hours = payload.weekly_hours if payload.weekly_hours is not None else subject.weekly_hours
+    next_session_length = payload.session_length if payload.session_length is not None else subject.session_length
+    _validate_session_length(next_weekly_hours, next_session_length)
     
     mutated = False
     if payload.name is not None:
@@ -116,6 +120,9 @@ def update_subject(
         mutated = True
     if payload.weekly_hours is not None:
         subject.weekly_hours = payload.weekly_hours
+        mutated = True
+    if payload.session_length is not None:
+        subject.session_length = payload.session_length
         mutated = True
         
     if mutated:
@@ -133,17 +140,13 @@ def update_subject(
                 "old_values": old_values,
                 "new_values": {
                     "name": subject.name,
-                    "weekly_hours": subject.weekly_hours
+                    "weekly_hours": subject.weekly_hours,
+                    "session_length": subject.session_length,
                 }
             }
         )
     
-    return SubjectSchema(
-        id=str(subject.id),
-        organization_id=str(subject.organization_id),
-        name=subject.name,
-        weekly_hours=subject.weekly_hours
-    )
+    return _subject_schema(subject)
 
 @router.delete("/{subject_id}", status_code=204)
 def delete_subject(
@@ -166,7 +169,8 @@ def delete_subject(
         
     old_values = {
         "name": subject.name,
-        "weekly_hours": subject.weekly_hours
+        "weekly_hours": subject.weekly_hours,
+        "session_length": subject.session_length,
     }
     subject_id_val = subject.id
     
@@ -183,4 +187,3 @@ def delete_subject(
         diff={"old_values": old_values}
     )
     return
-

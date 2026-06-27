@@ -19,6 +19,7 @@ export default function SubjectsPage() {
   const [editing, setEditing] = useState<Subject | null>(null);
   const [formName, setFormName] = useState('');
   const [formHours, setFormHours] = useState('');
+  const [formSessionLength, setFormSessionLength] = useState(1);
   const [saving, setSaving] = useState(false);
   const [teacherModalSubject, setTeacherModalSubject] = useState<Subject | null>(null);
   const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([]);
@@ -31,6 +32,7 @@ export default function SubjectsPage() {
     setEditing(null);
     setFormName('');
     setFormHours('');
+    setFormSessionLength(1);
     setModalOpen(true);
   };
 
@@ -66,17 +68,20 @@ export default function SubjectsPage() {
     setEditing(s);
     setFormName(s.name);
     setFormHours(String(s.weekly_hours));
+    setFormSessionLength(s.session_length || 1);
     setModalOpen(true);
   };
 
   const handleSave = async () => {
     if (!formName.trim() || !formHours || !organizationId) return;
+    const weeklyHours = parseInt(formHours);
+    if (weeklyHours % formSessionLength !== 0) return;
     setSaving(true);
     try {
       if (editing) {
-        await api.put(`/subjects/${editing.id}`, { name: formName, weekly_hours: parseInt(formHours) });
+        await api.put(`/subjects/${editing.id}`, { name: formName, weekly_hours: weeklyHours, session_length: formSessionLength });
       } else {
-        await api.post('/subjects', { organization_id: organizationId, name: formName, weekly_hours: parseInt(formHours) });
+        await api.post('/subjects', { organization_id: organizationId, name: formName, weekly_hours: weeklyHours, session_length: formSessionLength });
       }
       setModalOpen(false);
       refetch();
@@ -186,6 +191,7 @@ export default function SubjectsPage() {
               <th className="text-left px-6 py-3 text-data-table font-semibold w-16">#</th>
               <th className="text-left px-6 py-3 text-data-table font-semibold">Subject Name</th>
               <th className="text-left px-6 py-3 text-data-table font-semibold">Weekly Periods</th>
+              <th className="text-left px-6 py-3 text-data-table font-semibold">Session</th>
               <th className="text-left px-6 py-3 text-data-table font-semibold">Teachers</th>
               <th className="text-left px-6 py-3 text-data-table font-semibold">Status</th>
               <th className="text-left px-6 py-3 text-data-table font-semibold">ID</th>
@@ -194,9 +200,9 @@ export default function SubjectsPage() {
           </thead>
           <tbody className="divide-y divide-rule">
             {loading ? (
-              <tr><td colSpan={7} className="px-6 py-12 text-center text-body-sm text-mono-grey">Loading...</td></tr>
+              <tr><td colSpan={8} className="px-6 py-12 text-center text-body-sm text-mono-grey">Loading...</td></tr>
             ) : filtered.length === 0 ? (
-              <tr><td colSpan={7} className="px-6 py-12 text-center">
+              <tr><td colSpan={8} className="px-6 py-12 text-center">
                 <span className="material-symbols-outlined text-outline-variant mb-2 block" style={{ fontSize: 36 }}>menu_book</span>
                 <p className="text-body-sm text-on-surface-variant">No subjects configured</p>
               </td></tr>
@@ -215,6 +221,11 @@ export default function SubjectsPage() {
                     </div>
                     <span className="text-data-table text-on-surface font-medium">{s.weekly_hours}h</span>
                   </div>
+                </td>
+                <td className="px-6 py-3">
+                  <span className="inline-flex items-center rounded-full border border-rule bg-surface-container px-2 py-0.5 text-[10px] font-medium text-on-surface-variant" style={{ fontFamily: 'var(--font-mono)' }}>
+                    {s.session_length === 2 ? '2h lab' : '1h'}
+                  </span>
                 </td>
                 <td className="px-6 py-3">
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -271,6 +282,24 @@ export default function SubjectsPage() {
           <div>
             <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>Weekly Hours</label>
             <input type="number" value={formHours} onChange={(e) => setFormHours(e.target.value)} className="academic-input w-full" placeholder="5" min={1} />
+          </div>
+          <div>
+            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>Session Length</label>
+            <div className="grid grid-cols-2 gap-2">
+              {[1, 2].map(length => (
+                <button
+                  key={length}
+                  type="button"
+                  onClick={() => setFormSessionLength(length)}
+                  className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${formSessionLength === length ? 'border-primary bg-accent-soft text-primary' : 'border-rule text-on-surface-variant hover:bg-surface-container'}`}
+                >
+                  {length === 1 ? 'Single Period' : 'Double Period Lab'}
+                </button>
+              ))}
+            </div>
+            {formHours && parseInt(formHours) % formSessionLength !== 0 && (
+              <p className="mt-2 text-xs text-error">Weekly hours must be divisible by session length.</p>
+            )}
           </div>
         </div>
       </Modal>

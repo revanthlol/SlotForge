@@ -104,6 +104,7 @@ def _solve_model(
     subjects_map = {s.id: s for s in instance.subjects}
     sections_map = {sec.id: sec for sec in instance.sections}
     slots_map = {slot.id: slot for slot in instance.slots}
+    slots_by_day_period = {(slot.day, slot.period): slot for slot in instance.slots}
     
     # 1. Parse Hard Constraints from constraints list
     # Subject room type requirements
@@ -166,8 +167,10 @@ def _solve_model(
     # 2. Decision Variables
     # x[sec, sub, t, r, slot] = Boolean variable indicating assignment
     x = {}
+    covered_slots_by_assignment = {}
     for sec in instance.sections:
         for sub in instance.subjects:
+            session_length = getattr(sub, "session_length", 1) or 1
             for t in instance.teachers:
                 required_teacher = section_subject_teachers.get((sec.id, sub.id))
                 if required_teacher and t.id != required_teacher:
@@ -193,13 +196,24 @@ def _solve_model(
                         continue
                         
                     for slot in instance.slots:
+                        covered_slots = []
+                        for offset in range(session_length):
+                            covered_slot = slots_by_day_period.get((slot.day, slot.period + offset))
+                            if not covered_slot:
+                                covered_slots = []
+                                break
+                            covered_slots.append(covered_slot.id)
+                        if not covered_slots:
+                            continue
                         # Teacher unavailability check
-                        if not relax_teacher_availability and (t.id, slot.id) in unavailable_teacher_slots:
+                        if not relax_teacher_availability and any((t.id, covered_slot_id) in unavailable_teacher_slots for covered_slot_id in covered_slots):
                             continue
                             
                         # If all checks pass, create decision variable
                         var_name = f"x_{sec.id}_{sub.id}_{t.id}_{r.id}_{slot.id}"
-                        x[(sec.id, sub.id, t.id, r.id, slot.id)] = model.NewBoolVar(var_name)
+                        assignment_key = (sec.id, sub.id, t.id, r.id, slot.id)
+                        x[assignment_key] = model.NewBoolVar(var_name)
+                        covered_slots_by_assignment[assignment_key] = covered_slots
 
     # 3. Hard Constraints
     # Constraint A: Teacher occupies at most one slot at any given time
@@ -207,7 +221,7 @@ def _solve_model(
         for slot in instance.slots:
             vars_for_teacher_slot = [
                 var for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
-                if t_id == t.id and slot_id == slot.id
+                if t_id == t.id and slot.id in covered_slots_by_assignment[(sec_id, sub_id, t_id, r_id, slot_id)]
             ]
             if vars_for_teacher_slot:
                 model.Add(sum(vars_for_teacher_slot) <= 1)
@@ -217,7 +231,7 @@ def _solve_model(
         for slot in instance.slots:
             vars_for_room_slot = [
                 var for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
-                if r_id == r.id and slot_id == slot.id
+                if r_id == r.id and slot.id in covered_slots_by_assignment[(sec_id, sub_id, t_id, r_id, slot_id)]
             ]
             if vars_for_room_slot:
                 model.Add(sum(vars_for_room_slot) <= 1)
@@ -227,7 +241,7 @@ def _solve_model(
         for slot in instance.slots:
             vars_for_section_slot = [
                 var for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
-                if sec_id == sec.id and slot_id == slot.id
+                if sec_id == sec.id and slot.id in covered_slots_by_assignment[(sec_id, sub_id, t_id, r_id, slot_id)]
             ]
             if vars_for_section_slot:
                 model.Add(sum(vars_for_section_slot) <= 1)
@@ -236,7 +250,8 @@ def _solve_model(
     for sec in instance.sections:
         for sub in instance.subjects:
             vars_for_sec_sub = [
-                var for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
+                var * (getattr(subjects_map[sub_id], "session_length", 1) or 1)
+                for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
                 if sec_id == sec.id and sub_id == sub.id
             ]
             if relax_weekly_hours:
@@ -279,7 +294,7 @@ def _solve_model(
                 # Sum variables for teacher t in this slot
                 vars_for_t_slot = [
                     var for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
-                    if t_id == t.id and slot_id == slot.id
+                    if t_id == t.id and slot.id in covered_slots_by_assignment[(sec_id, sub_id, t_id, r_id, slot_id)]
                 ]
                 if vars_for_t_slot:
                     y_var = model.NewBoolVar(f"y_{t.id}_{day}_{slot.period}")
@@ -322,7 +337,8 @@ def _solve_model(
                 day_slot_ids = {s.id for s in slots_by_day[day]}
                 # Sum assignments for this section on this day
                 vars_for_sec_day = [
-                    var for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
+                    var * (getattr(subjects_map[sub_id], "session_length", 1) or 1)
+                    for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
                     if sec_id == sec.id and slot_id in day_slot_ids
                 ]
                 
@@ -420,7 +436,8 @@ def _solve_model(
                     subject_id=sub_id,
                     teacher_id=t_id,
                     room_id=r_id,
-                    slot_id=slot_id
+                    slot_id=slot_id,
+                    duration_periods=getattr(subjects_map[sub_id], "session_length", 1) or 1
                 )
             )
             

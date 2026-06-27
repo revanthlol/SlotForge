@@ -49,7 +49,7 @@ export default function TimetablePage() {
     });
   }, [versions, selectedVersionFromQuery]);
 
-  const { data: timetable, loading: loadingTimetable } = useTimetable(selectedVersionId || null);
+  const { data: timetable, loading: loadingTimetable, refetch: refetchTimetable } = useTimetable(selectedVersionId || null);
 
   const activeVersion = versions?.find((v) => v.id === selectedVersionId);
 
@@ -148,12 +148,15 @@ export default function TimetablePage() {
             )}
 
             <TimetableGrid
+              timetableId={timetable.id}
               assignments={timetable.assignments}
               teachers={teachers}
               rooms={rooms}
               subjects={subjects}
               sections={sections}
               organization={organization || null}
+              editable={activeVersion?.status === 'draft'}
+              onChanged={refetchTimetable}
             />
           </div>
         ) : (
