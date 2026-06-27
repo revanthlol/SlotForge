@@ -52,17 +52,50 @@ def signup_organization(payload: SignupOrganizationRequest, db: Session = Depend
                 res = client.post(url, headers=headers, json=json_payload, timeout=10.0)
                 
             if res.status_code != 200:
-                raise HTTPException(
-                    status_code=res.status_code,
-                    detail=f"Supabase Auth error: {res.text}"
-                )
-                
-            res_data = res.json()
-            user_info = res_data.get("user")
-            if user_info and "id" in user_info:
-                user_id = user_info["id"]
-            elif "id" in res_data:
-                user_id = res_data["id"]
+                # Check if the user is already registered in Supabase Auth but missing in local DB
+                is_already_registered = False
+                try:
+                    res_json = res.json()
+                    error_msg = res_json.get("msg", "") or res_json.get("error_description", "") or ""
+                    if "already registered" in error_msg.lower() or "already exists" in error_msg.lower():
+                        is_already_registered = True
+                except Exception:
+                    pass
+                if res.status_code == 400:
+                    is_already_registered = True
+
+                if is_already_registered:
+                    from sqlalchemy import text
+                    existing_user_id = db.execute(
+                        text("SELECT id FROM auth.users WHERE email = :email"),
+                        {"email": payload.email}
+                    ).scalar()
+                    if existing_user_id:
+                        profile_exists = db.query(Profile).filter(Profile.id == existing_user_id).first()
+                        if not profile_exists:
+                            user_id = str(existing_user_id)
+                        else:
+                            raise HTTPException(
+                                status_code=400,
+                                detail="User already registered and profile exists"
+                            )
+                    else:
+                        raise HTTPException(
+                            status_code=res.status_code,
+                            detail=f"Supabase Auth error: {res.text}"
+                        )
+                else:
+                    raise HTTPException(
+                        status_code=res.status_code,
+                        detail=f"Supabase Auth error: {res.text}"
+                    )
+            else:
+                res_data = res.json()
+                user_info = res_data.get("user")
+                if user_info and "id" in user_info:
+                    user_id = user_info["id"]
+                elif "id" in res_data:
+                    user_id = res_data["id"]
         except Exception as e:
             if isinstance(e, HTTPException):
                 raise e

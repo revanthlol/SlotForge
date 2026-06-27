@@ -63,6 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.error('Failed to load signed-in profile:', err);
         clearProfile();
+        await supabase.auth.signOut().catch(() => {});
       } finally {
         if (mounted) setLoading(false);
       }
@@ -92,20 +93,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       org_name: orgName,
     });
 
-    setOrganizationId(data.organization_id);
-    localStorage.setItem('slotforge_org_id', data.organization_id);
-
     // Also sign in via Supabase to get a session
     const { data: signInData, error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
       // If Supabase auth isn't configured, store org_id anyway
       console.warn('Supabase sign-in failed (may be in dev mode):', error.message);
+      setOrganizationId(data.organization_id);
+      localStorage.setItem('slotforge_org_id', data.organization_id);
       return;
     }
+    
     setApiAccessToken(signInData.session?.access_token ?? null);
     setSession(signInData.session);
     setUser(signInData.user);
-    await loadProfile();
+    
+    try {
+      await loadProfile();
+    } catch (err) {
+      console.error('Failed to load profile after signup:', err);
+      await supabase.auth.signOut().catch(() => {});
+      clearProfile();
+      throw err;
+    }
   };
 
   const signIn = async (email: string, password: string) => {
@@ -114,7 +123,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setApiAccessToken(data.session?.access_token ?? null);
     setSession(data.session);
     setUser(data.user);
-    await loadProfile();
+    
+    try {
+      await loadProfile();
+    } catch (err) {
+      console.error('Failed to load profile after signin:', err);
+      await supabase.auth.signOut().catch(() => {});
+      clearProfile();
+      throw err;
+    }
   };
 
   const signOut = async () => {

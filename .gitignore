@@ -27,3 +27,4 @@ dist/
 # DB
 *.sqlite3
 backend/app/static/exports/
+backend/scripts/server_key
