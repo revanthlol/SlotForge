@@ -23,7 +23,10 @@ const isTypingTarget = (target: EventTarget | null) => {
   return target.isContentEditable || tag === 'input' || tag === 'textarea' || tag === 'select';
 };
 
-const shortcutLabel = (shortcut?: string) => shortcut?.replace('mod', navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl');
+const shortcutLabel = (shortcut?: string) => shortcut
+  ?.replace('mod', navigator.platform.includes('Mac') ? 'Cmd' : 'Ctrl')
+  .split(' ')
+  .join('+');
 
 function ShortcutHint({ shortcut }: { shortcut?: string }) {
   if (!shortcut) return null;
@@ -44,9 +47,13 @@ function CommandPalette({
   actions: ShortcutAction[];
 }) {
   const [query, setQuery] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState(0);
 
   useEffect(() => {
-    if (open) setQuery('');
+    if (open) {
+      setQuery('');
+      setSelectedIndex(0);
+    }
   }, [open]);
 
   if (!open) return null;
@@ -57,6 +64,12 @@ function CommandPalette({
     const haystack = [action.label, action.shortcut, ...(action.keywords || [])].join(' ').toLowerCase();
     return haystack.includes(normalized);
   });
+  const clampedIndex = Math.min(selectedIndex, Math.max(filtered.length - 1, 0));
+
+  const runAction = (action: ShortcutAction) => {
+    action.handler();
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 z-[120] bg-on-background/30 backdrop-blur-sm p-4" onMouseDown={onClose}>
@@ -68,7 +81,22 @@ function CommandPalette({
           <span className="material-symbols-outlined text-mono-grey" style={{ fontSize: 20 }}>search</span>
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              setSelectedIndex(0);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                setSelectedIndex(index => Math.min(index + 1, Math.max(filtered.length - 1, 0)));
+              } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                setSelectedIndex(index => Math.max(index - 1, 0));
+              } else if (event.key === 'Enter' && filtered[clampedIndex]) {
+                event.preventDefault();
+                runAction(filtered[clampedIndex]);
+              }
+            }}
             className="w-full bg-transparent text-sm text-on-surface outline-none"
             placeholder="Run command..."
             autoFocus
@@ -77,14 +105,14 @@ function CommandPalette({
         <div className="max-h-[55vh] overflow-y-auto p-2">
           {filtered.length === 0 ? (
             <div className="px-4 py-8 text-center text-body-sm text-mono-grey">No matching commands</div>
-          ) : filtered.map(action => (
+          ) : filtered.map((action, index) => (
             <button
               key={action.id}
-              onClick={() => {
-                action.handler();
-                onClose();
-              }}
-              className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-on-surface hover:bg-accent-soft"
+              onMouseEnter={() => setSelectedIndex(index)}
+              onClick={() => runAction(action)}
+              className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-on-surface ${
+                index === clampedIndex ? 'bg-accent-soft' : 'hover:bg-accent-soft'
+              }`}
             >
               <span>{action.label}</span>
               <ShortcutHint shortcut={action.shortcut} />
@@ -161,13 +189,17 @@ export function ShortcutProvider({ children }: { children: ReactNode }) {
     { id: 'nav.subjects', label: 'Go to Subjects', shortcut: 'g s', handler: () => navigate('/resources/subjects') },
     { id: 'nav.sections', label: 'Go to Sections', shortcut: 'g c', keywords: ['classes'], handler: () => navigate('/resources/sections') },
     { id: 'nav.timetable', label: 'Go to Timetable', shortcut: 'g m', handler: () => navigate('/timetable') },
+    { id: 'nav.canvas', label: 'Go to Canvas View', shortcut: 'g a', keywords: ['graph'], handler: () => navigate('/canvas') },
     { id: 'nav.versions', label: 'Go to Version History', shortcut: 'g v', handler: () => navigate('/versions') },
     { id: 'nav.solver', label: 'Go to Solver Engine', shortcut: 'g e', handler: () => navigate('/solver') },
+    { id: 'nav.settings', label: 'Go to Settings', shortcut: 'g ,', keywords: ['preferences'], handler: () => navigate('/settings') },
+    { id: 'nav.profile', label: 'Go to Profile', shortcut: 'g p', keywords: ['account'], handler: () => navigate('/profile') },
     { id: 'create.teacher', label: 'Create Teacher', shortcut: 'c t', handler: () => openResourceCreate('teacher', '/resources/teachers') },
     { id: 'create.room', label: 'Create Room', shortcut: 'c r', handler: () => openResourceCreate('room', '/resources/rooms') },
     { id: 'create.subject', label: 'Create Subject', shortcut: 'c s', handler: () => openResourceCreate('subject', '/resources/subjects') },
     { id: 'create.section', label: 'Create Section', shortcut: 'c c', keywords: ['class'], handler: () => openResourceCreate('section', '/resources/sections') },
-    { id: 'help.shortcuts', label: 'Show Shortcuts', shortcut: '?', handler: openHelp },
+    { id: 'action.refresh', label: 'Refresh Page Data', shortcut: 'mod+r', keywords: ['reload'], handler: () => window.location.reload() },
+    { id: 'help.shortcuts', label: 'Show Shortcuts', shortcut: 'mod+/', handler: openHelp },
     { id: 'palette.open', label: 'Open Command Palette', shortcut: 'mod+k', handler: openPalette },
   ], [navigate, openHelp, openPalette, openResourceCreate]);
 
@@ -185,6 +217,16 @@ export function ShortcutProvider({ children }: { children: ReactNode }) {
         setPaletteOpen(true);
         return;
       }
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'r') {
+        event.preventDefault();
+        allActions.find(action => action.shortcut === 'mod+r')?.handler();
+        return;
+      }
+      if ((event.ctrlKey || event.metaKey) && event.key === '/') {
+        event.preventDefault();
+        setHelpOpen(true);
+        return;
+      }
       if (event.key === 'Escape') {
         setPaletteOpen(false);
         setHelpOpen(false);
@@ -200,7 +242,7 @@ export function ShortcutProvider({ children }: { children: ReactNode }) {
       }
 
       const key = event.key.toLowerCase();
-      if (!/^[a-z/]$/.test(key)) return;
+      if (!/^[a-z/,]$/.test(key)) return;
       const next = sequenceRef.current ? `${sequenceRef.current} ${key}` : key;
       const exact = allActions.find(action => action.shortcut === next);
       const partial = allActions.some(action => action.shortcut?.startsWith(`${next} `));

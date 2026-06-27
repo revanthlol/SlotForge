@@ -396,6 +396,7 @@ export default function SettingsPage() {
             <button
               onClick={handleWipeOrganizationData}
               disabled={wiping || wipeConfirmName !== organization?.name}
+              data-modal-primary="true"
               className="px-4 py-2 bg-error text-on-error text-sm font-semibold rounded-lg hover:opacity-85 transition-opacity disabled:opacity-50"
             >
               {wiping ? 'Wiping...' : 'Wipe Data'}

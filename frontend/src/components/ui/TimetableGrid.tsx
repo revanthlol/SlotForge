@@ -615,6 +615,7 @@ export default function TimetableGrid({
               type="button"
               onClick={createSlot}
               disabled={Boolean(pendingSlotId)}
+              data-modal-primary="true"
               className="px-4 py-2 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors disabled:opacity-50"
             >
               {pendingSlotId === 'new' ? 'Adding...' : 'Add Class'}

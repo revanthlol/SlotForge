@@ -1,4 +1,5 @@
 import { Dialog, DialogPanel, DialogTitle, DialogBackdrop } from '@headlessui/react';
+import { useRef } from 'react';
 
 interface ModalProps {
   open: boolean;
@@ -10,6 +11,28 @@ interface ModalProps {
 }
 
 export default function Modal({ open, onClose, title, children, actions, maxWidth = 'max-w-lg' }: ModalProps) {
+  const actionsRef = useRef<HTMLDivElement | null>(null);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.key !== 'Enter' || event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) return;
+    const tag = target.tagName.toLowerCase();
+    if (target.isContentEditable || tag === 'textarea' || tag === 'select') return;
+
+    const primaryButton = actionsRef.current?.querySelector<HTMLButtonElement>(
+      '[data-modal-primary="true"]:not(:disabled)'
+    );
+    const fallbackButtons = Array.from(
+      actionsRef.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') || []
+    );
+    const button = primaryButton || fallbackButtons.at(-1);
+    if (!button) return;
+
+    event.preventDefault();
+    button.click();
+  };
+
   return (
     <Dialog open={open} onClose={onClose} className="relative z-[100]">
       <DialogBackdrop
@@ -18,6 +41,7 @@ export default function Modal({ open, onClose, title, children, actions, maxWidt
       <div className="fixed inset-0 flex items-center justify-center p-4">
         <DialogPanel
           className={`${maxWidth} w-full bg-paper-raised rounded-xl border-2 border-rule shadow-2xl transform transition-all`}
+          onKeyDown={handleKeyDown}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-rule">
@@ -43,7 +67,7 @@ export default function Modal({ open, onClose, title, children, actions, maxWidt
 
           {/* Actions */}
           {actions && (
-            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-rule bg-surface-container-low rounded-b-xl">
+            <div ref={actionsRef} className="flex items-center justify-end gap-3 px-6 py-4 border-t border-rule bg-surface-container-low rounded-b-xl">
               {actions}
             </div>
           )}

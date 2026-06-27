@@ -286,7 +286,7 @@ export default function SubjectsPage() {
         actions={
           <>
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-on-surface-variant border border-rule rounded-lg hover:bg-surface-container transition-colors">Cancel</button>
-            <button onClick={handleSave} disabled={saving || !formName.trim()} className="px-4 py-2 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors disabled:opacity-50">
+            <button onClick={handleSave} disabled={saving || !formName.trim()} data-modal-primary="true" className="px-4 py-2 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors disabled:opacity-50">
               {saving ? 'Saving...' : editing ? 'Update' : 'Create'}
             </button>
           </>
@@ -340,7 +340,7 @@ export default function SubjectsPage() {
         actions={
           <>
             <button onClick={() => setTeacherModalSubject(null)} className="px-4 py-2 text-sm text-on-surface-variant border border-rule rounded-lg hover:bg-surface-container transition-colors">Cancel</button>
-            <button onClick={saveSubjectTeachers} disabled={saving} className="px-4 py-2 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors disabled:opacity-50">
+            <button onClick={saveSubjectTeachers} disabled={saving} data-modal-primary="true" className="px-4 py-2 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors disabled:opacity-50">
               {saving ? 'Saving...' : 'Save'}
             </button>
           </>
