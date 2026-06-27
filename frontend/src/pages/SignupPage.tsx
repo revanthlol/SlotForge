@@ -31,11 +31,7 @@ export default function SignupPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3 mb-10">
-          <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center">
-            <span className="material-symbols-outlined text-on-primary" style={{ fontSize: 28 }}>
-              view_module
-            </span>
-          </div>
+          <img src="/logo/logo.svg" alt="SlotForge Logo" className="w-12 h-12 object-contain" />
           <div>
             <h1 className="text-headline-md text-on-surface">SlotForge</h1>
             <p className="text-label-caps text-mono-grey" style={{ fontSize: 10 }}>

@@ -49,11 +49,7 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
       <div className={`${expanded ? 'px-5' : 'px-3'} py-5 border-b border-rule`}>
         <div className={`flex items-center ${expanded ? 'justify-between gap-3' : 'justify-center'}`}>
           <div className="flex min-w-0 items-center gap-3">
-          <div className="brand-mark w-9 h-9 bg-primary rounded-lg flex items-center justify-center">
-            <span className="material-symbols-outlined text-on-primary" style={{ fontSize: 20 }}>
-              view_module
-            </span>
-          </div>
+          <img src="/logo/logo.svg" alt="SlotForge Logo" className="brand-mark w-9 h-9 object-contain" />
           {expanded && (
           <div className="min-w-0">
             <h1 className="text-[15px] font-semibold text-on-surface tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
