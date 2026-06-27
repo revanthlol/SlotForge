@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function SignupPage() {
   const [orgName, setOrgName] = useState('');
@@ -10,6 +11,7 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
+  const { theme } = useTheme();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,7 +33,7 @@ export default function SignupPage() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3 mb-10">
-          <img src="/logo/logo.svg" alt="SlotForge Logo" className="w-12 h-12 object-contain" />
+          <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="SlotForge Logo" className="w-12 h-12 object-contain" />
           <div>
             <h1 className="text-headline-md text-on-surface">SlotForge</h1>
             <p className="text-label-caps text-mono-grey" style={{ fontSize: 10 }}>

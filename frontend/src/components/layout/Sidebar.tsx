@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface NavItem {
   label: string;
@@ -36,6 +37,7 @@ interface SidebarProps {
 
 export default function Sidebar({ expanded, onToggle }: SidebarProps) {
   const location = useLocation();
+  const { theme } = useTheme();
   const [resourcesOpen, setResourcesOpen] = useState(
     location.pathname.startsWith('/resources')
   );
@@ -43,13 +45,17 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
   const isActive = (path: string) => location.pathname === path;
   const isParentActive = (path: string) => location.pathname.startsWith(path);
 
+  const logoSrc = theme === 'dark'
+    ? (expanded ? '/logo/logo-dark.svg' : '/logo/logo-symbol-dark.svg')
+    : (expanded ? '/logo/logo.svg' : '/logo/logo-symbol.svg');
+
   return (
     <aside className={`sidebar-shell fixed left-0 top-0 h-screen bg-paper-raised border-r-2 border-rule flex flex-col z-50 transition-[width] duration-200 ease-out ${expanded ? 'w-64' : 'w-20'}`}>
       {/* Logo */}
       <div className={`${expanded ? 'px-5' : 'px-3'} py-5 border-b border-rule`}>
         <div className={`flex items-center ${expanded ? 'justify-between gap-3' : 'justify-center'}`}>
           <div className="flex min-w-0 items-center gap-3">
-          <img src="/logo/logo.svg" alt="SlotForge Logo" className="brand-mark w-9 h-9 object-contain" />
+          <img src={logoSrc} alt="SlotForge Logo" className="brand-mark w-9 h-9 object-contain" />
           {expanded && (
           <div className="min-w-0">
             <h1 className="text-[15px] font-semibold text-on-surface tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>

@@ -33,7 +33,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-paper text-on-surface">
       <header className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
         <Link to="/" className="flex items-center gap-3">
-          <img src="/logo/logo.svg" alt="SlotForge Logo" className="w-10 h-10 object-contain" />
+          <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="SlotForge Logo" className="w-10 h-10 object-contain" />
           <div>
             <p className="text-[16px] font-semibold text-on-surface" style={{ fontFamily: 'var(--font-display)' }}>
               SlotForge
