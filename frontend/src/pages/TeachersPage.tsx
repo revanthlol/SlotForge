@@ -6,6 +6,8 @@ import api from '../lib/api';
 import PageHeader from '../components/ui/PageHeader';
 import Modal from '../components/ui/Modal';
 import SearchInput from '../components/ui/SearchInput';
+import ConfirmModal from '../components/ui/ConfirmModal';
+import { getApiErrorMessage } from '../lib/errors';
 
 export default function TeachersPage() {
   const { organizationId } = useAuth();
@@ -20,6 +22,8 @@ export default function TeachersPage() {
   const [saving, setSaving] = useState(false);
   const [subjectModalTeacher, setSubjectModalTeacher] = useState<Teacher | null>(null);
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<Teacher | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const filtered = teachers?.filter(t =>
     t.name.toLowerCase().includes(search.toLowerCase())
@@ -89,10 +93,20 @@ export default function TeachersPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this teacher?')) return;
-    await api.delete(`/teachers/${id}`);
-    refetch();
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setSaving(true);
+    setDeleteError(null);
+    try {
+      await api.delete(`/teachers/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      refetch();
+      refetchTeacherSubjects();
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err, 'Could not delete teacher'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openSubjectModal = (teacher: Teacher) => {
@@ -150,6 +164,7 @@ export default function TeachersPage() {
           inputRef={searchRef}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          onClear={() => setSearch('')}
           placeholder="Search teachers..."
           shortcut="/"
         />
@@ -228,7 +243,10 @@ export default function TeachersPage() {
                       <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 18 }}>edit</span>
                     </button>
                     <button
-                      onClick={() => handleDelete(t.id)}
+                      onClick={() => {
+                        setDeleteError(null);
+                        setDeleteTarget(t);
+                      }}
                       className="p-1.5 rounded-lg hover:bg-error-container transition-colors"
                       title="Delete"
                     >
@@ -286,6 +304,19 @@ export default function TeachersPage() {
           />
         </div>
       </Modal>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete teacher"
+        message={`Delete ${deleteTarget?.name || 'this teacher'}? Related teaching assignments will also be removed.`}
+        loading={saving}
+        error={deleteError}
+        onCancel={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
+        onConfirm={handleDelete}
+      />
 
       <Modal
         open={!!subjectModalTeacher}

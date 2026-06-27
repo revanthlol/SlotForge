@@ -13,6 +13,8 @@ import api from '../lib/api';
 import PageHeader from '../components/ui/PageHeader';
 import Modal from '../components/ui/Modal';
 import SearchInput from '../components/ui/SearchInput';
+import ConfirmModal from '../components/ui/ConfirmModal';
+import { getApiErrorMessage } from '../lib/errors';
 
 export default function SectionsPage() {
   const { organizationId } = useAuth();
@@ -31,6 +33,8 @@ export default function SectionsPage() {
   const [saving, setSaving] = useState(false);
   const [mapSection, setMapSection] = useState<Section | null>(null);
   const [teachingMap, setTeachingMap] = useState<Record<string, string>>({});
+  const [deleteTarget, setDeleteTarget] = useState<Section | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const filtered = sections?.filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase())
@@ -99,10 +103,20 @@ export default function SectionsPage() {
     finally { setSaving(false); }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this section?')) return;
-    await api.delete(`/sections/${id}`);
-    refetch();
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setSaving(true);
+    setDeleteError(null);
+    try {
+      await api.delete(`/sections/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      refetch();
+      refetchSectionTeachers();
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err, 'Could not delete section'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const openTeachingMap = (section: Section) => {
@@ -156,6 +170,7 @@ export default function SectionsPage() {
           inputRef={searchRef}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          onClear={() => setSearch('')}
           placeholder="Search sections..."
           shortcut="/"
         />
@@ -205,7 +220,10 @@ export default function SectionsPage() {
                   <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg hover:bg-accent-soft transition-colors">
                     <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 18 }}>edit</span>
                   </button>
-                  <button onClick={() => handleDelete(s.id)} className="p-1.5 rounded-lg hover:bg-error-container transition-colors">
+                  <button onClick={() => {
+                    setDeleteError(null);
+                    setDeleteTarget(s);
+                  }} className="p-1.5 rounded-lg hover:bg-error-container transition-colors">
                     <span className="material-symbols-outlined text-error" style={{ fontSize: 18 }}>delete</span>
                   </button>
                 </div>
@@ -248,6 +266,19 @@ export default function SectionsPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete section"
+        message={`Delete ${deleteTarget?.name || 'this section'}? Related section-teacher assignments and generated schedules may need regeneration.`}
+        loading={saving}
+        error={deleteError}
+        onCancel={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
+        onConfirm={handleDelete}
+      />
 
       <Modal open={!!mapSection} onClose={() => setMapSection(null)} title={`Teaching map for ${mapSection?.name || ''}`}
         maxWidth="max-w-3xl"

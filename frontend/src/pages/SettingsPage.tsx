@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { useOrganization } from '../hooks/useApi';
 import api from '../lib/api';
 import PageHeader from '../components/ui/PageHeader';
+import Modal from '../components/ui/Modal';
+import { getApiErrorMessage } from '../lib/errors';
 
 export default function SettingsPage() {
   const { organizationId } = useAuth();
@@ -12,7 +14,7 @@ export default function SettingsPage() {
   const [name, setName] = useState('');
   const [schedulingMode, setSchedulingMode] = useState<'fixed_weekday' | 'day_order'>('fixed_weekday');
   const [cycleLength, setCycleLength] = useState(5);
-  const [periodsPerDay, setPeriodsPerDay] = useState(6);
+  const [periodsPerDay, setPeriodsPerDay] = useState(5);
 
   // UI-only states (persisted in localStorage)
   const [strictness, setStrictness] = useState('balanced');
@@ -22,6 +24,9 @@ export default function SettingsPage() {
 
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [wipeOpen, setWipeOpen] = useState(false);
+  const [wipeConfirmName, setWipeConfirmName] = useState('');
+  const [wiping, setWiping] = useState(false);
 
   // Populate form from API on load
   useEffect(() => {
@@ -29,7 +34,7 @@ export default function SettingsPage() {
       setName(organization.name);
       setSchedulingMode(organization.scheduling_mode as any || 'fixed_weekday');
       setCycleLength(organization.cycle_length || 5);
-      setPeriodsPerDay(organization.periods_per_day || 6);
+      setPeriodsPerDay(organization.periods_per_day || 5);
     }
   }, [organization]);
 
@@ -50,13 +55,21 @@ export default function SettingsPage() {
 
   const handleSave = async () => {
     if (!organizationId) return;
+    if (!name.trim()) {
+      setMessage({ type: 'error', text: 'Institution name is required.' });
+      return;
+    }
+    if (cycleLength < 1 || cycleLength > 50 || periodsPerDay < 1 || periodsPerDay > 20) {
+      setMessage({ type: 'error', text: 'Cycle length and periods per day must be within the allowed range.' });
+      return;
+    }
     setSaving(true);
     setMessage(null);
 
     try {
       // Save backend organization fields
       await api.patch(`/organizations/${organizationId}`, {
-        name,
+        name: name.trim(),
         scheduling_mode: schedulingMode,
         cycle_length: cycleLength,
         periods_per_day: periodsPerDay,
@@ -74,10 +87,27 @@ export default function SettingsPage() {
       console.error(err);
       setMessage({
         type: 'error',
-        text: err.response?.data?.detail || err.message || 'Failed to save settings',
+        text: getApiErrorMessage(err, 'Failed to save settings'),
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleWipeOrganizationData = async () => {
+    if (!organizationId || !organization) return;
+    setWiping(true);
+    setMessage(null);
+    try {
+      const { data } = await api.delete(`/organizations/${organizationId}/data`);
+      setWipeOpen(false);
+      setWipeConfirmName('');
+      setMessage({ type: 'success', text: `Organization data wiped. Removed ${Object.values(data.deleted || {}).reduce((sum: number, value) => sum + Number(value || 0), 0)} records.` });
+      refetch();
+    } catch (err) {
+      setMessage({ type: 'error', text: getApiErrorMessage(err, 'Failed to wipe organization data') });
+    } finally {
+      setWiping(false);
     }
   };
 
@@ -162,7 +192,7 @@ export default function SettingsPage() {
                   min="1"
                   max="30"
                   value={cycleLength}
-                  onChange={(e) => setCycleLength(parseInt(e.target.value, 10) || 5)}
+                  onChange={(e) => setCycleLength(parseInt(e.target.value, 10) || 1)}
                   className="academic-input w-full"
                 />
                 <span className="text-[10px] text-mono-grey block">
@@ -179,7 +209,7 @@ export default function SettingsPage() {
                   min="1"
                   max="16"
                   value={periodsPerDay}
-                  onChange={(e) => setPeriodsPerDay(parseInt(e.target.value, 10) || 6)}
+                  onChange={(e) => setPeriodsPerDay(parseInt(e.target.value, 10) || 1)}
                   className="academic-input w-full"
                 />
                 <span className="text-[10px] text-mono-grey block">
@@ -305,7 +335,7 @@ export default function SettingsPage() {
             </div>
 
             <p className="text-[11px] text-on-surface-variant leading-relaxed">
-              Resetting local preferences will revert solver strictness and timeouts back to factory defaults immediately.
+              Resetting local preferences will revert solver strictness and timeouts. Wiping organization data removes resources, constraints, assignments, and timetable versions.
             </p>
 
             <button
@@ -314,12 +344,21 @@ export default function SettingsPage() {
             >
               Reset Engine Defaults
             </button>
+            <button
+              onClick={() => {
+                setWipeConfirmName('');
+                setWipeOpen(true);
+              }}
+              className="w-full py-2 bg-error text-on-error border border-error text-xs font-semibold rounded-lg hover:opacity-85 transition-opacity"
+            >
+              Wipe Organization Data
+            </button>
           </div>
         </div>
       </div>
 
       {/* Persistent Footer bar */}
-      <div className="fixed bottom-0 left-64 right-0 bg-paper-raised border-t-2 border-rule px-margin-page py-4 flex items-center justify-between z-40 shadow-md">
+      <div className="fixed bottom-0 right-0 bg-paper-raised border-t-2 border-rule px-margin-page py-4 flex items-center justify-between z-40 shadow-md" style={{ left: 'var(--slotforge-sidebar-offset, 16rem)' }}>
         <span className="text-xs text-mono-grey italic">
           Unsaved changes will be lost unless committed.
         </span>
@@ -340,6 +379,45 @@ export default function SettingsPage() {
           </button>
         </div>
       </div>
+
+      <Modal
+        open={wipeOpen}
+        onClose={() => !wiping && setWipeOpen(false)}
+        title="Wipe organization data"
+        actions={
+          <>
+            <button
+              onClick={() => setWipeOpen(false)}
+              disabled={wiping}
+              className="px-4 py-2 text-sm text-on-surface-variant border border-rule rounded-lg hover:bg-surface-container transition-colors disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleWipeOrganizationData}
+              disabled={wiping || wipeConfirmName !== organization?.name}
+              className="px-4 py-2 bg-error text-on-error text-sm font-semibold rounded-lg hover:opacity-85 transition-opacity disabled:opacity-50"
+            >
+              {wiping ? 'Wiping...' : 'Wipe Data'}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-on-surface-variant">
+            This removes teachers, rooms, subjects, sections, assignments, constraints, timetable versions, and audit logs for this organization. The organization and your admin login remain.
+          </p>
+          <label className="block text-label-caps text-on-surface-variant" style={{ fontSize: 10 }}>
+            Type “{organization?.name || 'organization name'}” to confirm
+          </label>
+          <input
+            value={wipeConfirmName}
+            onChange={(event) => setWipeConfirmName(event.target.value)}
+            className="academic-input w-full"
+            placeholder={organization?.name || 'Organization name'}
+          />
+        </div>
+      </Modal>
     </div>
   );
 }

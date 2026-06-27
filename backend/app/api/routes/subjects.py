@@ -1,5 +1,6 @@
 import uuid
 from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from app.schemas.subject import Subject as SubjectSchema, SubjectCreate, SubjectUpdate
 from app.models.subject import Subject as SubjectModel
@@ -174,8 +175,12 @@ def delete_subject(
     }
     subject_id_val = subject.id
     
-    db.delete(subject)
-    db.commit()
+    try:
+        db.delete(subject)
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Subject could not be deleted because it is still referenced by other records")
     
     AuditService.log_action(
         db=db,

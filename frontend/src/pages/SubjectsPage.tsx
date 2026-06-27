@@ -7,6 +7,8 @@ import PageHeader from '../components/ui/PageHeader';
 import Modal from '../components/ui/Modal';
 import StatusBadge from '../components/ui/StatusBadge';
 import SearchInput from '../components/ui/SearchInput';
+import ConfirmModal from '../components/ui/ConfirmModal';
+import { getApiErrorMessage } from '../lib/errors';
 
 export default function SubjectsPage() {
   const { organizationId } = useAuth();
@@ -23,6 +25,8 @@ export default function SubjectsPage() {
   const [saving, setSaving] = useState(false);
   const [teacherModalSubject, setTeacherModalSubject] = useState<Subject | null>(null);
   const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<Subject | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const filtered = subjects?.filter(s =>
     s.name.toLowerCase().includes(search.toLowerCase())
@@ -92,10 +96,20 @@ export default function SubjectsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this subject?')) return;
-    await api.delete(`/subjects/${id}`);
-    refetch();
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setSaving(true);
+    setDeleteError(null);
+    try {
+      await api.delete(`/subjects/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      refetch();
+      refetchTeacherSubjects();
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err, 'Could not delete subject'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const teacherById = useMemo(() => new Map((teachers || []).map(teacher => [teacher.id, teacher])), [teachers]);
@@ -178,6 +192,7 @@ export default function SubjectsPage() {
           inputRef={searchRef}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          onClear={() => setSearch('')}
           placeholder="Search subjects..."
           shortcut="/"
         />
@@ -249,7 +264,10 @@ export default function SubjectsPage() {
                     <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg hover:bg-accent-soft transition-colors">
                       <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 18 }}>edit</span>
                     </button>
-                    <button onClick={() => handleDelete(s.id)} className="p-1.5 rounded-lg hover:bg-error-container transition-colors">
+                    <button onClick={() => {
+                      setDeleteError(null);
+                      setDeleteTarget(s);
+                    }} className="p-1.5 rounded-lg hover:bg-error-container transition-colors">
                       <span className="material-symbols-outlined text-error" style={{ fontSize: 18 }}>delete</span>
                     </button>
                   </div>
@@ -303,6 +321,19 @@ export default function SubjectsPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete subject"
+        message={`Delete ${deleteTarget?.name || 'this subject'}? Related teacher mappings and generated schedule references may need regeneration.`}
+        loading={saving}
+        error={deleteError}
+        onCancel={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
+        onConfirm={handleDelete}
+      />
 
       <Modal open={!!teacherModalSubject} onClose={() => setTeacherModalSubject(null)} title={`Teachers for ${teacherModalSubject?.name || ''}`}
         maxWidth="max-w-xl"

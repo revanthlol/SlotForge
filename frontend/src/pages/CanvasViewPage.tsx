@@ -57,6 +57,26 @@ export default function CanvasViewPage() {
     return Math.abs(hash) % 360;
   };
 
+  const nodePosition = (type: 'section' | 'subject' | 'teacher' | 'room', id: string) => {
+    const collections = { section: sections, subject: subjects, teacher: teachers, room: rooms };
+    const xMap = { section: 8, subject: 36, teacher: 64, room: 92 };
+    const list = collections[type];
+    const index = list.findIndex((item) => item.id === id);
+    const safeIndex = index >= 0 ? index : 0;
+    return {
+      x: xMap[type],
+      y: 58 + safeIndex * 64,
+    };
+  };
+
+  const parseNodeId = (nodeId: string): { type: 'section' | 'subject' | 'teacher' | 'room'; id: string } => {
+    for (const type of ['section', 'subject', 'teacher', 'room'] as const) {
+      const prefix = `${type}-`;
+      if (nodeId.startsWith(prefix)) return { type, id: nodeId.slice(prefix.length) };
+    }
+    return { type: 'section', id: nodeId };
+  };
+
   // Draw linking lines between related columns
   // We can compute lines based on assignments
   const lines: { fromId: string; toId: string; type: string }[] = [];
@@ -121,6 +141,29 @@ export default function CanvasViewPage() {
 
         {/* Graph Columns Layout */}
         <div className="grid grid-cols-4 gap-8 md:gap-12 relative min-h-[500px]">
+          {hasAssignments && (
+            <svg className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible">
+              {lines.map((line) => {
+                const fromNode = parseNodeId(line.fromId);
+                const toNode = parseNodeId(line.toId);
+                const from = nodePosition(fromNode.type, fromNode.id);
+                const to = nodePosition(toNode.type, toNode.id);
+                const selected = !selectedNode || (relatedNodes.has(line.fromId) && relatedNodes.has(line.toId));
+                const stroke = line.type === 'sec-sub' ? 'var(--color-primary)' : line.type === 'sub-teach' ? '#2fb4df' : 'var(--color-secondary)';
+
+                return (
+                  <path
+                    key={`${line.fromId}-${line.toId}`}
+                    d={`M ${from.x}% ${from.y} C ${(from.x + to.x) / 2}% ${from.y}, ${(from.x + to.x) / 2}% ${to.y}, ${to.x}% ${to.y}`}
+                    fill="none"
+                    stroke={stroke}
+                    strokeWidth={selected ? 2.4 : 1.2}
+                    strokeOpacity={selected ? 0.62 : 0.12}
+                  />
+                );
+              })}
+            </svg>
+          )}
           {/* Column 1: Sections */}
           <div className="space-y-3 z-10">
             <h4 className="text-label-caps text-center text-mono-grey mb-4" style={{ fontSize: 10 }}>Sections</h4>

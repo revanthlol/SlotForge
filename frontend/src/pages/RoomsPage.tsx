@@ -6,6 +6,8 @@ import api from '../lib/api';
 import PageHeader from '../components/ui/PageHeader';
 import Modal from '../components/ui/Modal';
 import SearchInput from '../components/ui/SearchInput';
+import ConfirmModal from '../components/ui/ConfirmModal';
+import { getApiErrorMessage } from '../lib/errors';
 
 export default function RoomsPage() {
   const { organizationId } = useAuth();
@@ -19,6 +21,8 @@ export default function RoomsPage() {
   const [formCapacity, setFormCapacity] = useState('');
   const [formType, setFormType] = useState('');
   const [saving, setSaving] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Room | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const filtered = rooms?.filter(r =>
     r.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -96,10 +100,19 @@ export default function RoomsPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this room?')) return;
-    await api.delete(`/rooms/${id}`);
-    refetch();
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setSaving(true);
+    setDeleteError(null);
+    try {
+      await api.delete(`/rooms/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      refetch();
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err, 'Could not delete room'));
+    } finally {
+      setSaving(false);
+    }
   };
 
   const typeColors: Record<string, string> = {
@@ -150,6 +163,7 @@ export default function RoomsPage() {
           inputRef={searchRef}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
+          onClear={() => setSearch('')}
           placeholder="Search rooms..."
           shortcut="/"
         />
@@ -209,7 +223,10 @@ export default function RoomsPage() {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(r.id)}
+                    onClick={() => {
+                      setDeleteError(null);
+                      setDeleteTarget(r);
+                    }}
                     className="py-1.5 px-3 text-xs font-medium text-error border border-error/20 rounded-lg hover:bg-error-container transition-colors"
                   >
                     <span className="material-symbols-outlined" style={{ fontSize: 14 }}>delete</span>
@@ -248,7 +265,10 @@ export default function RoomsPage() {
                   <button onClick={() => openEdit(r)} className="p-1.5 rounded-lg hover:bg-accent-soft transition-colors">
                     <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 18 }}>edit</span>
                   </button>
-                  <button onClick={() => handleDelete(r.id)} className="p-1.5 rounded-lg hover:bg-error-container transition-colors">
+                  <button onClick={() => {
+                    setDeleteError(null);
+                    setDeleteTarget(r);
+                  }} className="p-1.5 rounded-lg hover:bg-error-container transition-colors">
                     <span className="material-symbols-outlined text-error" style={{ fontSize: 18 }}>delete</span>
                   </button>
                 </div>
@@ -297,6 +317,19 @@ export default function RoomsPage() {
           </div>
         </div>
       </Modal>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete room"
+        message={`Delete ${deleteTarget?.name || 'this room'}? Existing timetable slots using this room may need regeneration.`}
+        loading={saving}
+        error={deleteError}
+        onCancel={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
+        onConfirm={handleDelete}
+      />
     </div>
   );
 }

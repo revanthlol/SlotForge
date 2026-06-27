@@ -1,5 +1,6 @@
 import uuid
 from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from app.schemas.section import Section as SectionSchema, SectionCreate, SectionUpdate
 from app.models.section import Section as SectionModel
@@ -181,8 +182,12 @@ def delete_section(
     }
     section_id_val = section.id
     
-    db.delete(section)
-    db.commit()
+    try:
+        db.delete(section)
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Section could not be deleted because it is still referenced by other records")
     
     AuditService.log_action(
         db=db,

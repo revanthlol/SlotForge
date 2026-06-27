@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import type { ScheduledSlot, Teacher, Room, Subject, Section, Organization } from '../../hooks/useApi';
 import api from '../../lib/api';
+import ConfirmModal from './ConfirmModal';
 
 interface TimetableGridProps {
   timetableId: string;
@@ -63,6 +64,7 @@ export default function TimetableGrid({
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [pendingSlotId, setPendingSlotId] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ScheduledSlot | null>(null);
   const [localAssignments, setLocalAssignments] = useState<ScheduledSlot[]>(assignments);
 
   useEffect(() => {
@@ -70,7 +72,7 @@ export default function TimetableGrid({
   }, [assignments]);
 
   const cycleLength = organization?.cycle_length || 5;
-  const periodsPerDay = organization?.periods_per_day || 6;
+  const periodsPerDay = organization?.periods_per_day || 5;
   const isDayOrder = organization?.scheduling_mode === 'day_order';
 
   const dayValues = Array.from({ length: cycleLength }).map((_, index) => {
@@ -145,14 +147,16 @@ export default function TimetableGrid({
     }
   };
 
-  const deleteSlot = async (slotId: string) => {
-    if (!confirm('Delete this assignment from the draft timetable?')) return;
+  const deleteSlot = async () => {
+    if (!deleteTarget) return;
+    const slotId = deleteTarget.id;
     const previousAssignments = localAssignments;
     setEditError(null);
     setPendingSlotId(slotId);
     setLocalAssignments((current) => current.filter((slot) => slot.id !== slotId));
     try {
       await api.delete(`/timetables/${timetableId}/slots/${slotId}`);
+      setDeleteTarget(null);
     } catch (err: any) {
       setLocalAssignments(previousAssignments);
       setEditError(err.response?.data?.detail || err.message || 'Could not delete timetable slot');
@@ -236,7 +240,7 @@ export default function TimetableGrid({
               type="button"
               disabled={isPending}
               onPointerDown={(event) => event.stopPropagation()}
-              onClick={() => deleteSlot(slot.id)}
+              onClick={() => setDeleteTarget(slot)}
               className="rounded border border-error/20 bg-error-container px-2 py-1 text-[10px] font-semibold text-on-error-container hover:opacity-80 disabled:opacity-50"
             >
               Delete
@@ -460,6 +464,20 @@ export default function TimetableGrid({
       <div className="bg-paper-raised border-2 border-rule rounded-xl overflow-x-auto shadow-sm">
         {orientation === 'hours-x' ? renderHoursOnXAxis() : renderDaysOnXAxis()}
       </div>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Delete timetable slot"
+        message="Delete this assignment from the draft timetable?"
+        confirmLabel="Delete Slot"
+        loading={Boolean(deleteTarget && pendingSlotId === deleteTarget.id)}
+        error={editError}
+        onCancel={() => {
+          setDeleteTarget(null);
+          setEditError(null);
+        }}
+        onConfirm={deleteSlot}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
@@ -16,7 +16,10 @@ export default function AppLayout() {
   return (
     <div className="app-shell min-h-screen">
       <Sidebar expanded={sidebarExpanded} onToggle={() => setSidebarExpanded((expanded) => !expanded)} />
-      <div className={`transition-[margin] duration-200 ease-out ${sidebarExpanded ? 'ml-64' : 'ml-20'}`}>
+      <div
+        className={`transition-[margin] duration-200 ease-out ${sidebarExpanded ? 'ml-64' : 'ml-20'}`}
+        style={{ '--slotforge-sidebar-offset': sidebarExpanded ? '16rem' : '5rem' } as CSSProperties & Record<string, string>}
+      >
         <TopBar />
         <main className="app-main p-margin-page min-h-[calc(100vh-56px)]">
           <div key={location.pathname} className="route-transition">
