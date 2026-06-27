@@ -101,11 +101,29 @@ class TimetableService:
         
         # 5. Solve
         solver_result = solve(instance)
-        
+
         # 6. Determine new version number per organization
         max_version = db.query(func.max(VersionModel.version_number)).filter(
             VersionModel.organization_id == org_id
         ).scalar() or 0
+
+        latest_version = db.query(VersionModel).filter(
+            VersionModel.organization_id == org_id
+        ).order_by(VersionModel.version_number.desc()).first()
+
+        if solver_result.status == "INFEASIBLE":
+            return {
+                "id": str(latest_version.id) if latest_version else "",
+                "version_id": str(latest_version.id) if latest_version else None,
+                "organization_id": str(org_id),
+                "status": solver_result.status,
+                "version_status": latest_version.status if latest_version else None,
+                "version_number": latest_version.version_number if latest_version else None,
+                "assignments": [],
+                "scores": solver_result.scores,
+                "infeasible_reason": solver_result.infeasible_reason
+            }
+
         new_version_number = max_version + 1
         
         # 7. Create Timetable Version

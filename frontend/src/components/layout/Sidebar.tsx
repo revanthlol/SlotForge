@@ -89,7 +89,7 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
       </div>
 
       {/* Nav */}
-      <nav className={`${expanded ? 'px-3' : 'px-2'} flex-1 overflow-y-auto py-3`}>
+      <nav className={`${expanded ? 'px-3' : 'px-2'} flex-1 overflow-hidden py-3`}>
         <div className="space-y-0.5">
           {navItems.map((item) => {
             if (item.children) {

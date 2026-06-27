@@ -86,7 +86,9 @@ export default function SolverEnginePage() {
     try {
       const res = await api.post('/timetables/generate', { organization_id: organizationId });
       setGenerateResult(res.data);
-      refetchVersions();
+      if (!res.data.infeasible_reason) {
+        refetchVersions();
+      }
     } catch (err: any) {
       const msg = err.response?.data?.detail || err.message || 'Solver engine failed';
       setGenerateError(msg);
@@ -305,7 +307,9 @@ export default function SolverEnginePage() {
                 <div className="grid grid-cols-2 gap-4 text-xs">
                   <div>
                     <p className="text-data-table text-mono-grey">Target Version</p>
-                    <p className="font-semibold mt-0.5">Version {generateResult.version_number}</p>
+                    <p className="font-semibold mt-0.5">
+                      {generateResult.infeasible_reason ? 'No new version created' : `Version ${generateResult.version_number}`}
+                    </p>
                   </div>
                   <div>
                     <p className="text-data-table text-mono-grey">Result State</p>
@@ -330,6 +334,7 @@ export default function SolverEnginePage() {
                     </>
                   )}
                 </div>
+                {!generateResult.infeasible_reason && (
                 <div>
                   <Link
                     to={`/timetable?version=${generateResult.version_id || generateResult.id}`}
@@ -341,6 +346,7 @@ export default function SolverEnginePage() {
                     View timetable
                   </Link>
                 </div>
+                )}
               </div>
             ) : versions && versions.length > 0 ? (
               <div className="space-y-4">

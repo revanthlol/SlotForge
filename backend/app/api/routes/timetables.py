@@ -145,15 +145,16 @@ def generate_timetable(
     if not result:
         raise HTTPException(status_code=400, detail="Invalid organization_id or organization not found")
         
-    AuditService.log_action(
-        db=db,
-        org_id=org_uuid,
-        actor_id=current_user.id,
-        action="timetable.generate",
-        target_table="timetable_versions",
-        target_id=uuid.UUID(result["id"]),
-        diff={"scores": result["scores"]}
-    )
+    if result.get("id") and not result.get("infeasible_reason"):
+        AuditService.log_action(
+            db=db,
+            org_id=org_uuid,
+            actor_id=current_user.id,
+            action="timetable.generate",
+            target_table="timetable_versions",
+            target_id=uuid.UUID(result["id"]),
+            diff={"scores": result["scores"]}
+        )
         
     return result
 
