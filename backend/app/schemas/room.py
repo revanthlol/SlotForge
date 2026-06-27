@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 from pydantic import BaseModel, Field, ConfigDict
 
 class RoomCreate(BaseModel):
@@ -16,8 +17,8 @@ class RoomUpdate(BaseModel):
 
 class Room(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    id: str
-    organization_id: str
+    id: UUID
+    organization_id: UUID
     name: str
     capacity: int
     room_type: str = Field(..., alias="type")

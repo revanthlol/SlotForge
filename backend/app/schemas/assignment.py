@@ -1,13 +1,14 @@
 from typing import Optional
+from uuid import UUID
 
 from pydantic import BaseModel, Field
 
 
 class TeacherSubjectAssignment(BaseModel):
-    id: str
-    organization_id: str
-    teacher_id: str
-    subject_id: str
+    id: UUID
+    organization_id: UUID
+    teacher_id: UUID
+    subject_id: UUID
 
 
 class TeacherSubjectReplace(BaseModel):
@@ -15,11 +16,11 @@ class TeacherSubjectReplace(BaseModel):
 
 
 class SectionSubjectTeacherAssignment(BaseModel):
-    id: str
-    organization_id: str
-    section_id: str
-    subject_id: str
-    teacher_id: str
+    id: UUID
+    organization_id: UUID
+    section_id: UUID
+    subject_id: UUID
+    teacher_id: UUID
 
 
 class SectionSubjectTeacherAssignmentInput(BaseModel):

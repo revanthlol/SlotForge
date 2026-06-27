@@ -1,15 +1,16 @@
 from typing import Literal, Optional
 from datetime import datetime
+from uuid import UUID
 from pydantic import BaseModel
 class TimetableGenerateRequest(BaseModel):
     organization_id: str
 
 class TimetableSlotResponse(BaseModel):
-    id: str
-    section_id: str
-    subject_id: str
-    teacher_id: str
-    room_id: str
+    id: UUID
+    section_id: UUID
+    subject_id: UUID
+    teacher_id: UUID
+    room_id: UUID
     slot_id: str
     day: str
     period: int
@@ -34,9 +35,9 @@ class TimetableSlotCreate(BaseModel):
     duration_periods: int = 1
 
 class TimetableResponse(BaseModel):
-    id: str
-    version_id: Optional[str] = None
-    organization_id: str
+    id: UUID
+    version_id: Optional[UUID] = None
+    organization_id: UUID
     status: str
     version_status: Optional[str] = None
     version_number: Optional[int] = None
@@ -45,10 +46,10 @@ class TimetableResponse(BaseModel):
     infeasible_reason: Optional[str] = None
 
 class TimetableVersionResponse(BaseModel):
-    id: str
-    organization_id: str
+    id: UUID
+    organization_id: UUID
     version_number: int
     status: str
     scores: dict
-    created_by: Optional[str] = None
+    created_by: Optional[UUID] = None
     created_at: datetime

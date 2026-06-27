@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 from pydantic import BaseModel, Field
 
 class SubjectCreate(BaseModel):
@@ -13,8 +14,8 @@ class SubjectUpdate(BaseModel):
     session_length: Optional[int] = Field(None, ge=1, le=2)
 
 class Subject(BaseModel):
-    id: str
-    organization_id: str
+    id: UUID
+    organization_id: UUID
     name: str
     weekly_hours: int
     session_length: int = 1

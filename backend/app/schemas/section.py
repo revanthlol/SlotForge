@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 from pydantic import BaseModel, Field
 
 class SectionCreate(BaseModel):
@@ -13,8 +14,8 @@ class SectionUpdate(BaseModel):
     class_teacher_id: Optional[str] = None
 
 class Section(BaseModel):
-    id: str
-    organization_id: str
+    id: UUID
+    organization_id: UUID
     name: str
     size: int
-    class_teacher_id: Optional[str] = None
+    class_teacher_id: Optional[UUID] = None

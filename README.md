@@ -104,3 +104,5 @@ To transition from local development to production, the following external resou
 3. **Production Database & Environment Configuration**:
    - Update `DATABASE_URL` in your production environment (e.g. Oracle Cloud VPS) to point to the Supabase Postgres pooler connection string (Port 6543) rather than the direct connection.
    - Set up the environment variables (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`) in the VPS hosting configuration.
+   - Set `FRONTEND_ORIGINS` to the exact frontend URLs allowed to call the API, for example `http://localhost:5173,http://127.0.0.1:5173,https://slotforge-dev.vercel.app`.
+   - After deploy, check `/health/db`; it should return `status: ok` and an Alembic revision at the current head.

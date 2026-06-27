@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 from pydantic import BaseModel, Field
 
 class TeacherCreate(BaseModel):
@@ -9,6 +10,6 @@ class TeacherUpdate(BaseModel):
     name: Optional[str] = Field(None, min_length=1)
 
 class Teacher(BaseModel):
-    id: str
-    organization_id: str
+    id: UUID
+    organization_id: UUID
     name: str

@@ -48,6 +48,8 @@ export default function CanvasViewPage() {
 
   const relatedNodes = getRelatedNodeIds();
   const hasAssignments = Boolean(timetable?.assignments?.length);
+  const maxNodeCount = Math.max(sections.length, subjects.length, teachers.length, rooms.length, 1);
+  const graphHeight = Math.max(500, 98 + (maxNodeCount - 1) * 64);
 
   const subjectHue = (id: string) => {
     let hash = 0;
@@ -140,9 +142,13 @@ export default function CanvasViewPage() {
         )}
 
         {/* Graph Columns Layout */}
-        <div className="grid grid-cols-4 gap-8 md:gap-12 relative min-h-[500px]">
+        <div className="grid grid-cols-4 gap-8 md:gap-12 relative" style={{ minHeight: graphHeight }}>
           {hasAssignments && (
-            <svg className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible">
+            <svg
+              className="pointer-events-none absolute inset-0 z-0 h-full w-full overflow-visible"
+              viewBox={`0 0 100 ${graphHeight}`}
+              preserveAspectRatio="none"
+            >
               {lines.map((line) => {
                 const fromNode = parseNodeId(line.fromId);
                 const toNode = parseNodeId(line.toId);
@@ -154,7 +160,7 @@ export default function CanvasViewPage() {
                 return (
                   <path
                     key={`${line.fromId}-${line.toId}`}
-                    d={`M ${from.x}% ${from.y} C ${(from.x + to.x) / 2}% ${from.y}, ${(from.x + to.x) / 2}% ${to.y}, ${to.x}% ${to.y}`}
+                    d={`M ${from.x} ${from.y} C ${(from.x + to.x) / 2} ${from.y}, ${(from.x + to.x) / 2} ${to.y}, ${to.x} ${to.y}`}
                     fill="none"
                     stroke={stroke}
                     strokeWidth={selected ? 2.4 : 1.2}

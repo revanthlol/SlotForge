@@ -1,4 +1,5 @@
 from typing import Optional, Literal
+from uuid import UUID
 from pydantic import BaseModel, Field, ConfigDict
 
 class OrganizationCreate(BaseModel):
@@ -12,7 +13,7 @@ class OrganizationUpdate(BaseModel):
 
 class Organization(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-    id: str
+    id: UUID
     name: str
     scheduling_mode: str
     cycle_length: int
