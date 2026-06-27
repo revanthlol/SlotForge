@@ -35,7 +35,7 @@ class TimetableSlotCreate(BaseModel):
     duration_periods: int = 1
 
 class TimetableResponse(BaseModel):
-    id: UUID
+    id: Optional[UUID] = None
     version_id: Optional[UUID] = None
     organization_id: UUID
     status: str

@@ -113,7 +113,7 @@ class TimetableService:
 
         if solver_result.status == "INFEASIBLE":
             return {
-                "id": str(latest_version.id) if latest_version else "",
+                "id": str(latest_version.id) if latest_version else None,
                 "version_id": str(latest_version.id) if latest_version else None,
                 "organization_id": str(org_id),
                 "status": solver_result.status,

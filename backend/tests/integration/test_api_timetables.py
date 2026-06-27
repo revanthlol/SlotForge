@@ -149,6 +149,20 @@ def test_teacher_crud():
     response = client.get(f"/teachers/{teacher_id}", headers=headers)
     assert response.status_code == 404
 
+def test_timetable_generate_infeasible_empty_org_has_nullable_id():
+    org_id, user_id, headers = create_test_user("Empty Timetable University")
+    client.post("/subjects/", json={"organization_id": org_id, "name": "Subject 1", "weekly_hours": 1}, headers=headers)
+    client.post("/sections/", json={"organization_id": org_id, "name": "Section 1", "size": 30}, headers=headers)
+
+    gen_res = client.post("/timetables/generate", json={"organization_id": org_id}, headers=headers)
+    assert gen_res.status_code == 200
+    gen_data = gen_res.json()
+    assert gen_data["id"] is None
+    assert gen_data["version_id"] is None
+    assert gen_data["status"] == "INFEASIBLE"
+    assert gen_data["assignments"] == []
+    assert gen_data["infeasible_reason"]
+
 def test_timetable_generate_success():
     # 1. Create Organization and Admin User
     org_id, user_id, headers = create_test_user("Timetable University")
