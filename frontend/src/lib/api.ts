@@ -8,12 +8,20 @@ const api = axios.create({
   },
 });
 
-// Attach Supabase JWT to every request
-api.interceptors.request.use(async (config) => {
-  const { data } = await supabase.auth.getSession();
-  const token = data.session?.access_token;
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+let currentAccessToken: string | null = null;
+
+supabase.auth.onAuthStateChange((_event, session) => {
+  currentAccessToken = session?.access_token ?? null;
+});
+
+supabase.auth.getSession().then(({ data }) => {
+  currentAccessToken = data.session?.access_token ?? null;
+});
+
+// Attach the cached Supabase JWT to every request.
+api.interceptors.request.use((config) => {
+  if (currentAccessToken) {
+    config.headers.Authorization = `Bearer ${currentAccessToken}`;
   }
   return config;
 });
