@@ -1,4 +1,5 @@
 import uuid
+import math
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 from app.schemas.timetable import TimetableGenerateRequest, TimetableResponse, TimetableSlotCreate, TimetableSlotResponse, TimetableSlotUpdate, TimetableVersionResponse
@@ -86,6 +87,45 @@ def _validate_no_conflict(
             raise HTTPException(status_code=409, detail="Teacher already has a class in this period")
         if existing.room_id == room_id:
             raise HTTPException(status_code=409, detail="Room already has a class in this period")
+
+
+def _validate_subject_daily_limit(
+    db: Session,
+    version_id: uuid.UUID,
+    org_id: uuid.UUID,
+    section_id: uuid.UUID,
+    subject_id: uuid.UUID,
+    day: str,
+    exclude_slot_id: uuid.UUID | None = None,
+) -> None:
+    org = db.query(OrganizationModel).filter(OrganizationModel.id == org_id).first()
+    subject = db.query(SubjectModel).filter(
+        SubjectModel.id == subject_id,
+        SubjectModel.organization_id == org_id,
+    ).first()
+    if not org or not subject:
+        return
+
+    cycle_length = org.cycle_length or 5
+    session_length = subject.session_length or 1
+    required_sessions = math.ceil(subject.weekly_hours / session_length)
+    max_sessions_per_day = max(1, math.ceil(required_sessions / cycle_length))
+
+    query = db.query(SlotModel).filter(
+        SlotModel.timetable_version_id == version_id,
+        SlotModel.organization_id == org_id,
+        SlotModel.section_id == section_id,
+        SlotModel.subject_id == subject_id,
+        SlotModel.day == day,
+    )
+    if exclude_slot_id:
+        query = query.filter(SlotModel.id != exclude_slot_id)
+
+    if query.count() + 1 > max_sessions_per_day:
+        raise HTTPException(
+            status_code=409,
+            detail="Subject already has the maximum allowed sessions for this section on this day",
+        )
 
 @router.post("/generate", response_model=TimetableResponse)
 def generate_timetable(
@@ -215,6 +255,14 @@ def create_timetable_slot(
         payload.period,
         payload.duration_periods,
     )
+    _validate_subject_daily_limit(
+        db,
+        version_uuid,
+        current_user.organization_id,
+        section_uuid,
+        subject_uuid,
+        payload.day,
+    )
 
     slot = SlotModel(
         organization_id=current_user.organization_id,
@@ -275,6 +323,15 @@ def update_timetable_slot(
         day,
         period,
         duration_periods,
+        exclude_slot_id=slot_uuid,
+    )
+    _validate_subject_daily_limit(
+        db,
+        version_uuid,
+        current_user.organization_id,
+        section_uuid,
+        subject_uuid,
+        day,
         exclude_slot_id=slot_uuid,
     )
 

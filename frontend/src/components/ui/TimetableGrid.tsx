@@ -1,4 +1,4 @@
-import { useMemo, useState, type CSSProperties } from 'react';
+import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import type { ScheduledSlot, Teacher, Room, Subject, Section, Organization } from '../../hooks/useApi';
 import api from '../../lib/api';
 
@@ -56,7 +56,6 @@ export default function TimetableGrid({
   sections,
   organization,
   editable,
-  onChanged,
 }: TimetableGridProps) {
   const [viewType, setViewType] = useState<ViewType>('section');
   const [orientation, setOrientation] = useState<GridOrientation>('hours-x');
@@ -64,6 +63,11 @@ export default function TimetableGrid({
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [pendingSlotId, setPendingSlotId] = useState<string | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
+  const [localAssignments, setLocalAssignments] = useState<ScheduledSlot[]>(assignments);
+
+  useEffect(() => {
+    setLocalAssignments(assignments);
+  }, [assignments]);
 
   const cycleLength = organization?.cycle_length || 5;
   const periodsPerDay = organization?.periods_per_day || 6;
@@ -89,12 +93,12 @@ export default function TimetableGrid({
     ? selectedId
     : list[0]?.id || '';
 
-  const filteredAssignments = useMemo(() => assignments.filter((slot) => {
+  const filteredAssignments = useMemo(() => localAssignments.filter((slot) => {
     if (!activeId) return false;
     if (viewType === 'teacher') return slot.teacher_id === activeId;
     if (viewType === 'room') return slot.room_id === activeId;
     return slot.section_id === activeId;
-  }), [activeId, assignments, viewType]);
+  }), [activeId, localAssignments, viewType]);
 
   const teacherMap = useMemo(() => new Map(teachers.map((teacher) => [teacher.id, teacher.name])), [teachers]);
   const roomMap = useMemo(() => new Map(rooms.map((room) => [room.id, room.name])), [rooms]);
@@ -122,12 +126,19 @@ export default function TimetableGrid({
 
   const saveSlot = async (slotId: string, payload: Partial<ScheduledSlot>) => {
     if (pendingSlotId) return;
+    const previousAssignments = localAssignments;
     setEditError(null);
     setPendingSlotId(slotId);
+    setLocalAssignments((current) => current.map((slot) => (
+      slot.id === slotId ? { ...slot, ...payload } : slot
+    )));
     try {
-      await api.patch(`/timetables/${timetableId}/slots/${slotId}`, payload);
-      onChanged();
+      const response = await api.patch(`/timetables/${timetableId}/slots/${slotId}`, payload);
+      setLocalAssignments((current) => current.map((slot) => (
+        slot.id === slotId ? { ...slot, ...response.data } : slot
+      )));
     } catch (err: any) {
+      setLocalAssignments(previousAssignments);
       setEditError(err.response?.data?.detail || err.message || 'Could not update timetable slot');
     } finally {
       setPendingSlotId(null);
@@ -136,12 +147,14 @@ export default function TimetableGrid({
 
   const deleteSlot = async (slotId: string) => {
     if (!confirm('Delete this assignment from the draft timetable?')) return;
+    const previousAssignments = localAssignments;
     setEditError(null);
     setPendingSlotId(slotId);
+    setLocalAssignments((current) => current.filter((slot) => slot.id !== slotId));
     try {
       await api.delete(`/timetables/${timetableId}/slots/${slotId}`);
-      onChanged();
     } catch (err: any) {
+      setLocalAssignments(previousAssignments);
       setEditError(err.response?.data?.detail || err.message || 'Could not delete timetable slot');
     } finally {
       setPendingSlotId(null);
@@ -150,7 +163,7 @@ export default function TimetableGrid({
 
   const onDropCell = (day: string, period: number) => {
     if (!editable || !draggingId || pendingSlotId) return;
-    const draggedSlot = assignments.find((slot) => slot.id === draggingId);
+    const draggedSlot = localAssignments.find((slot) => slot.id === draggingId);
     if (draggedSlot?.day === day && draggedSlot.period === period) {
       setDraggingId(null);
       return;
@@ -180,9 +193,9 @@ export default function TimetableGrid({
           editable && !isPending ? 'cursor-grab active:cursor-grabbing hover:-translate-y-0.5 hover:shadow-md' : ''
         } ${draggingId === slot.id ? 'opacity-45 ring-2 ring-primary' : ''}`}
         style={{
-          background: `linear-gradient(135deg, color-mix(in srgb, hsl(${hue} 78% 58%) 24%, var(--color-paper-raised)), color-mix(in srgb, hsl(${hue} 82% 68%) 12%, var(--color-paper-raised)))`,
-          borderColor: `hsl(${hue} 58% 48% / 0.5)`,
-          color: `color-mix(in srgb, hsl(${hue} 72% 28%) 72%, var(--color-on-surface))`,
+          background: `linear-gradient(135deg, color-mix(in srgb, hsl(${hue} 76% 50%) 46%, var(--color-paper-raised)), color-mix(in srgb, hsl(${hue} 88% 64%) 30%, var(--color-paper-raised)))`,
+          borderColor: `hsl(${hue} 70% 52% / 0.72)`,
+          color: 'var(--color-on-surface)',
         }}
       >
         <div className="flex items-start justify-between gap-2">
@@ -213,6 +226,7 @@ export default function TimetableGrid({
             <button
               type="button"
               disabled={isPending}
+              onPointerDown={(event) => event.stopPropagation()}
               onClick={() => saveSlot(slot.id, { duration_periods: duration === 2 ? 1 : 2 })}
               className="rounded border border-rule bg-paper-raised/80 px-2 py-1 text-[10px] font-semibold text-on-surface-variant hover:bg-surface-container disabled:opacity-50"
             >
@@ -221,6 +235,7 @@ export default function TimetableGrid({
             <button
               type="button"
               disabled={isPending}
+              onPointerDown={(event) => event.stopPropagation()}
               onClick={() => deleteSlot(slot.id)}
               className="rounded border border-error/20 bg-error-container px-2 py-1 text-[10px] font-semibold text-on-error-container hover:opacity-80 disabled:opacity-50"
             >

@@ -16,7 +16,7 @@ export default function CanvasViewPage() {
   const subjects = subjectsData || [];
   const sections = sectionsData || [];
 
-  const activeVersion = versions?.find((v) => v.status === 'published') || versions?.[0];
+  const activeVersion = versions?.[0] || versions?.find((v) => v.status === 'published');
   const { data: timetable } = useTimetable(activeVersion?.id || null);
 
   const [selectedNode, setSelectedNode] = useState<{ type: 'section' | 'subject' | 'teacher' | 'room'; id: string } | null>(null);
@@ -47,6 +47,15 @@ export default function CanvasViewPage() {
   };
 
   const relatedNodes = getRelatedNodeIds();
+  const hasAssignments = Boolean(timetable?.assignments?.length);
+
+  const subjectHue = (id: string) => {
+    let hash = 0;
+    for (let index = 0; index < id.length; index += 1) {
+      hash = id.charCodeAt(index) + ((hash << 5) - hash);
+    }
+    return Math.abs(hash) % 360;
+  };
 
   // Draw linking lines between related columns
   // We can compute lines based on assignments
@@ -87,11 +96,28 @@ export default function CanvasViewPage() {
           <div className="flex items-center gap-2 text-xs">
             <span className="w-2.5 h-2.5 rounded-full bg-primary" />
             <span className="text-mono-grey text-label-caps" style={{ fontSize: 10 }}>Interactive Mode</span>
+            {activeVersion && (
+              <span className="rounded-full border border-primary/20 bg-accent-soft px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-primary">
+                Version {activeVersion.version_number} · {activeVersion.status}
+              </span>
+            )}
           </div>
           <p className="text-[11px] text-mono-grey italic">
             Click any resource node below to isolate and trace its scheduling connections.
           </p>
         </div>
+
+        {!hasAssignments && (
+          <div className="rounded-xl border border-secondary/20 bg-signal-soft px-4 py-3 text-sm text-on-surface">
+            <div className="flex items-center gap-2 font-semibold">
+              <span className="material-symbols-outlined text-secondary" style={{ fontSize: 18 }}>hub</span>
+              No timetable relationships found for the selected latest version.
+            </div>
+            <p className="mt-1 text-xs text-on-surface-variant">
+              Resource nodes remain visible. Generate a feasible timetable or publish the latest draft to populate relationship traces.
+            </p>
+          </div>
+        )}
 
         {/* Graph Columns Layout */}
         <div className="grid grid-cols-4 gap-8 md:gap-12 relative min-h-[500px]">
@@ -112,7 +138,7 @@ export default function CanvasViewPage() {
                     isSelected
                       ? 'bg-primary text-on-primary border-primary font-bold shadow-md'
                       : isRelated
-                      ? 'bg-accent-soft/20 border-primary/20 hover:border-primary/50 text-primary'
+                      ? 'bg-accent-soft border-primary/30 hover:border-primary/70 text-primary'
                       : 'bg-surface-container-low border-rule/50 opacity-30 hover:opacity-50'
                   }`}
                 >
@@ -133,22 +159,28 @@ export default function CanvasViewPage() {
               const isSelected = selectedNode?.type === 'subject' && selectedNode.id === s.id;
               const isRelated = selectedNode === null || relatedNodes.has(nodeId);
               const subCode = (s as any).short_code || s.name.slice(0, 7).toUpperCase();
+              const hue = subjectHue(s.id);
 
               return (
                 <div
                   key={s.id}
                   id={nodeId}
                   onClick={() => setSelectedNode(isSelected ? null : { type: 'subject', id: s.id })}
-                  className={`p-3 rounded-lg border-2 text-center cursor-pointer transition-all ${
-                    isSelected
-                      ? 'bg-secondary text-on-secondary border-secondary font-bold shadow-md'
-                      : isRelated
-                      ? 'bg-signal-soft border-secondary/20 hover:border-secondary/50 text-secondary'
-                      : 'bg-surface-container-low border-rule/50 opacity-30 hover:opacity-50'
+                  className={`p-3 rounded-xl border-2 text-center cursor-pointer transition-all ${
+                    isSelected ? 'font-bold shadow-md' : isRelated ? 'hover:-translate-y-0.5' : 'opacity-30 hover:opacity-50'
                   }`}
+                  style={{
+                    background: isSelected
+                      ? `hsl(${hue} 70% 42%)`
+                      : isRelated
+                      ? `color-mix(in srgb, hsl(${hue} 80% 58%) 24%, var(--color-paper-raised))`
+                      : 'var(--color-surface-container-low)',
+                    borderColor: isSelected ? `hsl(${hue} 76% 52%)` : `hsl(${hue} 68% 48% / 0.45)`,
+                    color: isSelected ? 'white' : `color-mix(in srgb, hsl(${hue} 78% 36%) 70%, var(--color-on-surface))`,
+                  }}
                 >
                   <p className="text-xs font-semibold">{subCode}</p>
-                  <p className={`text-[9px] mt-0.5 ${isSelected ? 'text-on-secondary/70' : 'text-mono-grey'} truncate`}>
+                  <p className={`text-[9px] mt-0.5 ${isSelected ? 'text-white/75' : 'text-mono-grey'} truncate`}>
                     {s.name}
                   </p>
                 </div>
@@ -171,9 +203,9 @@ export default function CanvasViewPage() {
                   onClick={() => setSelectedNode(isSelected ? null : { type: 'teacher', id: t.id })}
                   className={`p-3 rounded-lg border-2 text-center cursor-pointer transition-all ${
                     isSelected
-                      ? 'bg-primary/80 text-on-primary border-primary/95 font-bold shadow-md'
+                      ? 'bg-[#196f8f] text-white border-[#2fb4df] font-bold shadow-md'
                       : isRelated
-                      ? 'bg-accent-soft/30 border-primary/10 hover:border-primary/40 text-primary'
+                      ? 'bg-[#2fb4df]/15 border-[#2fb4df]/30 hover:border-[#2fb4df]/70 text-on-surface'
                       : 'bg-surface-container-low border-rule/50 opacity-30 hover:opacity-50'
                   }`}
                 >
@@ -198,9 +230,9 @@ export default function CanvasViewPage() {
                   onClick={() => setSelectedNode(isSelected ? null : { type: 'room', id: r.id })}
                   className={`p-3 rounded-lg border-2 text-center cursor-pointer transition-all ${
                     isSelected
-                      ? 'bg-secondary/90 text-on-secondary border-secondary/95 font-bold shadow-md'
+                      ? 'bg-secondary text-on-secondary border-secondary font-bold shadow-md'
                       : isRelated
-                      ? 'bg-signal-soft/35 border-secondary/15 hover:border-secondary/40 text-secondary'
+                      ? 'bg-signal-soft border-secondary/30 hover:border-secondary/70 text-secondary'
                       : 'bg-surface-container-low border-rule/50 opacity-30 hover:opacity-50'
                   }`}
                 >
@@ -214,16 +246,6 @@ export default function CanvasViewPage() {
           </div>
         </div>
 
-        {/* Empty state overlay if no schedule matches */}
-        {timetable?.assignments?.length === 0 && (
-          <div className="absolute inset-0 bg-paper-raised/85 flex flex-col items-center justify-center z-20">
-            <span className="material-symbols-outlined text-outline-variant mb-2" style={{ fontSize: 40 }}>
-              hub
-            </span>
-            <p className="text-sm font-semibold text-on-surface">No timetable assignments active</p>
-            <p className="text-xs text-mono-grey">Relations will map once a timetable is generated and published.</p>
-          </div>
-        )}
       </div>
     </div>
   );

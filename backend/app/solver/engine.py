@@ -259,6 +259,25 @@ def _solve_model(
             else:
                 model.Add(sum(vars_for_sec_sub) == sub.weekly_hours)
 
+    # Constraint E: Spread subject sessions across day orders before allowing repeats.
+    # A 2-hour lab is one session that covers two periods, so count assignment starts here.
+    days = list(set(slot.day for slot in instance.slots))
+    num_days = len(days)
+    if num_days > 0:
+        for sec in instance.sections:
+            for sub in instance.subjects:
+                session_length = getattr(sub, "session_length", 1) or 1
+                required_sessions = math.ceil(sub.weekly_hours / session_length)
+                max_sessions_per_day = max(1, math.ceil(required_sessions / num_days))
+                for day in days:
+                    day_slot_ids = {s.id for s in instance.slots if s.day == day}
+                    vars_for_sec_sub_day = [
+                        var for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
+                        if sec_id == sec.id and sub_id == sub.id and slot_id in day_slot_ids
+                    ]
+                    if vars_for_sec_sub_day:
+                        model.Add(sum(vars_for_sec_sub_day) <= max_sessions_per_day)
+
     # 4. Soft Constraints & Objective
     objective_terms = []
     
@@ -276,7 +295,6 @@ def _solve_model(
 
     # A. Teacher Gap Minimization
     # Get unique days
-    days = list(set(slot.day for slot in instance.slots))
     # Map slots to day and period
     slots_by_day = defaultdict(list)
     for slot in instance.slots:
@@ -353,6 +371,33 @@ def _solve_model(
                     model.Add(load_var - max_ideal <= over_var)
                     model.Add(min_ideal - load_var <= under_var)
                     
+                    objective_terms.append(over_var * load_balance_penalty)
+                    objective_terms.append(under_var * load_balance_penalty)
+
+        # Subject-specific spread: when repeated sessions are required, avoid bunching
+        # them on the same day unless the hard max requires it.
+        for sec in instance.sections:
+            for sub in instance.subjects:
+                session_length = getattr(sub, "session_length", 1) or 1
+                required_sessions = math.ceil(sub.weekly_hours / session_length)
+                min_sessions = math.floor(required_sessions / num_days)
+                max_sessions = math.ceil(required_sessions / num_days)
+
+                for day in days:
+                    day_slot_ids = {s.id for s in slots_by_day[day]}
+                    vars_for_sec_sub_day = [
+                        var for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
+                        if sec_id == sec.id and sub_id == sub.id and slot_id in day_slot_ids
+                    ]
+                    if not vars_for_sec_sub_day:
+                        continue
+
+                    session_count = model.NewIntVar(0, len(day_slot_ids), f"subject_load_{sec.id}_{sub.id}_{day}")
+                    model.Add(session_count == sum(vars_for_sec_sub_day))
+                    over_var = model.NewIntVar(0, len(day_slot_ids), f"subject_over_{sec.id}_{sub.id}_{day}")
+                    under_var = model.NewIntVar(0, len(day_slot_ids), f"subject_under_{sec.id}_{sub.id}_{day}")
+                    model.Add(session_count - max_sessions <= over_var)
+                    model.Add(min_sessions - session_count <= under_var)
                     objective_terms.append(over_var * load_balance_penalty)
                     objective_terms.append(under_var * load_balance_penalty)
 

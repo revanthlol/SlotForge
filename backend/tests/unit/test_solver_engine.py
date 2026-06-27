@@ -109,3 +109,52 @@ def test_section_subject_teacher_constraint_forces_teacher():
     ]
     assert forced_assignments
     assert {slot.teacher_id for slot in forced_assignments} == {"t2"}
+
+
+def test_subject_sessions_spread_without_unnecessary_daily_repeats():
+    data = {
+        "teachers": [{"id": "t1", "name": "Teacher"}],
+        "rooms": [{"id": "r1", "name": "Room", "capacity": 60, "type": "classroom"}],
+        "subjects": [{"id": "s1", "name": "AI", "weekly_hours": 3, "session_length": 1}],
+        "sections": [{"id": "sec1", "name": "DCS", "size": 50}],
+        "slots": [
+            {"id": f"d{day}-p{period}", "day": f"Day {day}", "period": period}
+            for day in range(1, 6)
+            for period in range(1, 4)
+        ],
+        "constraints": [],
+    }
+
+    result = solve(ProblemInstance.model_validate(data))
+
+    assert result.status in ("OPTIMAL", "FEASIBLE")
+    days = {}
+    for assignment in result.assignments:
+        day = assignment.slot_id.split("-")[0]
+        days[day] = days.get(day, 0) + 1
+    assert max(days.values()) == 1
+
+
+def test_subject_sessions_allow_only_required_daily_repeats():
+    data = {
+        "teachers": [{"id": "t1", "name": "Teacher"}],
+        "rooms": [{"id": "r1", "name": "Room", "capacity": 60, "type": "classroom"}],
+        "subjects": [{"id": "s1", "name": "AI", "weekly_hours": 6, "session_length": 1}],
+        "sections": [{"id": "sec1", "name": "DCS", "size": 50}],
+        "slots": [
+            {"id": f"d{day}-p{period}", "day": f"Day {day}", "period": period}
+            for day in range(1, 6)
+            for period in range(1, 4)
+        ],
+        "constraints": [],
+    }
+
+    result = solve(ProblemInstance.model_validate(data))
+
+    assert result.status in ("OPTIMAL", "FEASIBLE")
+    days = {}
+    for assignment in result.assignments:
+        day = assignment.slot_id.split("-")[0]
+        days[day] = days.get(day, 0) + 1
+    assert len(result.assignments) == 6
+    assert max(days.values()) == 2
