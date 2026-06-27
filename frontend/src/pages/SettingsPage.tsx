@@ -178,7 +178,7 @@ export default function SettingsPage() {
                   onChange={(e) => setSchedulingMode(e.target.value as any)}
                   className="academic-input w-full py-2"
                 >
-                  <option value="fixed_weekday">Fixed Weekday (Mon-Fri)</option>
+                  <option value="fixed_weekday">Fixed Weekday Cycle</option>
                   <option value="day_order">Day Order Cycle (Day 1-N)</option>
                 </select>
               </div>

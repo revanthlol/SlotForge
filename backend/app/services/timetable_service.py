@@ -15,6 +15,8 @@ from app.models.constraint import Constraint as ConstraintModel
 from app.models.timetable_version import TimetableVersion as VersionModel
 from app.models.timetable_slot import TimetableSlot as SlotModel
 
+FIXED_WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
 class TimetableService:
     @staticmethod
     def generate_timetable(org_id: uuid.UUID, user_id: Optional[uuid.UUID], db: Session) -> Optional[dict]:
@@ -74,14 +76,17 @@ class TimetableService:
                 for p in range(1, periods_per_day + 1)
             ]
         else:
-            # fixed_weekday: Mon-Fri with the configured periods_per_day
+            # fixed_weekday: use the configured number of real weekday columns.
+            fixed_days = FIXED_WEEKDAYS[:cycle_length]
+            if cycle_length > len(FIXED_WEEKDAYS):
+                fixed_days.extend(f"Day {i}" for i in range(len(FIXED_WEEKDAYS) + 1, cycle_length + 1))
             slots_list = [
                 {
                     "id": f"{day.lower()}-{p}",
                     "day": day,
                     "period": p
                 }
-                for day in ["Mon", "Tue", "Wed", "Thu", "Fri"]
+                for day in fixed_days
                 for p in range(1, periods_per_day + 1)
             ]
             
