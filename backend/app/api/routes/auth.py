@@ -61,8 +61,7 @@ def signup_organization(payload: SignupOrganizationRequest, db: Session = Depend
                         is_already_registered = True
                 except Exception:
                     pass
-                if res.status_code == 400:
-                    is_already_registered = True
+                # NOTE: Supabase can return 400 for multiple error cases; rely on the message check above instead of treating all 400s as "already registered".
 
                 if is_already_registered:
                     from sqlalchemy import text
