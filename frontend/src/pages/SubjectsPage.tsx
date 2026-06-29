@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { ShortcutHint, useShortcutAction } from '../contexts/ShortcutContext';
 import { useSubjects, useTeachers, useTeacherSubjectAssignments, type Subject } from '../hooks/useApi';
@@ -9,6 +9,7 @@ import StatusBadge from '../components/ui/StatusBadge';
 import SearchInput from '../components/ui/SearchInput';
 import ConfirmModal from '../components/ui/ConfirmModal';
 import { getApiErrorMessage } from '../lib/errors';
+import { SUBJECT_PALETTE, colorMix, getSubjectColor } from '../lib/subjectColors';
 
 export default function SubjectsPage() {
   const { organizationId } = useAuth();
@@ -22,6 +23,7 @@ export default function SubjectsPage() {
   const [formName, setFormName] = useState('');
   const [formHours, setFormHours] = useState('');
   const [formSessionLength, setFormSessionLength] = useState(1);
+  const [formColor, setFormColor] = useState(SUBJECT_PALETTE[0]);
   const [saving, setSaving] = useState(false);
   const [teacherModalSubject, setTeacherModalSubject] = useState<Subject | null>(null);
   const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([]);
@@ -32,13 +34,14 @@ export default function SubjectsPage() {
     s.name.toLowerCase().includes(search.toLowerCase())
   ) || [];
 
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     setEditing(null);
     setFormName('');
     setFormHours('');
     setFormSessionLength(1);
+    setFormColor(SUBJECT_PALETTE[(subjects?.length || 0) % SUBJECT_PALETTE.length]);
     setModalOpen(true);
-  };
+  }, [subjects?.length]);
 
   useEffect(() => {
     const maybeOpen = (resource?: string) => {
@@ -52,14 +55,14 @@ export default function SubjectsPage() {
     maybeOpen();
     window.addEventListener('slotforge:create-resource', onCreate);
     return () => window.removeEventListener('slotforge:create-resource', onCreate);
-  }, []);
+  }, [openCreate]);
 
   useShortcutAction(useMemo(() => ({
     id: 'subjects.create',
     label: 'Create Subject',
     shortcut: 'c s',
     handler: openCreate,
-  }), []));
+  }), [openCreate]));
 
   useShortcutAction(useMemo(() => ({
     id: 'subjects.search',
@@ -73,6 +76,7 @@ export default function SubjectsPage() {
     setFormName(s.name);
     setFormHours(String(s.weekly_hours));
     setFormSessionLength(s.session_length || 1);
+    setFormColor(getSubjectColor(s));
     setModalOpen(true);
   };
 
@@ -83,9 +87,9 @@ export default function SubjectsPage() {
     setSaving(true);
     try {
       if (editing) {
-        await api.put(`/subjects/${editing.id}`, { name: formName, weekly_hours: weeklyHours, session_length: formSessionLength });
+        await api.put(`/subjects/${editing.id}`, { name: formName, weekly_hours: weeklyHours, session_length: formSessionLength, color: formColor });
       } else {
-        await api.post('/subjects', { organization_id: organizationId, name: formName, weekly_hours: weeklyHours, session_length: formSessionLength });
+        await api.post('/subjects', { organization_id: organizationId, name: formName, weekly_hours: weeklyHours, session_length: formSessionLength, color: formColor });
       }
       setModalOpen(false);
       refetch();
@@ -223,11 +227,19 @@ export default function SubjectsPage() {
               </td></tr>
             ) : filtered.map((s, idx) => {
               const assignedTeachers = getSubjectTeachers(s.id);
+              const subjectColor = getSubjectColor(s);
               return (
               <tr key={s.id} className="hover:bg-surface-bright transition-colors group">
                 <td className="px-6 py-3 text-data-table text-mono-grey">{idx + 1}</td>
                 <td className="px-6 py-3">
-                  <span className="text-sm font-medium text-on-surface">{s.name}</span>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="h-7 w-7 shrink-0 rounded-lg border"
+                      style={{ background: subjectColor, borderColor: colorMix(subjectColor, 0.44) }}
+                      aria-hidden="true"
+                    />
+                    <span className="text-sm font-medium text-on-surface">{s.name}</span>
+                  </div>
                 </td>
                 <td className="px-6 py-3">
                   <div className="flex items-center gap-3">
@@ -318,6 +330,31 @@ export default function SubjectsPage() {
             {formHours && parseInt(formHours) % formSessionLength !== 0 && (
               <p className="mt-2 text-xs text-error">Weekly hours must be divisible by session length.</p>
             )}
+          </div>
+          <div>
+            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>Subject Color</label>
+            <div className="grid grid-cols-8 gap-2">
+              {SUBJECT_PALETTE.map(color => (
+                <button
+                  key={color}
+                  type="button"
+                  onClick={() => setFormColor(color)}
+                  className={`h-9 rounded-lg border-2 transition-transform hover:scale-105 ${formColor === color ? 'border-on-surface' : 'border-rule'}`}
+                  style={{ background: color }}
+                  aria-label={`Use color ${color}`}
+                />
+              ))}
+            </div>
+            <div className="mt-3 flex items-center gap-3">
+              <input
+                type="color"
+                value={formColor}
+                onChange={(event) => setFormColor(event.target.value)}
+                className="h-10 w-14 rounded border border-rule bg-paper-raised p-1"
+                aria-label="Custom subject color"
+              />
+              <span className="text-sm text-on-surface-variant">Custom color stays synced across Subjects and Timetable.</span>
+            </div>
           </div>
         </div>
       </Modal>

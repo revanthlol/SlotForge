@@ -13,6 +13,8 @@ interface AuthState {
   signUp: (email: string, password: string, fullName: string, orgName: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  switchOrganization: (organizationId: string) => Promise<void>;
+  createOrganization: (name: string) => Promise<string>;
 }
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
@@ -142,8 +144,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearProfile();
   };
 
+  const switchOrganization = async (nextOrganizationId: string) => {
+    await api.post(`/organizations/${nextOrganizationId}/switch`);
+    setOrganizationId(nextOrganizationId);
+    localStorage.setItem('slotforge_org_id', nextOrganizationId);
+    await loadProfile();
+  };
+
+  const createOrganization = async (name: string) => {
+    const { data } = await api.post('/organizations', { name });
+    setOrganizationId(data.id);
+    localStorage.setItem('slotforge_org_id', data.id);
+    await loadProfile();
+    return data.id as string;
+  };
+
   return (
-    <AuthContext.Provider value={{ user, session, organizationId, role, fullName, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, organizationId, role, fullName, loading, signUp, signIn, signOut, switchOrganization, createOrganization }}>
       {children}
     </AuthContext.Provider>
   );

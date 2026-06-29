@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Optional
 from sqlalchemy import String, Integer, ForeignKey, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.db import Base
@@ -12,4 +13,5 @@ class Subject(Base):
     name: Mapped[str] = mapped_column(String, nullable=False)
     weekly_hours: Mapped[int] = mapped_column(Integer, nullable=False)
     session_length: Mapped[int] = mapped_column(Integer, default=1, server_default="1", nullable=False)
+    color: Mapped[Optional[str]] = mapped_column(String(7), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)

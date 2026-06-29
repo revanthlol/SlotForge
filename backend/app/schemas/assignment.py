@@ -20,12 +20,13 @@ class SectionSubjectTeacherAssignment(BaseModel):
     organization_id: UUID
     section_id: UUID
     subject_id: UUID
-    teacher_id: UUID
+    teacher_id: Optional[UUID] = None
 
 
 class SectionSubjectTeacherAssignmentInput(BaseModel):
     section_id: str
     subject_id: str
+    enabled: bool = True
     teacher_id: Optional[str] = None
 
 

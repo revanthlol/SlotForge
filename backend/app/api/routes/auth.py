@@ -7,6 +7,7 @@ from app.core.config import settings
 from app.core.auth import get_current_user_profile
 from app.core.db import get_db
 from app.models.organization import Organization
+from app.models.organization_membership import OrganizationMembership
 from app.models.profile import Profile
 from app.schemas.auth import AuthMeResponse, SignupOrganizationRequest, SignupOrganizationResponse
 
@@ -119,6 +120,11 @@ def signup_organization(payload: SignupOrganizationRequest, db: Session = Depend
             full_name=payload.full_name
         )
         db.add(profile)
+        db.add(OrganizationMembership(
+            user_id=profile.id,
+            organization_id=org.id,
+            role="org_admin",
+        ))
         db.commit()
     except Exception as e:
         db.rollback()

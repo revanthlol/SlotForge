@@ -28,7 +28,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 REQUIRED_SCHEMA_COLUMNS = {
     "organizations": {"id", "name", "created_at", "scheduling_mode", "cycle_length", "periods_per_day"},
-    "subjects": {"id", "organization_id", "name", "weekly_hours", "session_length", "created_at"},
+    "subjects": {"id", "organization_id", "name", "weekly_hours", "session_length", "color", "created_at"},
     "timetable_slots": {
         "id",
         "organization_id",

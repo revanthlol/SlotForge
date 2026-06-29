@@ -3,6 +3,7 @@ import type { ScheduledSlot, Teacher, Room, Subject, Section, Organization } fro
 import api from '../../lib/api';
 import ConfirmModal from './ConfirmModal';
 import Modal from './Modal';
+import { colorMix, getSubjectColor, readableTextColor } from '../../lib/subjectColors';
 
 interface TimetableGridProps {
   timetableId: string;
@@ -31,14 +32,6 @@ const weekdayLabels: Record<string, string> = {
   Sat: 'Saturday',
   Sun: 'Sunday',
 };
-
-function hashHue(value: string) {
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = value.charCodeAt(index) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash) % 360;
-}
 
 function subjectCode(name?: string) {
   if (!name) return 'SUB';
@@ -226,7 +219,8 @@ export default function TimetableGrid({
 
   const renderSlot = (slot: ScheduledSlot) => {
     const subject = subjectMap.get(slot.subject_id);
-    const hue = hashHue(slot.subject_id);
+    const subjectColor = subject ? getSubjectColor(subject) : '#64748b';
+    const textColor = readableTextColor(subjectColor);
     const duration = Math.min(slot.duration_periods || 1, periodsPerDay - slot.period + 1);
     const isPending = pendingSlotId === slot.id;
 
@@ -241,33 +235,33 @@ export default function TimetableGrid({
           setDraggingId(slot.id);
         }}
         onDragEnd={() => setDraggingId(null)}
-        className={`group h-full rounded-lg border p-3 shadow-sm transition-all ${
+        className={`group h-full rounded-lg border p-3.5 shadow-sm transition-all ${
           editable && !isPending ? 'cursor-grab active:cursor-grabbing hover:-translate-y-0.5 hover:shadow-md' : ''
         } ${draggingId === slot.id ? 'opacity-45 ring-2 ring-primary' : ''}`}
         style={{
-          background: `linear-gradient(135deg, color-mix(in srgb, hsl(${hue} 76% 50%) 46%, var(--color-paper-raised)), color-mix(in srgb, hsl(${hue} 88% 64%) 30%, var(--color-paper-raised)))`,
-          borderColor: `hsl(${hue} 70% 52% / 0.72)`,
-          color: 'var(--color-on-surface)',
+          background: `linear-gradient(135deg, ${subjectColor}, ${colorMix(subjectColor, 0.74)})`,
+          borderColor: subjectColor,
+          color: textColor,
         }}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="truncate text-xs font-black tracking-wide" style={{ fontFamily: 'var(--font-mono)' }}>
+            <div className="truncate text-[13px] font-black" style={{ fontFamily: 'var(--font-mono)', letterSpacing: 0 }}>
               {subjectCode(subject?.name)}
             </div>
-            <div className="mt-1 line-clamp-2 text-[11px] font-semibold text-on-surface">
+            <div className="mt-1 line-clamp-2 text-[13px] font-semibold leading-snug" style={{ color: textColor }}>
               {subject?.name || 'Unknown Subject'}
             </div>
           </div>
           <span
-            className="shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-black"
-            style={{ borderColor: `hsl(${hue} 58% 48% / 0.42)`, background: 'color-mix(in srgb, white 36%, transparent)' }}
+            className="shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-black"
+            style={{ borderColor: 'rgba(255,255,255,0.38)', background: 'rgba(255,255,255,0.2)', color: textColor }}
           >
             {duration}h
           </span>
         </div>
 
-        <div className="mt-2 grid gap-1 border-t border-rule/50 pt-2 text-[10px] text-on-surface-variant">
+        <div className="mt-2 grid gap-1 border-t pt-2 text-[11px]" style={{ borderColor: 'rgba(255,255,255,0.28)', color: textColor }}>
           <span className="truncate">{teacherMap.get(slot.teacher_id) || 'Unknown Teacher'}</span>
           <span className="truncate">{roomMap.get(slot.room_id) || 'Unknown Room'}</span>
           {viewType !== 'section' && <span className="truncate">{sectionMap.get(slot.section_id) || 'Unknown Section'}</span>}
@@ -331,8 +325,8 @@ export default function TimetableGrid({
     <div
       className="grid min-w-[1040px]"
       style={{
-        gridTemplateColumns: `142px repeat(${periodsPerDay}, minmax(148px, 1fr))`,
-        gridTemplateRows: `44px repeat(${cycleLength}, minmax(112px, auto))`,
+        gridTemplateColumns: `150px repeat(${periodsPerDay}, minmax(164px, 1fr))`,
+        gridTemplateRows: `48px repeat(${cycleLength}, minmax(124px, auto))`,
       }}
     >
       <div className="sticky left-0 z-20 bg-on-background text-paper-raised border-b border-r border-rule p-3 text-data-table font-semibold">
@@ -383,8 +377,8 @@ export default function TimetableGrid({
     <div
       className="grid min-w-[960px]"
       style={{
-        gridTemplateColumns: `142px repeat(${cycleLength}, minmax(180px, 1fr))`,
-        gridTemplateRows: `44px repeat(${periodsPerDay}, minmax(96px, auto))`,
+        gridTemplateColumns: `150px repeat(${cycleLength}, minmax(190px, 1fr))`,
+        gridTemplateRows: `48px repeat(${periodsPerDay}, minmax(112px, auto))`,
       }}
     >
       <div className="sticky left-0 z-20 bg-on-background text-paper-raised border-b border-r border-rule p-3 text-data-table font-semibold">
@@ -452,17 +446,26 @@ export default function TimetableGrid({
                 No classes scheduled in this version.
               </td>
             </tr>
-          ) : sortedAssignments.map((slot) => (
-            <tr key={slot.id} className="hover:bg-surface-container-low">
-              <td className="px-4 py-3 text-sm font-semibold text-on-surface">{dayLabels[dayValues.indexOf(slot.day)] || slot.day}</td>
-              <td className="px-4 py-3 text-sm text-on-surface">Hour {slot.period}</td>
-              <td className="px-4 py-3 text-sm text-on-surface">{sectionMap.get(slot.section_id) || 'Unknown Section'}</td>
-              <td className="px-4 py-3 text-sm text-on-surface">{subjectMap.get(slot.subject_id)?.name || 'Unknown Subject'}</td>
-              <td className="px-4 py-3 text-sm text-on-surface">{teacherMap.get(slot.teacher_id) || 'Unknown Teacher'}</td>
-              <td className="px-4 py-3 text-sm text-on-surface">{roomMap.get(slot.room_id) || 'Unknown Room'}</td>
-              <td className="px-4 py-3 text-sm text-on-surface">{slot.duration_periods || 1}h</td>
-            </tr>
-          ))}
+          ) : sortedAssignments.map((slot) => {
+            const subject = subjectMap.get(slot.subject_id);
+            const subjectColor = subject ? getSubjectColor(subject) : '#64748b';
+            return (
+              <tr key={slot.id} className="hover:bg-surface-container-low">
+                <td className="px-4 py-3 text-sm font-semibold text-on-surface">{dayLabels[dayValues.indexOf(slot.day)] || slot.day}</td>
+                <td className="px-4 py-3 text-sm text-on-surface">Hour {slot.period}</td>
+                <td className="px-4 py-3 text-sm text-on-surface">{sectionMap.get(slot.section_id) || 'Unknown Section'}</td>
+                <td className="px-4 py-3 text-sm text-on-surface">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-sm" style={{ background: subjectColor }} />
+                    {subject?.name || 'Unknown Subject'}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-sm text-on-surface">{teacherMap.get(slot.teacher_id) || 'Unknown Teacher'}</td>
+                <td className="px-4 py-3 text-sm text-on-surface">{roomMap.get(slot.room_id) || 'Unknown Room'}</td>
+                <td className="px-4 py-3 text-sm text-on-surface">{slot.duration_periods || 1}h</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

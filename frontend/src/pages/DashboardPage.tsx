@@ -24,10 +24,10 @@ export default function DashboardPage() {
         actions={
           <>
             <Link
-              to="/resources/teachers"
+              to="/onboarding"
               className="px-4 py-2 border-2 border-rule text-on-surface text-sm font-semibold rounded-lg hover:bg-accent-soft transition-colors"
             >
-              Edit Resources
+              Setup Guide
             </Link>
             <Link
               to="/solver"
@@ -41,6 +41,31 @@ export default function DashboardPage() {
           </>
         }
       />
+
+      {totalResources === 0 && (
+        <div className="mb-6 rounded-xl border-2 border-primary/25 bg-accent-soft p-inset-standard">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-start gap-4">
+              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-on-primary">
+                <span className="material-symbols-outlined" style={{ fontSize: 23 }}>rocket_launch</span>
+              </div>
+              <div>
+                <h2 className="text-headline-sm text-on-surface">Start with guided setup</h2>
+                <p className="mt-1 max-w-2xl text-sm text-on-surface-variant">
+                  Add teachers, rooms, subjects, sections, and curriculum mappings in the right order before generating your first timetable.
+                </p>
+              </div>
+            </div>
+            <Link
+              to="/onboarding"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary hover:bg-primary-container"
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>checklist</span>
+              Open Setup
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Bento Grid */}
       <div className="grid grid-cols-12 gap-5 mb-8">

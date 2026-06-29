@@ -111,15 +111,24 @@ def _basic_capacity_infeasibility(instance: ProblemInstance) -> Optional[str]:
     if slot_count == 0 or section_count == 0:
         return None
 
-    periods_required_per_section = sum(subject.weekly_hours for subject in instance.subjects)
-    if periods_required_per_section > slot_count:
-        return (
-            "Infeasible due to weekly hours requirements "
-            f"({periods_required_per_section} periods requested per section, "
-            f"but only {slot_count} periods are available in the configured cycle)."
-        )
+    active_pairs = _active_section_subject_pairs(instance)
+    subjects_map = {subject.id: subject for subject in instance.subjects}
+    section_periods = defaultdict(int)
+    for sec_id, sub_id in active_pairs:
+        subject = subjects_map.get(sub_id)
+        if subject:
+            section_periods[sec_id] += subject.weekly_hours
 
-    total_required_periods = periods_required_per_section * section_count
+    for sec in instance.sections:
+        required_periods = section_periods.get(sec.id, 0)
+        if required_periods > slot_count:
+            return (
+                "Infeasible due to weekly hours requirements "
+                f"({required_periods} periods requested for section {sec.name}, "
+                f"but only {slot_count} periods are available in the configured cycle)."
+            )
+
+    total_required_periods = sum(section_periods.values())
     room_period_capacity = len(instance.rooms) * slot_count
     if total_required_periods > room_period_capacity:
         return (
@@ -137,6 +146,25 @@ def _basic_capacity_infeasibility(instance: ProblemInstance) -> Optional[str]:
         )
 
     return None
+
+
+def _active_section_subject_pairs(instance: ProblemInstance) -> set[tuple[str, str]]:
+    configured_pairs = {
+        (c.payload.get("section_id"), c.payload.get("subject_id"))
+        for c in instance.constraints
+        if c.constraint_type == "section_subject" and c.weight is None
+    }
+    configured_pairs = {
+        (sec_id, sub_id) for sec_id, sub_id in configured_pairs if sec_id and sub_id
+    }
+    if configured_pairs:
+        return configured_pairs
+
+    return {
+        (sec.id, sub.id)
+        for sec in instance.sections
+        for sub in instance.subjects
+    }
 
 
 def _assignment_option_infeasibility(instance: ProblemInstance) -> Optional[str]:
@@ -191,8 +219,11 @@ def _assignment_option_infeasibility(instance: ProblemInstance) -> Optional[str]
 
     teacher_ids = {teacher.id for teacher in instance.teachers}
 
+    active_pairs = _active_section_subject_pairs(instance)
     for sec in instance.sections:
         for sub in instance.subjects:
+            if (sec.id, sub.id) not in active_pairs:
+                continue
             required_teacher = section_subject_teachers.get((sec.id, sub.id))
             if required_teacher:
                 allowed_teachers = [teacher for teacher in instance.teachers if teacher.id == required_teacher]
@@ -283,6 +314,7 @@ def _solve_model(
     sections_map = {sec.id: sec for sec in instance.sections}
     slots_map = {slot.id: slot for slot in instance.slots}
     slots_by_day_period = {(slot.day, slot.period): slot for slot in instance.slots}
+    active_section_subjects = _active_section_subject_pairs(instance)
     
     # 1. Parse Hard Constraints from constraints list
     # Subject room type requirements
@@ -348,6 +380,8 @@ def _solve_model(
     covered_slots_by_assignment = {}
     for sec in instance.sections:
         for sub in instance.subjects:
+            if (sec.id, sub.id) not in active_section_subjects:
+                continue
             session_length = getattr(sub, "session_length", 1) or 1
             for t in instance.teachers:
                 required_teacher = section_subject_teachers.get((sec.id, sub.id))
@@ -427,6 +461,8 @@ def _solve_model(
     # Constraint D: Each section receives exactly `subject.weekly_hours` (or <= if relaxed)
     for sec in instance.sections:
         for sub in instance.subjects:
+            if (sec.id, sub.id) not in active_section_subjects:
+                continue
             vars_for_sec_sub = [
                 var * (getattr(subjects_map[sub_id], "session_length", 1) or 1)
                 for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
@@ -444,6 +480,8 @@ def _solve_model(
     if num_days > 0:
         for sec in instance.sections:
             for sub in instance.subjects:
+                if (sec.id, sub.id) not in active_section_subjects:
+                    continue
                 session_length = getattr(sub, "session_length", 1) or 1
                 required_sessions = math.ceil(sub.weekly_hours / session_length)
                 max_sessions_per_day = max(1, math.ceil(required_sessions / num_days))
@@ -525,7 +563,10 @@ def _solve_model(
     num_days = len(days)
     if num_days > 0 and load_balance_penalty > 0:
         for sec in instance.sections:
-            total_hours = sum(sub.weekly_hours for sub in instance.subjects)
+            total_hours = sum(
+                sub.weekly_hours for sub in instance.subjects
+                if (sec.id, sub.id) in active_section_subjects
+            )
             min_ideal = math.floor(total_hours / num_days)
             max_ideal = math.ceil(total_hours / num_days)
             
@@ -556,6 +597,8 @@ def _solve_model(
         # them on the same day unless the hard max requires it.
         for sec in instance.sections:
             for sub in instance.subjects:
+                if (sec.id, sub.id) not in active_section_subjects:
+                    continue
                 session_length = getattr(sub, "session_length", 1) or 1
                 required_sessions = math.ceil(sub.weekly_hours / session_length)
                 min_sessions = math.floor(required_sessions / num_days)

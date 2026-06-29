@@ -275,3 +275,32 @@ def test_section_too_large_for_room_reports_room_constraint():
     assert result.status == "INFEASIBLE"
     assert "room constraints" in result.infeasible_reason
     assert "Subject" in result.infeasible_reason
+
+
+def test_section_subject_constraints_limit_curriculum_per_section():
+    data = {
+        "teachers": [{"id": "t1", "name": "Teacher"}],
+        "rooms": [{"id": "r1", "name": "Room 1", "capacity": 60, "type": "classroom"}],
+        "sections": [
+            {"id": "sec1", "name": "A", "size": 40},
+            {"id": "sec2", "name": "B", "size": 40},
+        ],
+        "subjects": [
+            {"id": "s1", "name": "Math", "weekly_hours": 1, "session_length": 1},
+            {"id": "s2", "name": "Physics", "weekly_hours": 1, "session_length": 1},
+        ],
+        "slots": [
+            {"id": f"d{day}-p{period}", "day": f"Day {day}", "period": period}
+            for day in range(1, 3)
+            for period in range(1, 3)
+        ],
+        "constraints": [
+            {"id": "ss1", "constraint_type": "section_subject", "payload": {"section_id": "sec1", "subject_id": "s1"}, "weight": None},
+            {"id": "ss2", "constraint_type": "section_subject", "payload": {"section_id": "sec2", "subject_id": "s2"}, "weight": None},
+        ],
+    }
+
+    result = solve(ProblemInstance.model_validate(data))
+
+    assert result.status in ("OPTIMAL", "FEASIBLE")
+    assert {(slot.section_id, slot.subject_id) for slot in result.assignments} == {("sec1", "s1"), ("sec2", "s2")}

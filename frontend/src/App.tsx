@@ -19,6 +19,7 @@ import SolverEnginePage from './pages/SolverEnginePage';
 import VersionHistoryPage from './pages/VersionHistoryPage';
 import SettingsPage from './pages/SettingsPage';
 import ProfilePage from './pages/ProfilePage';
+import OnboardingPage from './pages/OnboardingPage';
 
 function ProtectedRoute({ children }: { children: React.JSX.Element }) {
   const { organizationId, loading } = useAuth();
@@ -91,6 +92,7 @@ export default function App() {
               }
             >
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/onboarding" element={<OnboardingPage />} />
               
               {/* Resources Sub-routes */}
               <Route path="/resources">

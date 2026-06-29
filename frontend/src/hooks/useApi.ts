@@ -57,6 +57,7 @@ export interface Subject {
   name: string;
   weekly_hours: number;
   session_length: number;
+  color: string | null;
 }
 
 export interface Section {
@@ -87,7 +88,7 @@ export interface SectionSubjectTeacherAssignment {
   organization_id: string;
   section_id: string;
   subject_id: string;
-  teacher_id: string;
+  teacher_id: string | null;
 }
 
 export interface Organization {
@@ -162,6 +163,10 @@ export function useSectionSubjectTeacherAssignments(orgId: string | null) {
 
 export function useOrganization(orgId: string | null) {
   return useApiGet<Organization>(orgId ? `/organizations/${orgId}` : null);
+}
+
+export function useOrganizations(enabled = true) {
+  return useApiGet<Organization[]>(enabled ? '/organizations' : null);
 }
 
 export function useTimetableVersions(orgId: string | null) {

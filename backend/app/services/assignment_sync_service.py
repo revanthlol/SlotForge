@@ -38,6 +38,18 @@ class AssignmentSyncService:
         for assignment in section_teachers:
             db.add(Constraint(
                 organization_id=org_id,
+                constraint_type="section_subject",
+                payload={
+                    "source": ASSIGNMENT_SOURCE,
+                    "section_id": str(assignment.section_id),
+                    "subject_id": str(assignment.subject_id),
+                },
+                weight=None,
+            ))
+            if not assignment.teacher_id:
+                continue
+            db.add(Constraint(
+                organization_id=org_id,
                 constraint_type="section_subject_teacher",
                 payload={
                     "source": ASSIGNMENT_SOURCE,

@@ -33,6 +33,7 @@ export default function SectionsPage() {
   const [saving, setSaving] = useState(false);
   const [mapSection, setMapSection] = useState<Section | null>(null);
   const [teachingMap, setTeachingMap] = useState<Record<string, string>>({});
+  const [subjectEnabledMap, setSubjectEnabledMap] = useState<Record<string, boolean>>({});
   const [deleteTarget, setDeleteTarget] = useState<Section | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
@@ -122,12 +123,17 @@ export default function SectionsPage() {
   const openTeachingMap = (section: Section) => {
     setMapSection(section);
     const nextMap: Record<string, string> = {};
-    (sectionTeacherRows || [])
+    const rowsForSection = (sectionTeacherRows || [])
       .filter(row => row.section_id === section.id)
-      .forEach(row => {
-        nextMap[row.subject_id] = row.teacher_id;
-      });
+    rowsForSection.forEach(row => {
+      nextMap[row.subject_id] = row.teacher_id || '';
+    });
     setTeachingMap(nextMap);
+    const hasRows = rowsForSection.length > 0;
+    setSubjectEnabledMap(Object.fromEntries((subjects || []).map(subject => [
+      subject.id,
+      hasRows ? rowsForSection.some(row => row.subject_id === subject.id) : true,
+    ])));
   };
 
   const saveTeachingMap = async () => {
@@ -138,6 +144,7 @@ export default function SectionsPage() {
         assignments: (subjects || []).map(subject => ({
           section_id: mapSection.id,
           subject_id: subject.id,
+          enabled: subjectEnabledMap[subject.id] !== false,
           teacher_id: teachingMap[subject.id] || null,
         })),
       });
@@ -300,18 +307,28 @@ export default function SectionsPage() {
               return aQualified - bQualified || a.name.localeCompare(b.name);
             });
             return (
-              <div key={subject.id} className="grid grid-cols-12 items-center gap-3 rounded-lg border border-rule px-3 py-2">
-                <div className="col-span-5">
-                  <p className="text-sm font-medium text-on-surface">{subject.name}</p>
+              <div key={subject.id} className={`grid grid-cols-12 items-center gap-3 rounded-lg border px-3 py-2 ${subjectEnabledMap[subject.id] === false ? 'border-rule bg-surface-container-low opacity-70' : 'border-rule'}`}>
+                <div className="col-span-5 flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={subjectEnabledMap[subject.id] !== false}
+                    onChange={(event) => setSubjectEnabledMap(prev => ({ ...prev, [subject.id]: event.target.checked }))}
+                    className="h-4 w-4 accent-primary"
+                    aria-label={`Include ${subject.name} in ${mapSection?.name || 'section'}`}
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-on-surface">{subject.name}</p>
                   <p className="text-data-table text-mono-grey">{subject.weekly_hours} weekly periods</p>
+                  </div>
                 </div>
                 <div className="col-span-7">
                   <select
                     value={teachingMap[subject.id] || ''}
                     onChange={(event) => setTeachingMap(prev => ({ ...prev, [subject.id]: event.target.value }))}
                     className="academic-input w-full"
+                    disabled={subjectEnabledMap[subject.id] === false}
                   >
-                    <option value="">Use qualified pool</option>
+                    <option value="">Included, use qualified teacher pool</option>
                     {sortedTeachers.map(teacher => (
                       <option key={teacher.id} value={teacher.id}>
                         {teacher.name}{qualifiedIds.has(teacher.id) ? '' : ' (adds qualification)'}

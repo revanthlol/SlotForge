@@ -24,6 +24,7 @@ def _subject_schema(subject: SubjectModel) -> SubjectSchema:
         name=subject.name,
         weekly_hours=subject.weekly_hours,
         session_length=subject.session_length,
+        color=subject.color,
     )
 
 @router.post("/", response_model=SubjectSchema, status_code=201)
@@ -38,6 +39,7 @@ def create_subject(
         name=payload.name,
         weekly_hours=payload.weekly_hours,
         session_length=payload.session_length,
+        color=payload.color,
     )
     db.add(subject)
     db.commit()
@@ -50,7 +52,7 @@ def create_subject(
         action="subject.create",
         target_table="subjects",
         target_id=subject.id,
-        diff={"new_values": {"name": subject.name, "weekly_hours": subject.weekly_hours, "session_length": subject.session_length}}
+        diff={"new_values": {"name": subject.name, "weekly_hours": subject.weekly_hours, "session_length": subject.session_length, "color": subject.color}}
     )
     
     return _subject_schema(subject)
@@ -110,6 +112,7 @@ def update_subject(
         "name": subject.name,
         "weekly_hours": subject.weekly_hours,
         "session_length": subject.session_length,
+        "color": subject.color,
     }
     next_weekly_hours = payload.weekly_hours if payload.weekly_hours is not None else subject.weekly_hours
     next_session_length = payload.session_length if payload.session_length is not None else subject.session_length
@@ -124,6 +127,9 @@ def update_subject(
         mutated = True
     if payload.session_length is not None:
         subject.session_length = payload.session_length
+        mutated = True
+    if "color" in payload.model_fields_set:
+        subject.color = payload.color
         mutated = True
         
     if mutated:
@@ -143,6 +149,7 @@ def update_subject(
                     "name": subject.name,
                     "weekly_hours": subject.weekly_hours,
                     "session_length": subject.session_length,
+                    "color": subject.color,
                 }
             }
         )
@@ -172,6 +179,7 @@ def delete_subject(
         "name": subject.name,
         "weekly_hours": subject.weekly_hours,
         "session_length": subject.session_length,
+        "color": subject.color,
     }
     subject_id_val = subject.id
     

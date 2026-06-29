@@ -1,6 +1,7 @@
 from app.core.db import Base
 from app.models.organization import Organization
 from app.models.profile import Profile
+from app.models.organization_membership import OrganizationMembership
 from app.models.teacher import Teacher
 from app.models.room import Room
 from app.models.subject import Subject
@@ -15,6 +16,7 @@ __all__ = [
     "Base",
     "Organization",
     "Profile",
+    "OrganizationMembership",
     "Teacher",
     "Room",
     "Subject",
