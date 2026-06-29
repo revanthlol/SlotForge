@@ -1,5 +1,6 @@
 import uuid
 from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from app.schemas.room import Room as RoomSchema, RoomCreate, RoomUpdate
 from app.models.room import Room as RoomModel
@@ -181,8 +182,12 @@ def delete_room(
     }
     room_id_val = room.id
     
-    db.delete(room)
-    db.commit()
+    try:
+        db.delete(room)
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Room could not be deleted because it is still referenced by other records")
     
     AuditService.log_action(
         db=db,
@@ -194,4 +199,3 @@ def delete_room(
         diff={"old_values": old_values}
     )
     return
-

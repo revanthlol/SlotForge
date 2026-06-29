@@ -1,4 +1,5 @@
 from typing import Optional
+from uuid import UUID
 from pydantic import BaseModel, Field
 
 class ConstraintCreate(BaseModel):
@@ -13,8 +14,8 @@ class ConstraintUpdate(BaseModel):
     weight: Optional[int] = Field(None, ge=0)
 
 class Constraint(BaseModel):
-    id: str
-    organization_id: str
+    id: UUID
+    organization_id: UUID
     constraint_type: str
     payload: dict
     weight: Optional[int] = None

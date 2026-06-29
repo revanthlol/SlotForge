@@ -18,6 +18,7 @@ class Subject(BaseModel):
     id: str
     name: str
     weekly_hours: int
+    session_length: int = 1
 
 class Section(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
@@ -54,6 +55,7 @@ class ScheduledSlot(BaseModel):
     teacher_id: str
     room_id: str
     slot_id: str
+    duration_periods: int = 1
 
 class SolverResult(BaseModel):
     model_config = ConfigDict(populate_by_name=True)

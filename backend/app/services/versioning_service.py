@@ -101,7 +101,8 @@ class VersioningService:
                 teacher_id=ts.teacher_id,
                 room_id=ts.room_id,
                 day=ts.day,
-                period=ts.period
+                period=ts.period,
+                duration_periods=ts.duration_periods,
             )
             db.add(new_slot)
 

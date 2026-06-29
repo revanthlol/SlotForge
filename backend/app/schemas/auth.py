@@ -11,3 +11,10 @@ class SignupOrganizationResponse(BaseModel):
     organization_id: str
     user_id: str
     email: str
+
+
+class AuthMeResponse(BaseModel):
+    user_id: str
+    organization_id: str
+    role: str
+    full_name: Optional[str] = None

@@ -149,6 +149,45 @@ def test_teacher_crud():
     response = client.get(f"/teachers/{teacher_id}", headers=headers)
     assert response.status_code == 404
 
+def test_timetable_generate_infeasible_empty_org_has_nullable_id():
+    org_id, user_id, headers = create_test_user("Empty Timetable University")
+    client.post("/subjects/", json={"organization_id": org_id, "name": "Subject 1", "weekly_hours": 1}, headers=headers)
+    client.post("/sections/", json={"organization_id": org_id, "name": "Section 1", "size": 30}, headers=headers)
+
+    gen_res = client.post("/timetables/generate", json={"organization_id": org_id}, headers=headers)
+    assert gen_res.status_code == 200
+    gen_data = gen_res.json()
+    assert gen_data["id"] is None
+    assert gen_data["version_id"] is None
+    assert gen_data["status"] == "INFEASIBLE"
+    assert gen_data["assignments"] == []
+    assert gen_data["infeasible_reason"]
+
+def test_timetable_generate_uses_configured_fixed_weekday_cycle_length():
+    org_id, user_id, headers = create_test_user("Six Day University")
+
+    client.patch(
+        f"/organizations/{org_id}",
+        json={"scheduling_mode": "fixed_weekday", "cycle_length": 6, "periods_per_day": 5},
+        headers=headers,
+    )
+    client.post("/teachers/", json={"organization_id": org_id, "name": "Teacher 1"}, headers=headers)
+    client.post("/rooms/", json={"organization_id": org_id, "name": "Room 1", "capacity": 40, "type": "lecture"}, headers=headers)
+    client.post("/sections/", json={"organization_id": org_id, "name": "Section 1", "size": 30}, headers=headers)
+    for index in range(1, 6):
+        client.post(
+            "/subjects/",
+            json={"organization_id": org_id, "name": f"Subject {index}", "weekly_hours": 6},
+            headers=headers,
+        )
+
+    gen_res = client.post("/timetables/generate", json={"organization_id": org_id}, headers=headers)
+    assert gen_res.status_code == 200
+    gen_data = gen_res.json()
+    assert gen_data["status"] in ("OPTIMAL", "FEASIBLE")
+    assert len(gen_data["assignments"]) == 30
+    assert any(slot["day"] == "Sat" for slot in gen_data["assignments"])
+
 def test_timetable_generate_success():
     # 1. Create Organization and Admin User
     org_id, user_id, headers = create_test_user("Timetable University")

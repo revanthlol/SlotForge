@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>SlotForge - Subjects Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "surface-bright": "#f7f9ff",
+                "secondary": "#9c440f",
+                "surface-container-highest": "#e0e3e8",
+                "background": "#f7f9ff",
+                "surface-container-low": "#f1f4f9",
+                "on-error": "#ffffff",
+                "surface": "#f7f9ff",
+                "on-surface": "#181c20",
+                "surface-tint": "#376759",
+                "on-primary": "#ffffff",
+                "surface-dim": "#d7dae0",
+                "on-tertiary-container": "#fcb9af",
+                "on-primary-fixed": "#002018",
+                "tertiary-fixed-dim": "#f9b6ac",
+                "on-secondary": "#ffffff",
+                "paper-raised": "#ffffff",
+                "on-tertiary": "#ffffff",
+                "inverse-primary": "#9fd1bf",
+                "rule": "rgba(27, 31, 35, 0.14)",
+                "on-tertiary-fixed-variant": "#693a33",
+                "mono-grey": "#6b6f73",
+                "surface-container-lowest": "#ffffff",
+                "on-secondary-fixed": "#351000",
+                "inverse-on-surface": "#eef1f6",
+                "surface-variant": "#e0e3e8",
+                "primary-container": "#2d5d4f",
+                "primary-fixed": "#baeddb",
+                "tertiary": "#5e312a",
+                "secondary-container": "#fd8e55",
+                "on-primary-fixed-variant": "#1e4f41",
+                "on-tertiary-fixed": "#34100b",
+                "surface-container": "#ebeef3",
+                "on-surface-variant": "#404945",
+                "error-container": "#ffdad6",
+                "primary-fixed-dim": "#9fd1bf",
+                "on-error-container": "#93000a",
+                "outline-variant": "#c0c8c4",
+                "signal-soft": "rgba(196, 98, 45, 0.12)",
+                "on-secondary-container": "#6e2a00",
+                "inverse-surface": "#2d3135",
+                "paper": "#f7f5f0",
+                "grid-line": "rgba(27, 31, 35, 0.08)",
+                "secondary-fixed-dim": "#ffb693",
+                "accent-soft": "rgba(45, 93, 79, 0.12)",
+                "tertiary-container": "#794740",
+                "on-secondary-fixed-variant": "#7a3000",
+                "outline": "#707975",
+                "error": "#ba1a1a",
+                "primary": "#124538",
+                "on-background": "#181c20",
+                "tertiary-fixed": "#ffdad5",
+                "surface-container-high": "#e5e8ee",
+                "secondary-fixed": "#ffdbcc",
+                "on-primary-container": "#a1d4c2"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+        },
+        "spacing": {
+                "stack-md": "32px",
+                "gutter": "16px",
+                "inset-standard": "24px 26px",
+                "stack-sm": "16px",
+                "inset-deep": "32px 36px",
+                "grid-unit": "64px",
+                "margin-page": "32px",
+                "stack-lg": "64px",
+                "inset-compact": "16px 18px"
+        },
+        "fontFamily": {
+                "display-lg": [
+                        "Fraunces"
+                ],
+                "display-lg-mobile": [
+                        "Fraunces"
+                ],
+                "headline-sm": [
+                        "Fraunces"
+                ],
+                "headline-md": [
+                        "Fraunces"
+                ],
+                "data-table": [
+                        "JetBrains Mono"
+                ],
+                "code-snippet": [
+                        "JetBrains Mono"
+                ],
+                "body-sm": [
+                        "IBM Plex Sans"
+                ],
+                "body-lg": [
+                        "IBM Plex Sans"
+                ],
+                "label-caps": [
+                        "JetBrains Mono"
+                ]
+        },
+        "fontSize": {
+                "display-lg": [
+                        "64px",
+                        {
+                                "lineHeight": "1.1",
+                                "letterSpacing": "-0.02em",
+                                "fontWeight": "600"
+                        }
+                ],
+                "display-lg-mobile": [
+                        "40px",
+                        {
+                                "lineHeight": "1.2",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-sm": [
+                        "18px",
+                        {
+                                "lineHeight": "1.4",
+                                "fontWeight": "600"
+                        }
+                ],
+                "headline-md": [
+                        "30px",
+                        {
+                                "lineHeight": "1.3",
+                                "fontWeight": "600"
+                        }
+                ],
+                "data-table": [
+                        "12px",
+                        {
+                                "lineHeight": "1.2",
+                                "fontWeight": "400"
+                        }
+                ],
+                "code-snippet": [
+                        "12.5px",
+                        {
+                                "lineHeight": "1.5",
+                                "fontWeight": "400"
+                        }
+                ],
+                "body-sm": [
+                        "14px",
+                        {
+                                "lineHeight": "1.5",
+                                "fontWeight": "400"
+                        }
+                ],
+                "body-lg": [
+                        "16.5px",
+                        {
+                                "lineHeight": "1.6",
+                                "fontWeight": "400"
+                        }
+                ],
+                "label-caps": [
+                        "13px",
+                        {
+                                "lineHeight": "1",
+                                "letterSpacing": "0.12em",
+                                "fontWeight": "500"
+                        }
+                ]
+        }
+},
+    },
+  }
+</script>
+<style>
+        body {
+            background-color: var(--theme-colors-paper, #f7f5f0);
+            background-image: 
+                linear-gradient(to right, var(--theme-colors-grid-line, rgba(27, 31, 35, 0.08)) 1px, transparent 1px),
+                linear-gradient(to bottom, var(--theme-colors-grid-line, rgba(27, 31, 35, 0.08)) 1px, transparent 1px);
+            background-size: 64px 64px;
+        }
+        .table-row-hover:hover {
+            background-color: var(--theme-colors-accent-soft, rgba(45, 93, 79, 0.12));
+        }
+    </style>
+</head>
+<body class="text-on-background font-body-lg min-h-screen flex antialiased">
+<!-- SideNavBar -->
+<aside class="hidden md:flex flex-col h-full py-stack-md docked left-0 h-screen w-64 border-r-2 border-on-background dark:border-outline-variant bg-paper dark:bg-inverse-surface fixed z-20">
+<div class="px-inset-standard mb-stack-md flex items-center gap-3">
+<div class="w-10 h-10 bg-primary-container rounded flex items-center justify-center shrink-0 border border-on-background">
+<span class="font-headline-md text-headline-md font-bold text-on-primary-container">S</span>
+</div>
+<div>
+<h1 class="font-headline-sm text-headline-sm text-primary dark:text-primary-fixed-dim">SlotForge</h1>
+<p class="font-label-caps text-label-caps text-on-surface-variant">Institutional Admin</p>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-on-surface-variant dark:text-surface-variant hover:bg-accent-soft transition-colors hover:text-primary dark:hover:text-primary-fixed-dim transition-all duration-150 ease-in-out font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Dashboard
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-primary dark:text-primary-fixed font-bold border-r-4 border-primary dark:border-primary-fixed bg-accent-soft hover:text-primary dark:hover:text-primary-fixed-dim transition-all duration-150 ease-in-out font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">calendar_view_day</span>
+                Resources
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-on-surface-variant dark:text-surface-variant hover:bg-accent-soft transition-colors hover:text-primary dark:hover:text-primary-fixed-dim transition-all duration-150 ease-in-out font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined">bolt</span>
+                Solver Engine
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-on-surface-variant dark:text-surface-variant hover:bg-accent-soft transition-colors hover:text-primary dark:hover:text-primary-fixed-dim transition-all duration-150 ease-in-out font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined">history</span>
+                Version History
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-DEFAULT text-on-surface-variant dark:text-surface-variant hover:bg-accent-soft transition-colors hover:text-primary dark:hover:text-primary-fixed-dim transition-all duration-150 ease-in-out font-label-caps text-label-caps" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+</nav>
+<div class="px-inset-standard mt-auto">
+<button class="w-full bg-primary text-paper-raised font-label-caps text-label-caps py-3 rounded px-4 hover:bg-primary-container transition-colors border-none">
+                Generate Schedule
+            </button>
+</div>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 ml-0 md:ml-64 flex flex-col min-h-screen">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center px-margin-page h-16 w-full docked top-0 border-b-2 border-on-background dark:border-outline-variant bg-paper-raised dark:bg-surface-container-highest sticky z-10">
+<div class="flex items-center gap-4">
+<span class="font-label-caps text-label-caps tracking-widest text-secondary dark:text-secondary-fixed hidden md:block">Organization: Central University</span>
+</div>
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2 border-r border-rule pr-4">
+<button class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-secondary dark:hover:text-secondary-fixed transition-colors active:opacity-80 active:scale-95 transition-transform" title="Undo">
+<span class="material-symbols-outlined text-xl">undo</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center text-on-surface-variant hover:text-secondary dark:hover:text-secondary-fixed transition-colors active:opacity-80 active:scale-95 transition-transform opacity-50 cursor-not-allowed" disabled="" title="Redo">
+<span class="material-symbols-outlined text-xl">redo</span>
+</button>
+</div>
+<div class="flex items-center gap-2">
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:text-secondary dark:hover:text-secondary-fixed transition-colors active:opacity-80 active:scale-95 transition-transform">
+<span class="material-symbols-outlined">sync</span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:text-secondary dark:hover:text-secondary-fixed transition-colors active:opacity-80 active:scale-95 transition-transform relative">
+<span class="material-symbols-outlined">notifications_active</span>
+<span class="absolute top-2 right-2 w-2 h-2 bg-secondary rounded-full"></span>
+</button>
+<button class="w-10 h-10 rounded-full flex items-center justify-center text-on-surface-variant hover:text-secondary dark:hover:text-secondary-fixed transition-colors active:opacity-80 active:scale-95 transition-transform">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+</div>
+<button class="flex items-center gap-2 hover:bg-accent-soft p-1 pr-3 rounded-full transition-colors border border-transparent hover:border-rule ml-2">
+<div class="w-8 h-8 rounded-full bg-surface-variant overflow-hidden border border-on-background">
+<img alt="Administrator Avatar" class="w-full h-full object-cover" data-alt="A detailed headshot portrait of an academic administrator in their late 40s. They are wearing professional attire, perhaps a subtly textured blazer, against a clean, light-mode background. The lighting is soft and even, highlighting a serious but approachable expression, fitting for an institutional headshot." src="https://lh3.googleusercontent.com/aida-public/AB6AXuArzqiA1W2sz0jqxNSLIMX4PDvtqqskNS2GqC38NymdMLIw8cKqGbHrFAMoTv75b19dDMeLTrF6fASNvIES03JSALKuLaLRzsjN9CQhaEzCBwyF-1WTxO2E4D_JiXWNG92TayFkdkf0uE0SKn4hWJ0ldajIHy8At5GZqdTUXtNROShKIp5pwJtz87PtRyxV4raSSRc6YPBjz1kY1Sa_9pfkxh9fUyWCdRVAGupnEfsMpcWmWVzjqCKi9MgarnugIX-8kHRFWDBTO3Q"/>
+</div>
+<span class="font-label-caps text-label-caps text-primary hidden lg:block">User Profile</span>
+</button>
+</div>
+</header>
+<!-- Page Content -->
+<div class="flex-1 p-margin-page max-w-[1200px] mx-auto w-full">
+<div class="mb-stack-md flex justify-between items-end">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-background mb-2">Subject Resources</h2>
+<p class="font-body-sm text-body-sm text-mono-grey max-w-2xl">Manage academic course definitions, requirements, and default resource allocations for the central solver engine.</p>
+</div>
+<div class="flex gap-4">
+<button class="px-6 py-2 border border-on-background text-on-background font-label-caps text-label-caps rounded flex items-center gap-2 hover:bg-accent-soft transition-colors">
+<span class="material-symbols-outlined text-lg">download</span>
+                        Import CSV
+                    </button>
+<button class="px-6 py-2 bg-primary text-paper-raised font-label-caps text-label-caps rounded flex items-center gap-2 hover:bg-primary-container transition-colors">
+<span class="material-symbols-outlined text-lg">add</span>
+                        New Subject
+                    </button>
+</div>
+</div>
+<!-- Subject Data Table -->
+<div class="bg-paper-raised border border-on-background shadow-none rounded-DEFAULT overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-on-background text-paper-raised border-b border-rule">
+<th class="py-3 px-4 font-data-table text-data-table w-24">CODE</th>
+<th class="py-3 px-4 font-data-table text-data-table">SUBJECT NAME</th>
+<th class="py-3 px-4 font-data-table text-data-table w-32">DEPT</th>
+<th class="py-3 px-4 font-data-table text-data-table w-24 text-center">W. PERIODS</th>
+<th class="py-3 px-4 font-data-table text-data-table">REQ. ROOM TYPE</th>
+<th class="py-3 px-4 font-data-table text-data-table w-24 text-center">STATUS</th>
+<th class="py-3 px-4 font-data-table text-data-table w-16"></th>
+</tr>
+</thead>
+<tbody class="font-body-sm text-body-sm text-on-background">
+<tr class="border-b border-rule table-row-hover transition-colors group cursor-pointer">
+<td class="py-4 px-4 font-code-snippet text-code-snippet font-semibold">PHY-101</td>
+<td class="py-4 px-4 font-medium">Introductory Physics</td>
+<td class="py-4 px-4 text-mono-grey">Sciences</td>
+<td class="py-4 px-4 text-center font-code-snippet">4</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-mono-grey">science</span>
+<span class="text-xs border border-dashed border-rule px-2 py-1 rounded bg-paper text-mono-grey">Lab, Lecture</span>
+</div>
+</td>
+<td class="py-4 px-4 text-center">
+<span class="inline-block px-2 py-1 bg-accent-soft text-primary border border-primary/20 rounded-[1px] font-label-caps text-[10px]">READY</span>
+</td>
+<td class="py-4 px-4 text-right">
+<button class="text-mono-grey hover:text-on-background opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="border-b border-rule table-row-hover transition-colors group cursor-pointer">
+<td class="py-4 px-4 font-code-snippet text-code-snippet font-semibold">ENG-204</td>
+<td class="py-4 px-4 font-medium">Advanced Literature Analysis</td>
+<td class="py-4 px-4 text-mono-grey">Humanities</td>
+<td class="py-4 px-4 text-center font-code-snippet">3</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-mono-grey">menu_book</span>
+<span class="text-xs border border-dashed border-rule px-2 py-1 rounded bg-paper text-mono-grey">Seminar</span>
+</div>
+</td>
+<td class="py-4 px-4 text-center">
+<span class="inline-block px-2 py-1 bg-accent-soft text-primary border border-primary/20 rounded-[1px] font-label-caps text-[10px]">READY</span>
+</td>
+<td class="py-4 px-4 text-right">
+<button class="text-mono-grey hover:text-on-background opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+<tr class="border-b border-rule table-row-hover transition-colors group cursor-pointer bg-signal-soft/30">
+<td class="py-4 px-4 font-code-snippet text-code-snippet font-semibold text-secondary">CS-401</td>
+<td class="py-4 px-4 font-medium">Machine Learning Algorithms</td>
+<td class="py-4 px-4 text-mono-grey">CompSci</td>
+<td class="py-4 px-4 text-center font-code-snippet">5</td>
+<td class="py-4 px-4">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-mono-grey">computer</span>
+<span class="text-xs border border-dashed border-rule px-2 py-1 rounded bg-paper text-mono-grey">Comp Lab (GPU)</span>
+</div>
+</td>
+<td class="py-4 px-4 text-center">
+<span class="inline-block px-2 py-1 bg-signal-soft text-secondary border border-secondary/30 rounded-[1px] font-label-caps text-[10px]">DRAFT</span>
+</td>
+<td class="py-4 px-4 text-right">
+<button class="text-mono-grey hover:text-on-background opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-[18px]">more_vert</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="border-t border-rule px-4 py-3 flex justify-between items-center bg-paper text-xs text-mono-grey font-data-table">
+<span>Showing 1-3 of 124 Subjects</span>
+<div class="flex gap-2">
+<button class="px-2 py-1 border border-rule hover:bg-paper-raised disabled:opacity-50" disabled="">&lt; Prev</button>
+<button class="px-2 py-1 border border-rule hover:bg-paper-raised">Next &gt;</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

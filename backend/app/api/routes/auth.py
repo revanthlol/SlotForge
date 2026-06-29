@@ -4,12 +4,23 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.auth import get_current_user_profile
 from app.core.db import get_db
 from app.models.organization import Organization
 from app.models.profile import Profile
-from app.schemas.auth import SignupOrganizationRequest, SignupOrganizationResponse
+from app.schemas.auth import AuthMeResponse, SignupOrganizationRequest, SignupOrganizationResponse
 
 router = APIRouter()
+
+
+@router.get("/me", response_model=AuthMeResponse)
+def get_me(current_user: Profile = Depends(get_current_user_profile)):
+    return AuthMeResponse(
+        user_id=str(current_user.id),
+        organization_id=str(current_user.organization_id),
+        role=current_user.role,
+        full_name=current_user.full_name,
+    )
 
 @router.post("/signup-organization", response_model=SignupOrganizationResponse, status_code=201)
 def signup_organization(payload: SignupOrganizationRequest, db: Session = Depends(get_db)):
@@ -41,17 +52,49 @@ def signup_organization(payload: SignupOrganizationRequest, db: Session = Depend
                 res = client.post(url, headers=headers, json=json_payload, timeout=10.0)
                 
             if res.status_code != 200:
-                raise HTTPException(
-                    status_code=res.status_code,
-                    detail=f"Supabase Auth error: {res.text}"
-                )
-                
-            res_data = res.json()
-            user_info = res_data.get("user")
-            if user_info and "id" in user_info:
-                user_id = user_info["id"]
-            elif "id" in res_data:
-                user_id = res_data["id"]
+                # Check if the user is already registered in Supabase Auth but missing in local DB
+                is_already_registered = False
+                try:
+                    res_json = res.json()
+                    error_msg = res_json.get("msg", "") or res_json.get("error_description", "") or ""
+                    if "already registered" in error_msg.lower() or "already exists" in error_msg.lower():
+                        is_already_registered = True
+                except Exception:
+                    pass
+                # NOTE: Supabase can return 400 for multiple error cases; rely on the message check above instead of treating all 400s as "already registered".
+
+                if is_already_registered:
+                    from sqlalchemy import text
+                    existing_user_id = db.execute(
+                        text("SELECT id FROM auth.users WHERE email = :email"),
+                        {"email": payload.email}
+                    ).scalar()
+                    if existing_user_id:
+                        profile_exists = db.query(Profile).filter(Profile.id == existing_user_id).first()
+                        if not profile_exists:
+                            user_id = str(existing_user_id)
+                        else:
+                            raise HTTPException(
+                                status_code=400,
+                                detail="User already registered and profile exists"
+                            )
+                    else:
+                        raise HTTPException(
+                            status_code=res.status_code,
+                            detail=f"Supabase Auth error: {res.text}"
+                        )
+                else:
+                    raise HTTPException(
+                        status_code=res.status_code,
+                        detail=f"Supabase Auth error: {res.text}"
+                    )
+            else:
+                res_data = res.json()
+                user_info = res_data.get("user")
+                if user_info and "id" in user_info:
+                    user_id = user_info["id"]
+                elif "id" in res_data:
+                    user_id = res_data["id"]
         except Exception as e:
             if isinstance(e, HTTPException):
                 raise e

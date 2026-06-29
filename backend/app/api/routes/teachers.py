@@ -1,5 +1,6 @@
 import uuid
 from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from app.schemas.teacher import Teacher as TeacherSchema, TeacherCreate, TeacherUpdate
 from app.models.teacher import Teacher as TeacherModel
@@ -146,8 +147,12 @@ def delete_teacher(
     old_name = teacher.name
     teacher_id_val = teacher.id
     
-    db.delete(teacher)
-    db.commit()
+    try:
+        db.delete(teacher)
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="Teacher could not be deleted because it is still referenced by other records")
     
     AuditService.log_action(
         db=db,
@@ -159,4 +164,3 @@ def delete_teacher(
         diff={"old_values": {"name": old_name}}
     )
     return
-
