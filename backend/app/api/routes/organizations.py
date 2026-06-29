@@ -38,7 +38,7 @@ def get_organization(org_id: str, current_user: Profile = Depends(get_current_us
 def update_organization(
     org_id: str,
     payload: OrgUpdateSchema,
-    current_user: Profile = Depends(get_current_user_profile),
+    current_user: Profile = Depends(require_org_admin),
     db: Session = Depends(get_db)
 ):
     if str(current_user.organization_id) != org_id:
