@@ -1,0 +1,67 @@
+### 1\. Domain-Based Scheduling Presets
+
+SlotForge can be extended with domain-based scheduling presets that allow the platform to support different types of scheduling beyond academic timetabling. While the current system is designed around institutions using teachers, subjects, sections, rooms, labs, and periods, the underlying problem is still a general resource-and-time allocation problem. The same constraint-based engine can be adapted for other use cases where people, resources, tasks, and time slots must be assigned without conflicts.
+
+During onboarding, SlotForge can allow users to select the type of scheduling they want to manage. For example, an academic preset may configure teachers, subjects, sections, classrooms, labs, and periods, while a staff roster preset may configure employees, departments, shifts, roles, and availability. Similarly, an event scheduling preset may include speakers, halls, sessions, volunteers, and time blocks. Based on the selected preset, SlotForge can automatically adjust terminology, setup steps, default constraints, and required resource fields.
+
+This feature makes SlotForge stand out because it transforms the system from a single-purpose timetable generator into a configurable scheduling platform. Instead of building separate software for every scheduling domain, SlotForge can use one common constraint-solving foundation and adapt the user experience through presets. This allows the platform to be useful for colleges, workplaces, events, facilities, and other organizations that need structured scheduling.
+
+As a result, SlotForge becomes more flexible and scalable. The education domain can remain the first implementation, but the platform architecture can support wider scheduling use cases through preset-based onboarding and domain-specific configuration.
+
+### 2\. Natural-Language Rule Assistant
+
+SlotForge can be extended with a Natural-Language Rule Assistant that helps administrators create scheduling constraints using simple language. In many institutions, administrators may know the scheduling rule they want to apply, but they may not know how to convert that rule into structured solver inputs. This creates a gap between real-world scheduling policies and the technical constraint model used by the system.
+
+The Natural-Language Rule Assistant would allow administrators to enter rules in plain English, such as “Dr. Rao should not teach after lunch,” “Computer lab sessions should be scheduled only in continuous two-period blocks,” or “First-year sections should not have more than two theory classes continuously.” The system can then convert these statements into structured rule templates that the administrator can review, edit, and confirm before timetable generation.
+
+This feature makes SlotForge stand out because it reduces the complexity of constraint creation for non-technical users. Instead of requiring administrators to understand solver logic or manually configure every condition through forms, the assistant helps translate human scheduling requirements into solver-compatible rules. The final control still remains with the administrator because the generated rule is reviewed before being applied.
+
+By combining natural-language rule creation with the Constraint Playground, SlotForge becomes easier to use while still maintaining structured and reliable scheduling logic. This makes the platform more accessible to real institutions, where scheduling decisions are often described in everyday language rather than technical constraint definitions.
+
+### 3\. Constraint Playground
+
+SlotForge can be extended with a Constraint Playground, a flexible rule-building layer that allows administrators to define institution-specific scheduling policies before timetable generation. While the current system already supports structured constraints such as teacher availability, room capacity, weekly subject hours, lab blocks, and section-subject mappings, the Constraint Playground would allow administrators to add custom rules that reflect the actual working style of their institution.
+
+Through guided rule templates, administrators can define conditions such as avoiding classes after lunch for a specific teacher, limiting continuous theory periods for a section, restricting laboratory sessions to selected days, prioritizing final-year sections for certain rooms, or reserving specific periods for institutional activities. Each rule can be marked as a hard constraint or a soft preference with a priority level. During timetable generation, these rules are translated into solver constraints or optimisation penalties.
+
+This feature makes SlotForge stand out because it gives institutions control over their own scheduling logic without requiring changes to the solver code. It also improves transparency by showing which custom rules were satisfied, which were relaxed, and which rules contributed to infeasibility when no valid timetable can be generated. As a result, SlotForge becomes not only a timetable generator, but a configurable scheduling decision-support platform.
+
+### 4\. Impact Simulation
+
+SlotForge can be extended with an Impact Simulation module that allows administrators to preview the consequences of timetable changes before applying them. In real institutions, schedules often change after generation due to teacher leave, room unavailability, lab adjustments, new subject requirements, or department-level policy changes. Traditional timetable systems usually require administrators to manually edit the timetable or regenerate the entire schedule without clearly knowing what will be affected.
+
+The Impact Simulation module would allow an administrator to test a change in a temporary simulation mode. For example, the system can simulate what happens if a teacher becomes unavailable for selected periods, if a classroom is removed from use, or if a subject requires additional weekly hours. SlotForge can then report the number of affected classes, sections, teachers, and rooms before the change is committed.
+
+This feature makes SlotForge stand out because it turns timetable management into a controlled decision-making process. Instead of blindly regenerating schedules, administrators can compare the current timetable with the simulated outcome, understand the scale of disruption, and choose the least disruptive solution. Since SlotForge already supports versioned timetable records, draft editing, rollback, and conflict validation, Impact Simulation can build on this foundation by showing a preview of changes before creating or publishing a new timetable version.
+
+As a result, SlotForge becomes more than a timetable generator. It becomes a scheduling impact analysis platform that helps institutions make safer and more informed scheduling decisions.
+
+### 5\. Version Control for Timetables
+
+SlotForge can be extended with a timetable version control system that treats schedule generation and editing as a controlled operational workflow instead of a one-time output. In many institutions, timetables go through several revisions before and after publication due to teacher feedback, room changes, lab adjustments, workload balancing, or administrative decisions. Traditional timetable management often depends on manually saving multiple files, making it difficult to know which version is final, what changed, and whether an older version can be safely restored.
+
+SlotForge already stores generated timetables as immutable versions with draft, published, archived, and rollback states. This can be expanded into a Git-style version control workflow for institutional scheduling. Each generated or edited timetable becomes a separate version rather than overwriting the previous one. Administrators can review older versions, publish a selected version, archive outdated versions, and restore a previous version by creating a new draft copy.
+
+The innovation is the ability to compare timetable versions in a structured way. SlotForge can show how many classes changed between two versions, which teachers were reassigned, which rooms were changed, which sections were affected, and whether the solver score improved or reduced. This gives administrators a clear understanding of the difference between two timetable states before publishing changes.
+
+This makes SlotForge stand out because it brings traceability, rollback safety, and change comparison into timetable management. Instead of only generating a schedule, the system maintains the full lifecycle of a timetable from draft generation to publication, revision, rollback, and archival. As a result, SlotForge becomes a reliable scheduling management platform, not just a timetable generator.
+
+### 6\. Explainable Scheduling
+
+SlotForge can be extended with an Explainable Scheduling layer that makes timetable generation understandable to administrators. In many automated timetable systems, the solver behaves like a black box: it either produces a timetable or fails to generate one, but the user may not clearly understand why certain scheduling decisions were made or why a valid timetable was impossible.
+
+The Explainable Scheduling layer would provide human-readable reasons behind solver decisions and conflicts. For example, when a class is assigned to a specific period and room, the system can explain that the teacher was available, the room had sufficient capacity, the section had no conflicting class, and the subject still required weekly hours. Similarly, when a timetable cannot be generated, SlotForge can identify causes such as missing teacher qualifications, room capacity shortages, teacher-time limitations, unavailable legal start periods, or insufficient continuous slots for lab sessions.
+
+This feature makes SlotForge stand out because it increases transparency and trust in automated scheduling. Administrators do not need to understand the internal CP-SAT model to use the system effectively. Instead, they receive clear explanations that help them correct input data, adjust constraints, and understand the trade-offs made by the solver.
+
+By combining timetable generation with readable explanations, SlotForge becomes more than an optimisation engine. It becomes an intelligent scheduling assistant that helps institutions understand, debug, and improve their timetable planning process.
+
+### 7\. Conflict Heatmap
+
+SlotForge can be extended with a Conflict Heatmap that visually identifies areas of scheduling pressure before or after timetable generation. In many timetable systems, conflicts are shown only as basic error messages, making it difficult for administrators to understand which resource or constraint is causing the scheduling problem.
+
+The Conflict Heatmap would analyze the institution’s scheduling data and highlight overloaded or high-risk areas such as teachers with excessive assigned hours, rooms with high demand, sections with too many weekly periods, subjects requiring limited lab spaces, or time slots where many resources are unavailable. These conflict indicators can be shown through visual intensity levels across teachers, rooms, sections, subjects, days, and periods.
+
+This feature makes SlotForge stand out because it converts solver difficulty into an understandable visual form. Instead of simply reporting that a timetable cannot be generated, the system can show where the scheduling pressure exists and which resources are most responsible for the conflict. For example, it can indicate that a laboratory is overused, a teacher has insufficient available periods, or a section’s weekly subject load exceeds the available timetable capacity.
+
+By providing a visual overview of conflicts and bottlenecks, SlotForge helps administrators correct input data, relax constraints, add resources, or adjust workload distribution more efficiently. This turns timetable generation from a trial-and-error process into a more guided and transparent scheduling workflow.

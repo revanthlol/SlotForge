@@ -1,169 +1,135 @@
-# SlotForge — Project Abstract
+# SlotForge - Project Abstract
 
-> **Domain:** Operations Research · Constraint Satisfaction · Applied Software Engineering  
-> **Category:** Mini Project  
-> **Team Size:** 2
+> **Domain:** Operations Research, Constraint Satisfaction, Institutional Timetabling  
+> **Category:** Academic Mini Project  
+> **Project Type:** Full-stack scheduling and resource optimisation platform
 
 ---
 
 ## Abstract
 
-Manual timetable construction in schools, colleges, and any organisation that allocates people or resources to time slots is a combinatorial problem routinely solved by hand through trial and error, despite being a well-studied instance of **Constraint Satisfaction (CSP)** and **Integer Linear Programming (ILP)**. As the number of agents, resources, and time slots grows, the search space expands combinatorially, making manual scheduling slow, error-prone, and brittle whenever a single constraint changes.
+SlotForge is a web-based institutional timetabling platform designed to automate the construction, validation, editing, and publication of academic schedules. Manual timetable creation requires repeated trial-and-error coordination between sections, teachers, subjects, rooms, weekly hour requirements, lab blocks, and institutional rules. As the number of resources increases, the scheduling space becomes combinatorial, making manual approaches slow, error-prone, and difficult to revise when a constraint changes.
 
-**SlotForge** formulates resource-and-time scheduling as a constraint optimisation problem and builds a production-grade, multi-tenant SaaS platform around it. While the primary use case is academic timetabling — teachers, rooms, subjects, and sections — the underlying model is domain-agnostic: any setup where finite resources must be assigned to agents across discrete time slots without conflict (shift rosters, facility booking, exam scheduling) fits the same constraint structure. The platform is therefore a general-purpose scheduler rather than a single-purpose academic tool.
+The system models timetable generation as a Constraint Satisfaction and Constraint Optimisation problem. It uses Google OR-Tools CP-SAT to assign subjects, teachers, rooms, sections, days, and periods while enforcing hard constraints such as teacher non-overlap, room non-overlap, section non-overlap, room capacity, teacher availability, configured weekly subject hours, and multi-period lab sessions. The solver also supports soft optimisation goals including teacher gap reduction, daily load balancing, resource utilisation, and preference satisfaction. When a timetable cannot be generated, SlotForge reports meaningful infeasibility causes such as insufficient weekly slots, room-time capacity, teacher-time capacity, room mismatch, missing teacher qualification, or unavailable legal start periods.
 
-The scheduling problem is encoded and solved using **Google OR-Tools CP-SAT**, an industry-standard Constraint Programming and SAT-based solver capable of proving feasibility or infeasibility and returning provably optimal (or best-found within a time budget) solutions. Hard constraints — no agent or resource double-booked in the same time slot, every section's weekly subject-hour quota satisfied, room capacity and type compatibility respected — are encoded as boolean and linear constraints directly in the CP-SAT model. Soft constraints — minimising teacher gaps, balancing daily load across sections, satisfying stated slot preferences — are stored as database rows rather than hardcoded values, so solver behaviour is configured by an administrator through the interface without touching source code. Each solved generation produces a transparent quality score across three soft-constraint dimensions (preference satisfaction, room-and-teacher utilisation, gap minimisation), giving every run a measurable quality signal rather than a black-box output.
+SlotForge supports both fixed weekday scheduling and day-order scheduling. Administrators can configure cycle length, periods per day, resource records, section sizes, teacher-subject qualifications, and section-specific subject mappings. Section-subject mapping ensures that a subject is generated only for the sections that actually take it, preventing subjects from being incorrectly assigned to unrelated sections. A section may use a qualified teacher pool or a fixed teacher for a specific subject.
 
-The backend API is built on **FastAPI** (Python 3.12) with strict **Pydantic** request/response validation and auto-generated **OpenAPI** documentation. Persistence is handled by **PostgreSQL** (via Supabase), with **SQLAlchemy 2.0** ORM and **Alembic** schema migrations. Every table carries an `organization_id` foreign key from the first migration — multiple independent institutions share one deployment with zero data leakage between tenants. Authentication uses **Supabase JWT** verification; role-based access control separates `org_admin` (full CRUD) from `viewer` (read-only) at the API layer. All mutating operations are recorded in an append-only `audit_logs` table capturing the actor, target table, target ID, and a structured before/after diff.
+The platform provides a complete administrative interface for resource management. Teachers, rooms, subjects, and sections can be created, edited, searched, deleted, and assigned through structured forms. Subjects include weekly periods, session length, teacher qualification mappings, and customizable color coding. The same saved subject color is used consistently across the subject resources table, timetable grid, all-class list, and canvas relationship view, making schedules easier to read and visually distinguish.
 
-Timetable generations are **versioned and immutable**: each run produces a new `timetable_versions` row with an incrementing version number and a `draft` status. Administrators review and compare versions using their attached quality scores before explicitly **publishing** one — at which point the previously published version is atomically demoted to `archived`. A **rollback** operation re-publishes any archived version by appending a new version row (copy-on-write), leaving all history intact. End users — whether on the React web app or the Flutter mobile client — only ever see the deliberately published schedule. Completed timetables can be exported on demand in **PDF**, **Excel (XLSX)**, and **CSV** formats, generated server-side and delivered via signed storage URLs.
+Generated timetables are stored as immutable versions. Each generation creates a draft version with scores and slot assignments. Administrators can review generated versions, publish a selected timetable, archive older published versions, roll back previous versions by creating a new copy, and inspect version history without overwriting prior records. Timetable slots can also be edited manually in draft versions through drag-and-drop movement, duration changes, deletion, and manual class insertion, while the backend validates slot-span limits and prevents section, teacher, or room conflicts.
 
-The planned system separates concerns across three managed layers: **Vercel** hosts the React TypeScript admin web application; an **Oracle Cloud VPS** runs the FastAPI service (and, in the production scaling phase, a separate solver worker process and Redis job queue); and **Supabase** provides PostgreSQL, JWT authentication, and object storage. A premium tier is specified to layer an **LLM-based review pass** over the solved schedule and its constraint scores, translating the optimiser's numerical trade-offs into plain-language explanations that a non-technical administrator can act on.
+The web application includes multiple timetable views. The main timetable page provides section, teacher, and room perspectives, with board and list modes. The canvas view visualizes scheduling relationships between sections, subjects, teachers, and rooms using a color-coded graph driven by the same subject palette used in the timetable. Selecting a node isolates its connected resources and displays related generated assignments. The version history page gives administrators a structured way to inspect previous timetable versions and scheduling outcomes.
+
+SlotForge includes a guided onboarding workflow for new organizations. The setup guide walks administrators through institution settings, teacher creation, room creation, subject configuration, section creation, curriculum mapping, and solver execution. The platform also supports multiple organizations per user through organization memberships. Users can create a new organization, switch between organizations, and maintain separate resources, timetables, versions, and setup state for each organization.
+
+The backend is implemented with FastAPI, SQLAlchemy, Alembic, Pydantic, PostgreSQL, and Supabase Auth. Every tenant-scoped table is associated with an organization, and API queries are filtered by the authenticated user's active organization. Role-based access control separates administrative write access from read-only access. Mutating operations are recorded in an audit log with actor, target table, target record, and structured change data. Export functionality supports PDF, Excel, and CSV timetable outputs for offline distribution.
+
+The frontend is implemented with React, TypeScript, Vite, Tailwind CSS, Headless UI, React Router, Axios, and Supabase client libraries. The interface uses a Material-inspired visual system with Roboto Flex, Google Sans/Product Sans fallbacks, Material Symbols, responsive layouts, keyboard shortcuts, modal workflows, theme support, and readable timetable card typography. The result is a practical scheduling system that combines operations research, backend validation, multi-tenant data modelling, and an interactive user interface for real institutional timetable management.
 
 ---
 
 ## Keywords
 
-Constraint Satisfaction Problem (CSP) · Integer Linear Programming (ILP) · CP-SAT · Google OR-Tools · Multi-Tenant Architecture · Combinatorial Optimisation · Resource Allocation · Timetable Scheduling · FastAPI · PostgreSQL · Supabase · React · TypeScript · Flutter
+Constraint Satisfaction Problem, Constraint Optimisation, CP-SAT, Google OR-Tools, Timetable Scheduling, Academic Resource Allocation, Multi-Tenant SaaS, FastAPI, PostgreSQL, Supabase, SQLAlchemy, Alembic, React, TypeScript, Vite, Tailwind CSS
 
 ---
 
-## Core Objectives
+## Core Features
 
-| ID | Objective | Description |
-|---|---|---|
-| OBJ.01 | **Conflict-free generation** | Zero double-bookings of teachers, rooms, or resources across the generated timetable — verified by the solver, not assumed |
-| OBJ.02 | **Multi-tenant from day one** | Every table scoped by `organization_id`; multiple institutions run on one system with zero cross-tenant data leakage |
-| OBJ.03 | **Data-driven constraints** | Hard and soft constraints live in the database as rows, not as hardcoded constants — admins configure solver behaviour without a redeploy |
-| OBJ.04 | **Versioned, immutable history** | Every generation is stored as an immutable version with an attached quality score; history is never overwritten |
-| OBJ.05 | **Draft → Published state machine** | End users only ever see a deliberately published version; drafts are never exposed to consumers |
-| OBJ.06 | **Multi-format export** | Administrators can download any version as PDF, Excel, or CSV for offline distribution |
-| OBJ.07 | **Role-based access control** | `org_admin` has full CRUD; `viewer` is read-only — enforced at the API layer, not just the UI |
-| OBJ.08 | **AI-assisted review (premium)** | An LLM pass over the solved schedule and its constraint scores, explained in plain language for non-technical admins |
+| Area | Features |
+|---|---|
+| Solver Engine | Google OR-Tools CP-SAT scheduling, hard constraints, soft scoring, lab-block sessions, fixed weekday and day-order cycles, infeasibility diagnostics |
+| Resource Management | Teachers, rooms, subjects, sections, room capacities, subject weekly hours, session lengths, teacher-subject qualifications |
+| Curriculum Mapping | Section-specific subject inclusion, optional fixed teacher per section-subject pair, prevention of irrelevant subjects appearing in generated section timetables |
+| Timetable Views | Section/teacher/room views, board layout, all-classes list, color-coded timetable cards, draft slot editing, manual class insertion |
+| Subject Color System | Preset color palette, custom color picker, consistent subject colors across resources, timetable, all-class list, and canvas graph |
+| Canvas View | Interactive relationship graph linking sections, subjects, teachers, and rooms with focus mode, version selector, graph summary, legend, and selected-node details |
+| Versioning | Draft versions, publishing, archiving, rollback by copy, version history, stored solver scores |
+| Onboarding | Guided setup checklist for institution settings, resources, curriculum mapping, and solver generation |
+| Multi-Organization Support | Organization memberships, active organization switching, new organization creation, separate resources and timetable versions per organization |
+| Security and Audit | Supabase JWT authentication, organization-scoped queries, role-based access control, audit log for mutating actions |
+| Exports | Server-side PDF, Excel, and CSV timetable exports |
+| User Experience | Responsive admin interface, Material-style icons, improved timetable font sizing, keyboard shortcuts, modal workflows, light/dark theme support |
 
 ---
 
 ## Technology Stack
 
-### Optimisation Core
-
-| Component | Technology | Rationale |
-|---|---|---|
-| Solver | Python · Google OR-Tools CP-SAT | Industry-standard CSP/ILP solver; returns optimal solutions or proves infeasibility — essential for diagnosing unsolvable constraint sets |
-| Constraint storage | Database-driven rows | Constraints (max classes/day, unavailable slots, preferred rooms) live as data, so the solver builds itself from configuration, not source code |
-
 ### Backend
 
-| Component | Technology | Rationale |
-|---|---|---|
-| API server | FastAPI (Python 3.12) | Async Python framework; strict Pydantic validation; auto-generates OpenAPI docs at `/docs` |
-| ORM & Migrations | SQLAlchemy 2.0 · Alembic | Explicit, versioned schema migrations; typed ORM models |
-| Authentication | Supabase Auth (JWT) | Role-based JWT verification wired as FastAPI dependency injection |
-| Job queue | Redis · RQ / Celery | Decouples request handling from solve time; allows concurrent solve jobs across multiple organisations |
-
-### Data & Storage
-
-| Component | Technology | Rationale |
-|---|---|---|
-| Database | Supabase PostgreSQL | Every table carries `organization_id` from migration 001 — full tenant isolation |
-| Object storage | Supabase Storage | Stores generated PDF/Excel/CSV exports and institution assets via signed URLs |
-| Versioning | `draft` / `published` / `archived` state machine | Immutable generation history; admins compare, publish, and roll back |
-| Audit log | `audit_logs` table | Tracks who changed what, with structured before/after diffs |
-
-### Frontend — Web (Admin)
-
-| Component | Technology | Rationale |
-|---|---|---|
-| Framework | React 18 · TypeScript · Vite | Type-safe component tree; fast HMR development cycle |
-| UI library | Ant Design v5 | Mature component catalog covering data tables, forms, and calendars — all needed for scheduling admin |
-| Data fetching | TanStack React Query | Caching, background refetching, and optimistic updates over the FastAPI endpoints |
-| Hosting | Vercel | Zero-config CI/CD from git push; edge-deployed static assets |
-
-### Frontend — Mobile (View-only)
-
-| Component | Technology | Rationale |
-|---|---|---|
-| Framework | Flutter · Dart | Native Material 3 rendering; cross-platform (iOS + Android) from a single codebase |
-| Scope | Read-only schedule viewer | Consumes the same REST API; no write access — separated by role in the JWT |
-
-### Export & Premium
-
-| Component | Technology | Rationale |
-|---|---|---|
-| PDF export | `reportlab` | Layout-styled table output with section/teacher/room columns |
-| Excel export | `openpyxl` | Auto-width columns; clean XLSX format institutions can open in Excel/Sheets |
-| CSV export | Python stdlib | Comma-separated values for bulk data import into third-party systems |
-| AI review | LLM API (configurable) | Backend endpoint feeds solved schedule + constraint scores to an LLM; returns plain-language trade-off commentary |
-
----
-
-## System Architecture
-
-```
-┌─────────────────────────────────┐
-│          CLIENT LAYER           │
-│  React Admin Web (Vercel)       │
-│  Flutter Mobile App             │
-└────────────┬────────────────────┘
-             │ HTTPS / REST + JWT
-┌────────────▼────────────────────┐
-│          API LAYER              │
-│  FastAPI (Oracle Cloud VPS)     │
-│  Pydantic validation            │
-│  JWT verification (Supabase)    │
-│  RBAC: org_admin / viewer       │
-└────────────┬────────────────────┘
-             │
-     ┌───────┴────────┐
-     │                │
-┌────▼─────┐  ┌───────▼──────────┐
-│  Redis   │  │  Supabase        │
-│  (queue) │  │  PostgreSQL      │
-└────┬─────┘  │  Auth · Storage  │
-     │        └──────────────────┘
-┌────▼─────────────────────┐
-│  SOLVER WORKER (VPS)     │
-│  Google OR-Tools CP-SAT  │
-│  Hard + soft constraints │
-│  Scoring module          │
-└──────────────────────────┘
-```
-
-**Key architectural decisions:**
-- The API process and solver worker run as **independent systemd services** (`slotforge-api`, `slotforge-worker`) — a solver crash or long-running job never takes the API down.
-- Supabase handles **Auth, PostgreSQL, and Storage** in a single managed provider, avoiding the operational complexity of stitching together separate services.
-- The frontend uses a **single `design-tokens.json`** as the source of truth for colour, spacing, radius, and typography — consumed by the React/Ant Design `ConfigProvider` and later by Flutter via a codegen step, ensuring consistent visual identity without duplicating design decisions.
-
----
-
-## Engineering Phases
-
-| Phase | Title |
+| Layer | Technology |
 |---|---|
-| 0 | Repository & Environment Setup |
-| 1 | Solver Core (standalone CP-SAT engine) |
-| 2 | Synchronous REST API Layer (FastAPI + Pydantic) |
-| 3 | Supabase Integration, PostgreSQL persistence, multi-tenancy, JWT auth |
-| 4 | Versioning, Draft/Publish state machine, RBAC, Audit Log |
-| 5 | Export Service (PDF, Excel, CSV via Supabase Storage) |
-| 6 | Frontend Web App (React + TypeScript + Ant Design) |
-| 7 | Production Deployment (Oracle VPS + Vercel + Nginx + TLS) |
-| 8 | Premium AI Review Layer (LLM-based schedule commentary) |
+| Language | Python 3.12 |
+| API Framework | FastAPI |
+| Validation | Pydantic |
+| Solver | Google OR-Tools CP-SAT |
+| ORM | SQLAlchemy 2.0 |
+| Migrations | Alembic |
+| Database | PostgreSQL via Supabase |
+| Authentication | Supabase Auth with JWT verification |
+| Export Libraries | ReportLab for PDF, OpenPyXL for Excel, Python CSV module |
+| Testing | Pytest, FastAPI TestClient |
+
+### Frontend
+
+| Layer | Technology |
+|---|---|
+| Framework | React 19 |
+| Language | TypeScript |
+| Build Tool | Vite |
+| Styling | Tailwind CSS 4, custom design tokens, responsive CSS |
+| UI Utilities | Headless UI, Material Symbols |
+| Routing | React Router |
+| HTTP Client | Axios |
+| Auth Client | Supabase JavaScript client |
+| Typography | Roboto Flex, Google Sans/Product Sans fallback, Fraunces display font, JetBrains Mono |
+| Quality Checks | TypeScript build, Oxlint |
+
+### Data Model and Architecture
+
+| Concern | Implementation |
+|---|---|
+| Tenant Isolation | Organization-scoped tables and authenticated active organization filtering |
+| Multi-Organization Access | Organization membership table and active organization switching |
+| Version History | Immutable timetable versions with draft, published, and archived states |
+| Assignment Rules | Teacher-subject assignment rows and section-subject-teacher assignment rows |
+| Auditability | Append-only audit logs for mutating actions |
+| Deployment Shape | React frontend suitable for Vercel deployment; FastAPI backend suitable for VPS/API hosting; Supabase for PostgreSQL/Auth/Storage |
 
 ---
 
-## What Makes This Non-Trivial
+## System Overview
 
-1. **Solver infeasibility diagnosis** — When a constraint set is unsolvable, the engine performs targeted constraint relaxation to identify and report *which* constraint group caused the conflict, rather than returning an opaque failure.
-
-2. **Data-driven constraint architecture** — Soft constraints are not hardcoded in the solver; they are loaded from database rows at solve time. This means an administrator can change scheduling policy (e.g., "limit any section to 4 classes per day") through the UI without a code change or redeploy.
-
-3. **Append-only version history** — Rollback is implemented as copy-on-write (a new version row is created, the original is never mutated), ensuring the full audit trail of all generated schedules is preserved regardless of how many publish/rollback operations are performed.
-
-4. **True multi-tenancy** — `organization_id` is a foreign key on every tenant-scoped table from migration 001. All queries are filtered by the authenticated user's `organization_id` at the ORM layer — it is architecturally impossible for one tenant's request to read another tenant's data.
-
-5. **Transparent quality scoring** — Every generated timetable carries three scored dimensions (preference satisfaction 0–100, utilisation 0–100, gap minimisation 0–100) computed by a dedicated scoring module (`scoring.py`) independently of the solver, so administrators can compare versions on objective metrics rather than eyeballing the grid.
+```text
+React + TypeScript Admin UI
+        |
+        | HTTPS / REST / JWT
+        v
+FastAPI Backend
+        |
+        | SQLAlchemy ORM + Alembic migrations
+        v
+Supabase PostgreSQL
+        |
+        | Resource data, constraints, assignments, versions, audit logs
+        v
+Google OR-Tools CP-SAT Solver
+        |
+        | Feasible timetable or infeasibility reason
+        v
+Versioned timetable output
+        |
+        | Review, edit, publish, rollback, export
+        v
+PDF / Excel / CSV + interactive timetable and canvas views
+```
 
 ---
 
-*SlotForge — Operations Research Mini Project*
+## Engineering Significance
+
+SlotForge is non-trivial because it combines a formal optimisation engine with a real multi-tenant application architecture. The solver does not simply place classes into empty cells; it must satisfy multiple resource constraints simultaneously, support configurable scheduling cycles, handle lab durations, respect section-specific curriculum mappings, and produce useful diagnostics when no solution exists. The application layer then turns solver output into versioned, editable, auditable, exportable timetable records. The frontend provides multiple operational views over the same data, including a color-coded timetable and relationship canvas, making the solver's output understandable to administrators who may not have technical knowledge of constraint programming.
+
+---
+
+*SlotForge - Operations Research Mini Project*
