@@ -14,6 +14,24 @@ def solve(instance: ProblemInstance) -> SolverResult:
     Main solve entrypoint. Solves the scheduling problem using CP-SAT.
     If the problem is infeasible, runs sequential relaxation to pinpoint the cause.
     """
+    preflight_reason = _basic_capacity_infeasibility(instance)
+    if preflight_reason:
+        return SolverResult(
+            status="INFEASIBLE",
+            assignments=[],
+            scores={k: 0 for k in ["preference_score", "utilization_score", "gap_score", "overall_score"]},
+            infeasible_reason=preflight_reason,
+        )
+
+    option_reason = _assignment_option_infeasibility(instance)
+    if option_reason:
+        return SolverResult(
+            status="INFEASIBLE",
+            assignments=[],
+            scores={k: 0 for k in ["preference_score", "utilization_score", "gap_score", "overall_score"]},
+            infeasible_reason=option_reason,
+        )
+
     # 1. Try to solve normally
     status, assignments = _solve_model(
         instance,
@@ -85,6 +103,166 @@ def solve(instance: ProblemInstance) -> SolverResult:
         scores={k: 0 for k in ["preference_score", "utilization_score", "gap_score", "overall_score"]},
         infeasible_reason="Infeasible due to structural conflicts (e.g., resource double-booking or room/teacher/slot count mismatch)."
     )
+
+
+def _basic_capacity_infeasibility(instance: ProblemInstance) -> Optional[str]:
+    slot_count = len(instance.slots)
+    section_count = len(instance.sections)
+    if slot_count == 0 or section_count == 0:
+        return None
+
+    periods_required_per_section = sum(subject.weekly_hours for subject in instance.subjects)
+    if periods_required_per_section > slot_count:
+        return (
+            "Infeasible due to weekly hours requirements "
+            f"({periods_required_per_section} periods requested per section, "
+            f"but only {slot_count} periods are available in the configured cycle)."
+        )
+
+    total_required_periods = periods_required_per_section * section_count
+    room_period_capacity = len(instance.rooms) * slot_count
+    if total_required_periods > room_period_capacity:
+        return (
+            "Infeasible due to room-time capacity "
+            f"({total_required_periods} section-periods requested across {section_count} sections, "
+            f"but {len(instance.rooms)} rooms provide only {room_period_capacity} room-periods)."
+        )
+
+    teacher_period_capacity = len(instance.teachers) * slot_count
+    if total_required_periods > teacher_period_capacity:
+        return (
+            "Infeasible due to teacher-time capacity "
+            f"({total_required_periods} section-periods requested across {section_count} sections, "
+            f"but {len(instance.teachers)} teachers provide only {teacher_period_capacity} teacher-periods)."
+        )
+
+    return None
+
+
+def _assignment_option_infeasibility(instance: ProblemInstance) -> Optional[str]:
+    subject_room_types = {}
+    teacher_qualified_subjects = defaultdict(set)
+    has_qualification_constraints = False
+    section_subject_teachers = {}
+    unavailable_teacher_slots = set()
+    room_requirements_subject = {}
+    room_requirements_teacher = {}
+
+    slots_by_day_period = {(slot.day, slot.period): slot for slot in instance.slots}
+
+    for c in instance.constraints:
+        if c.constraint_type == "subject_requires_room_type" and c.weight is None:
+            sub_id = c.payload.get("subject_id")
+            room_type = c.payload.get("room_type")
+            if sub_id and room_type:
+                subject_room_types[sub_id] = room_type
+        elif c.constraint_type == "teacher_subject" and c.weight is None:
+            t_id = c.payload.get("teacher_id")
+            sub_id = c.payload.get("subject_id")
+            if t_id and sub_id:
+                teacher_qualified_subjects[sub_id].add(t_id)
+                has_qualification_constraints = True
+        elif c.constraint_type == "section_subject_teacher" and c.weight is None:
+            sec_id = c.payload.get("section_id")
+            sub_id = c.payload.get("subject_id")
+            t_id = c.payload.get("teacher_id")
+            if sec_id and sub_id and t_id:
+                section_subject_teachers[(sec_id, sub_id)] = t_id
+        elif c.constraint_type == "teacher_unavailable" and c.weight is None:
+            t_id = c.payload.get("teacher_id")
+            s_id = c.payload.get("slot_id")
+            if not s_id:
+                day = c.payload.get("day")
+                period = c.payload.get("period")
+                slot = slots_by_day_period.get((day, period))
+                if slot:
+                    s_id = slot.id
+            if t_id and s_id:
+                unavailable_teacher_slots.add((t_id, s_id))
+        elif c.constraint_type == "preferred_room" and c.weight is None:
+            r_id = c.payload.get("room_id")
+            sub_id = c.payload.get("subject_id")
+            t_id = c.payload.get("teacher_id")
+            if r_id:
+                if sub_id:
+                    room_requirements_subject[sub_id] = r_id
+                if t_id:
+                    room_requirements_teacher[t_id] = r_id
+
+    teacher_ids = {teacher.id for teacher in instance.teachers}
+
+    for sec in instance.sections:
+        for sub in instance.subjects:
+            required_teacher = section_subject_teachers.get((sec.id, sub.id))
+            if required_teacher:
+                allowed_teachers = [teacher for teacher in instance.teachers if teacher.id == required_teacher]
+            elif has_qualification_constraints:
+                allowed_teacher_ids = teacher_qualified_subjects[sub.id]
+                allowed_teachers = [teacher for teacher in instance.teachers if teacher.id in allowed_teacher_ids]
+            else:
+                allowed_teachers = list(instance.teachers)
+
+            if required_teacher and required_teacher not in teacher_ids:
+                return (
+                    "Infeasible due to teacher assignment constraints "
+                    f"(section {sec.name} subject {sub.name} is assigned to a teacher that no longer exists)."
+                )
+            if not allowed_teachers:
+                return (
+                    "Infeasible due to teacher assignment constraints "
+                    f"(no qualified teacher is available for section {sec.name} subject {sub.name})."
+                )
+
+            room_type = subject_room_types.get(sub.id)
+            required_room = room_requirements_subject.get(sub.id)
+            allowed_rooms = []
+            for room in instance.rooms:
+                if room.capacity < sec.size:
+                    continue
+                if room_type and room.room_type != room_type:
+                    continue
+                if required_room and room.id != required_room:
+                    continue
+                allowed_rooms.append(room)
+
+            if not allowed_rooms:
+                return (
+                    "Infeasible due to room constraints "
+                    f"(no room can host section {sec.name} subject {sub.name}; check room capacity, room type, and hard room assignments)."
+                )
+
+            available_starts = 0
+            session_length = getattr(sub, "session_length", 1) or 1
+            for teacher in allowed_teachers:
+                required_teacher_room = room_requirements_teacher.get(teacher.id)
+                teacher_rooms = [
+                    room for room in allowed_rooms
+                    if not required_teacher_room or room.id == required_teacher_room
+                ]
+                if not teacher_rooms:
+                    continue
+
+                for slot in instance.slots:
+                    covered_slots = []
+                    for offset in range(session_length):
+                        covered_slot = slots_by_day_period.get((slot.day, slot.period + offset))
+                        if not covered_slot:
+                            covered_slots = []
+                            break
+                        covered_slots.append(covered_slot.id)
+                    if not covered_slots:
+                        continue
+                    if any((teacher.id, covered_slot_id) in unavailable_teacher_slots for covered_slot_id in covered_slots):
+                        continue
+                    available_starts += len(teacher_rooms)
+
+            if available_starts == 0:
+                return (
+                    "Infeasible due to teacher availability or slot-span constraints "
+                    f"(section {sec.name} subject {sub.name} has no legal starting period)."
+                )
+
+    return None
 
 
 def _solve_model(
