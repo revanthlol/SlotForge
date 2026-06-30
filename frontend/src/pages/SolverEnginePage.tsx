@@ -1,22 +1,40 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { useConstraints, useTimetableVersions, type Constraint } from '../hooks/useApi';
+import {
+  useConstraints,
+  useOrganization,
+  useRooms,
+  useSections,
+  useTeachers,
+  useTimetable,
+  useTimetableVersions,
+  type Constraint,
+  type ScheduledSlot,
+} from '../hooks/useApi';
 import api from '../lib/api';
 import PageHeader from '../components/ui/PageHeader';
 import StatusBadge from '../components/ui/StatusBadge';
+import SolverBottleneckHeatmap from '../components/ui/SolverBottleneckHeatmap';
 import { Link } from 'react-router-dom';
 
 export default function SolverEnginePage() {
   const { organizationId } = useAuth();
   const { data: constraints, refetch: refetchConstraints } = useConstraints(organizationId);
   const { data: versions, refetch: refetchVersions } = useTimetableVersions(organizationId);
+  const { data: organization } = useOrganization(organizationId);
+  const { data: teachersData } = useTeachers(organizationId);
+  const { data: roomsData } = useRooms(organizationId);
+  const { data: sectionsData } = useSections(organizationId);
+  const latestVersionId = versions?.[0]?.id || null;
+  const { data: latestTimetable } = useTimetable(latestVersionId);
 
   const [generating, setGenerating] = useState(false);
   const [generateError, setGenerateError] = useState<string | null>(null);
   const [generateResult, setGenerateResult] = useState<{
-    id: string;
-    version_id?: string;
+    id: string | null;
+    version_id?: string | null;
     version_number: number;
+    assignments: ScheduledSlot[];
     scores: Record<string, number>;
     infeasible_reason: string | null;
   } | null>(null);
@@ -28,6 +46,8 @@ export default function SolverEnginePage() {
   // Hard constraints have no weight (null or undefined)
   const hardConstraints = constraints?.filter((c) => c.weight === null || c.weight === undefined) || [];
   const softConstraints = constraints?.filter((c) => c.weight !== null && c.weight !== undefined) || [];
+  const heatmapAssignments = generateResult?.assignments || latestTimetable?.assignments || [];
+  const heatmapReason = generateResult?.infeasible_reason || latestTimetable?.infeasible_reason || null;
 
   // Helper to resolve constraint display names
   const getConstraintLabel = (type: string) => {
@@ -390,6 +410,17 @@ export default function SolverEnginePage() {
               </p>
             )}
           </div>
+        </div>
+
+        <div className="col-span-12">
+          <SolverBottleneckHeatmap
+            assignments={heatmapAssignments}
+            teachers={teachersData || []}
+            rooms={roomsData || []}
+            sections={sectionsData || []}
+            organization={organization || null}
+            infeasibleReason={heatmapReason}
+          />
         </div>
       </div>
     </div>

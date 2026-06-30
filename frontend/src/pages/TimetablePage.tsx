@@ -12,6 +12,7 @@ import {
 import PageHeader from '../components/ui/PageHeader';
 import TimetableGrid from '../components/ui/TimetableGrid';
 import StatusBadge from '../components/ui/StatusBadge';
+import SolverBottleneckHeatmap from '../components/ui/SolverBottleneckHeatmap';
 import { Link, useLocation } from 'react-router-dom';
 
 export default function TimetablePage() {
@@ -146,6 +147,15 @@ export default function TimetablePage() {
                 </div>
               </div>
             )}
+
+            <SolverBottleneckHeatmap
+              assignments={timetable.assignments}
+              teachers={teachers}
+              rooms={rooms}
+              sections={sections}
+              organization={organization || null}
+              infeasibleReason={timetable.infeasible_reason}
+            />
 
             <TimetableGrid
               timetableId={timetable.id}
