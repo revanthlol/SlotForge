@@ -136,6 +136,8 @@ export default function OnboardingOverlay() {
   const [constraints, setConstraints] = useState<string[]>(defaultConstraints);
   const [sectionRoomSplit, setSectionRoomSplit] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [backendPreflightWarnings, setBackendPreflightWarnings] = useState<PreflightWarning[] | null>(null);
+  const [backendPreflightFeasible, setBackendPreflightFeasible] = useState<boolean | null>(null);
   const [generating, setGenerating] = useState(false);
   const [generateMessage, setGenerateMessage] = useState<string | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
@@ -176,7 +178,7 @@ export default function OnboardingOverlay() {
     { key: 'generate', title: 'Generate First Schedule', label: 'Generate', icon: 'play_circle' },
   ], [preset]);
 
-  const preflightWarnings = useMemo<PreflightWarning[]>(() => {
+  const localPreflightWarnings = useMemo<PreflightWarning[]>(() => {
     const warnings: PreflightWarning[] = [];
     if (activeResources.length === 0) warnings.push({ type: 'resources', severity: 'error', message: 'Add at least one resource before generating.' });
     if (activeTasks.length === 0) warnings.push({ type: 'tasks', severity: 'error', message: 'Add at least one task before generating.' });
@@ -187,6 +189,8 @@ export default function OnboardingOverlay() {
     }
     return warnings.length ? warnings : [{ type: 'ready', severity: 'info', message: 'No obvious setup blockers found.' }];
   }, [activeGroups, activeLocations, activeResources.length, activeTasks.length, preset, sectionRoomSplit]);
+
+  const preflightWarnings = backendPreflightWarnings || localPreflightWarnings;
 
   const saveProgress = async (stepKey: string, nextStep: number) => {
     await progressState.completeStep(stepKey, nextStep);
@@ -232,8 +236,20 @@ export default function OnboardingOverlay() {
 
     if (currentStep === 9) {
       setChecking(true);
-      await new Promise((resolve) => window.setTimeout(resolve, 450));
-      setChecking(false);
+      try {
+        if (organizationId) {
+          const { data } = await api.post<{ feasible: boolean; warnings: PreflightWarning[] }>(`/api/v1/workspaces/${organizationId}/preflight-check`);
+          setBackendPreflightFeasible(data.feasible);
+          setBackendPreflightWarnings(data.warnings);
+        } else {
+          await new Promise((resolve) => window.setTimeout(resolve, 450));
+        }
+      } catch {
+        setBackendPreflightFeasible(null);
+        setBackendPreflightWarnings(null);
+      } finally {
+        setChecking(false);
+      }
     }
 
     const nextStep = Math.min(currentStep + 1, steps.length - 1);
@@ -424,10 +440,11 @@ export default function OnboardingOverlay() {
     return (
       <section className="max-w-3xl">
         <StepHeader eyebrow="Step 11" title={preset === 'facility' ? 'Go to the booking dashboard.' : 'Generate the first schedule.'} subtitle="This creates the first usable output from the setup you just assembled." />
-        <div className="mt-8 rounded-xl border-2 border-rule bg-paper-raised p-6">
+            <div className="mt-8 rounded-xl border-2 border-rule bg-paper-raised p-6">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg bg-surface-container p-4"><p className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>Preset</p><p className="mt-1 font-black text-on-surface">{presetOptions.find((item) => item.key === preset)?.name}</p></div>
             <div className="rounded-lg bg-surface-container p-4"><p className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>Warnings</p><p className="mt-1 font-black text-on-surface">{preflightWarnings.filter((warning) => warning.severity !== 'info').length}</p></div>
+            <div className="rounded-lg bg-surface-container p-4"><p className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>Preflight</p><p className="mt-1 font-black text-on-surface">{backendPreflightFeasible === null ? 'Local' : backendPreflightFeasible ? 'Feasible' : 'Needs work'}</p></div>
           </div>
           <button
             type="button"
