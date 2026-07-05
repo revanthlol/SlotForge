@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { ShortcutHint, useShortcutAction } from '../contexts/ShortcutContext';
-import { useSubjects, useTeachers, useTeacherSubjectAssignments, type Subject } from '../hooks/useApi';
-import api from '../lib/api';
-import PageHeader from '../components/ui/PageHeader';
-import Modal from '../components/ui/Modal';
-import StatusBadge from '../components/ui/StatusBadge';
-import SearchInput from '../components/ui/SearchInput';
-import ConfirmModal from '../components/ui/ConfirmModal';
-import { getApiErrorMessage } from '../lib/errors';
-import { SUBJECT_PALETTE, colorMix, getSubjectColor } from '../lib/subjectColors';
+import { useAuth } from '../../../contexts/AuthContext';
+import { ShortcutHint, useShortcutAction } from '../../../contexts/ShortcutContext';
+import { useSubjects, useTeachers, useTeacherSubjectAssignments, type Subject } from '../../../hooks/useApi';
+import api from '../../../lib/api';
+import PageHeader from '../../../components/ui/PageHeader';
+import Modal from '../../../components/ui/Modal';
+import StatusBadge from '../../../components/ui/StatusBadge';
+import SearchInput from '../../../components/ui/SearchInput';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
+import { getApiErrorMessage } from '../../../lib/errors';
+import { SUBJECT_PALETTE, colorMix, getSubjectColor } from '../../../lib/subjectColors';
 
 export default function SubjectsPage() {
   const { organizationId } = useAuth();

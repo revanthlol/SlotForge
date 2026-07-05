@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { ShortcutHint, useShortcutAction } from '../contexts/ShortcutContext';
+import { useAuth } from '../../../contexts/AuthContext';
+import { ShortcutHint, useShortcutAction } from '../../../contexts/ShortcutContext';
 import {
   useSectionSubjectTeacherAssignments,
   useSections,
@@ -8,13 +8,13 @@ import {
   useTeachers,
   useTeacherSubjectAssignments,
   type Section,
-} from '../hooks/useApi';
-import api from '../lib/api';
-import PageHeader from '../components/ui/PageHeader';
-import Modal from '../components/ui/Modal';
-import SearchInput from '../components/ui/SearchInput';
-import ConfirmModal from '../components/ui/ConfirmModal';
-import { getApiErrorMessage } from '../lib/errors';
+} from '../../../hooks/useApi';
+import api from '../../../lib/api';
+import PageHeader from '../../../components/ui/PageHeader';
+import Modal from '../../../components/ui/Modal';
+import SearchInput from '../../../components/ui/SearchInput';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
+import { getApiErrorMessage } from '../../../lib/errors';
 
 export default function SectionsPage() {
   const { organizationId } = useAuth();

@@ -1,35 +1,35 @@
 import { useState } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useTheme } from '../contexts/ThemeContext';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useTheme } from '../../../contexts/ThemeContext';
 
-export default function LoginPage() {
+export default function SignupPage() {
+  const [orgName, setOrgName] = useState('');
+  const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signUp } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const redirectTo = searchParams.get('redirect') || '/dashboard';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      await signIn(email, password);
-      navigate(redirectTo.startsWith('/') ? redirectTo : '/dashboard', { replace: true });
+      await signUp(email, password, fullName, orgName);
+      navigate('/dashboard');
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Sign in failed');
+      setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
+    <div className="min-h-screen flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-md">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3 mb-10">
@@ -44,9 +44,9 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-paper-raised border-2 border-rule rounded-xl p-8 shadow-lg">
-          <h2 className="text-headline-sm text-on-surface mb-1">Sign In</h2>
+          <h2 className="text-headline-sm text-on-surface mb-1">Register Institution</h2>
           <p className="text-body-sm text-on-surface-variant mb-6">
-            Access your institution's scheduling dashboard
+            Set up a new institution for automated timetable scheduling
           </p>
 
           {error && (
@@ -56,6 +56,32 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>
+                Institution Name
+              </label>
+              <input
+                type="text"
+                value={orgName}
+                onChange={(e) => setOrgName(e.target.value)}
+                className="academic-input w-full"
+                placeholder="University of Engineering"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>
+                Full Name
+              </label>
+              <input
+                type="text"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="academic-input w-full"
+                placeholder="Dr. Jane Smith"
+                required
+              />
+            </div>
             <div>
               <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>
                 Email Address
@@ -78,8 +104,9 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="academic-input w-full"
-                placeholder="••••••••"
+                placeholder="Min. 8 characters"
                 required
+                minLength={8}
               />
             </div>
             <button
@@ -87,14 +114,14 @@ export default function LoginPage() {
               disabled={loading}
               className="w-full py-3 bg-primary text-on-primary font-semibold rounded-lg hover:bg-primary-container transition-colors disabled:opacity-50"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Creating Institution...' : 'Create Institution'}
             </button>
           </form>
 
           <p className="text-center text-body-sm text-on-surface-variant mt-6">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-primary font-semibold hover:underline">
-              Register Institution
+            Already registered?{' '}
+            <Link to="/login" className="text-primary font-semibold hover:underline">
+              Sign In
             </Link>
           </p>
         </div>

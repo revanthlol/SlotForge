@@ -1,7 +1,7 @@
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
-import { useRooms, useSections, useSubjects, useTeachers, useTimetableVersions } from '../hooks/useApi';
-import PageHeader from '../components/ui/PageHeader';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useRooms, useSections, useSubjects, useTeachers, useTimetableVersions } from '../../../hooks/useApi';
+import PageHeader from '../../../components/ui/PageHeader';
 
 const steps = [
   {

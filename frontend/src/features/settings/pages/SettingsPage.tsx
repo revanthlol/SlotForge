@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { useOrganization } from '../hooks/useApi';
-import api from '../lib/api';
-import PageHeader from '../components/ui/PageHeader';
-import Modal from '../components/ui/Modal';
-import { getApiErrorMessage } from '../lib/errors';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useOrganization } from '../../../hooks/useApi';
+import api from '../../../lib/api';
+import PageHeader from '../../../components/ui/PageHeader';
+import Modal from '../../../components/ui/Modal';
+import { getApiErrorMessage } from '../../../lib/errors';
 
 export default function SettingsPage() {
   const { organizationId } = useAuth();

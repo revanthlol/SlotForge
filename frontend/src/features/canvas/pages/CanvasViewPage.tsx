@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import {
   useRooms,
   useSections,
@@ -12,9 +12,9 @@ import {
   type Section,
   type Subject,
   type Teacher,
-} from '../hooks/useApi';
-import PageHeader from '../components/ui/PageHeader';
-import { colorMix, getSubjectColor, readableTextColor } from '../lib/subjectColors';
+} from '../../../hooks/useApi';
+import PageHeader from '../../../components/ui/PageHeader';
+import { colorMix, getSubjectColor, readableTextColor } from '../../../lib/subjectColors';
 
 type NodeType = 'section' | 'subject' | 'teacher' | 'room';
 type SelectedNode = { type: NodeType; id: string };

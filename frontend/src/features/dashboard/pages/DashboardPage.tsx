@@ -1,7 +1,7 @@
-import { useAuth } from '../contexts/AuthContext';
-import { useTeachers, useRooms, useSubjects, useSections, useTimetableVersions } from '../hooks/useApi';
-import PageHeader from '../components/ui/PageHeader';
-import StatusBadge from '../components/ui/StatusBadge';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useTeachers, useRooms, useSubjects, useSections, useTimetableVersions } from '../../../hooks/useApi';
+import PageHeader from '../../../components/ui/PageHeader';
+import StatusBadge from '../../../components/ui/StatusBadge';
 import { Link } from 'react-router-dom';
 
 export default function DashboardPage() {

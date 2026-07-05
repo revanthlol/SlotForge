@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import {
   useTimetableVersions,
   useTimetable,
@@ -9,11 +9,11 @@ import {
   useSections,
   useOrganization,
   type TimetableVersion,
-} from '../hooks/useApi';
-import api from '../lib/api';
-import PageHeader from '../components/ui/PageHeader';
-import StatusBadge from '../components/ui/StatusBadge';
-import TimetableGrid from '../components/ui/TimetableGrid';
+} from '../../../hooks/useApi';
+import api from '../../../lib/api';
+import PageHeader from '../../../components/ui/PageHeader';
+import StatusBadge from '../../../components/ui/StatusBadge';
+import TimetableGrid from '../../../components/ui/TimetableGrid';
 
 export default function VersionHistoryPage() {
   const { organizationId } = useAuth();

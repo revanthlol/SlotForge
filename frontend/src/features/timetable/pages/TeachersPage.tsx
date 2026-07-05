@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
-import { ShortcutHint, useShortcutAction } from '../contexts/ShortcutContext';
-import { useTeachers, useSubjects, useTeacherSubjectAssignments, type Teacher } from '../hooks/useApi';
-import api from '../lib/api';
-import PageHeader from '../components/ui/PageHeader';
-import Modal from '../components/ui/Modal';
-import SearchInput from '../components/ui/SearchInput';
-import ConfirmModal from '../components/ui/ConfirmModal';
-import { getApiErrorMessage } from '../lib/errors';
+import { useAuth } from '../../../contexts/AuthContext';
+import { ShortcutHint, useShortcutAction } from '../../../contexts/ShortcutContext';
+import { useTeachers, useSubjects, useTeacherSubjectAssignments, type Teacher } from '../../../hooks/useApi';
+import api from '../../../lib/api';
+import PageHeader from '../../../components/ui/PageHeader';
+import Modal from '../../../components/ui/Modal';
+import SearchInput from '../../../components/ui/SearchInput';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
+import { getApiErrorMessage } from '../../../lib/errors';
 
 export default function TeachersPage() {
   const { organizationId } = useAuth();

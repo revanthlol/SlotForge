@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import {
   useConstraints,
   useOrganization,
@@ -10,11 +10,11 @@ import {
   useTimetableVersions,
   type Constraint,
   type ScheduledSlot,
-} from '../hooks/useApi';
-import api from '../lib/api';
-import PageHeader from '../components/ui/PageHeader';
-import StatusBadge from '../components/ui/StatusBadge';
-import SolverBottleneckHeatmap from '../components/ui/SolverBottleneckHeatmap';
+} from '../../../hooks/useApi';
+import api from '../../../lib/api';
+import PageHeader from '../../../components/ui/PageHeader';
+import StatusBadge from '../../../components/ui/StatusBadge';
+import SolverBottleneckHeatmap from '../../../components/ui/SolverBottleneckHeatmap';
 import { Link } from 'react-router-dom';
 
 export default function SolverEnginePage() {

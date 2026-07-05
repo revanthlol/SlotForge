@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../../../contexts/AuthContext';
 import {
   useTimetableVersions,
   useTimetable,
@@ -8,11 +8,11 @@ import {
   useSubjects,
   useSections,
   useOrganization,
-} from '../hooks/useApi';
-import PageHeader from '../components/ui/PageHeader';
-import TimetableGrid from '../components/ui/TimetableGrid';
-import StatusBadge from '../components/ui/StatusBadge';
-import SolverBottleneckHeatmap from '../components/ui/SolverBottleneckHeatmap';
+} from '../../../hooks/useApi';
+import PageHeader from '../../../components/ui/PageHeader';
+import TimetableGrid from '../../../components/ui/TimetableGrid';
+import StatusBadge from '../../../components/ui/StatusBadge';
+import SolverBottleneckHeatmap from '../../../components/ui/SolverBottleneckHeatmap';
 import { Link, useLocation } from 'react-router-dom';
 
 export default function TimetablePage() {

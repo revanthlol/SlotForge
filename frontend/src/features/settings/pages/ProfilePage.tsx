@@ -1,5 +1,5 @@
-import { useAuth } from '../contexts/AuthContext';
-import { useOrganization } from '../hooks/useApi';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useOrganization } from '../../../hooks/useApi';
 
 export default function ProfilePage() {
   const { user, organizationId, role, fullName } = useAuth();

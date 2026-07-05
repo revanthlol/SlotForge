@@ -1,7 +1,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
-import Sidebar from './Sidebar';
-import TopBar from './TopBar';
+import Sidebar from '../components/layout/Sidebar';
+import TopBar from '../components/layout/TopBar';
 
 export default function AppLayout() {
   const location = useLocation();
