@@ -178,6 +178,41 @@ input[type="range"] {
   color: var(--color-primary);
 }
 
+/* ── Loading & Auth Surfaces ──────────────────────────────────── */
+
+.auth-screen {
+  background:
+    radial-gradient(circle at 18% 20%, var(--color-accent-soft), transparent 28%),
+    linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px),
+    var(--color-paper);
+  background-size: auto, 64px 64px, 64px 64px, auto;
+}
+
+.onboarding-skeleton {
+  position: relative;
+  overflow: hidden;
+}
+
+.onboarding-skeleton::after {
+  animation: skeleton-sweep 1.45s var(--motion-ease) infinite;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  content: "";
+  inset: 0;
+  position: absolute;
+  transform: translateX(-100%);
+}
+
+[data-theme='dark'] .onboarding-skeleton::after {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+}
+
+@keyframes skeleton-sweep {
+  to {
+    transform: translateX(100%);
+  }
+}
+
 /* ── Utility: Inset Padding ───────────────────────────────────── */
 
 .p-inset-compact {

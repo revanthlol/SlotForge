@@ -29,25 +29,47 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 mb-10">
-          <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="SlotForge Logo" className="w-12 h-12 object-contain" />
+    <div className="auth-screen min-h-screen px-4 py-8">
+      <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl overflow-hidden rounded-2xl border-2 border-rule bg-paper-raised shadow-2xl lg:grid-cols-[1.05fr_0.95fr]">
+        <section className="relative hidden border-r-2 border-rule bg-surface-container-low p-10 lg:flex lg:flex-col lg:justify-between">
+          <Link to="/" className="flex items-center gap-3">
+            <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="SlotForge Logo" className="h-12 w-12 object-contain" />
+            <div>
+              <h1 className="text-headline-md text-on-surface">SlotForge</h1>
+              <p className="text-label-caps text-mono-grey" style={{ fontSize: 10 }}>Institutional Scheduling</p>
+            </div>
+          </Link>
           <div>
-            <h1 className="text-headline-md text-on-surface">SlotForge</h1>
-            <p className="text-label-caps text-mono-grey" style={{ fontSize: 10 }}>
-              Institutional Scheduling
+            <p className="text-label-caps text-mono-grey" style={{ fontSize: 10 }}>Control room</p>
+            <h2 className="mt-4 max-w-xl text-[56px] font-semibold leading-[1.02] text-on-surface" style={{ fontFamily: 'var(--font-display)' }}>
+              Return to the timetable bench.
+            </h2>
+            <p className="mt-5 max-w-lg text-base leading-7 text-on-surface-variant">
+              Pick up solver runs, resource edits, and onboarding progress without losing context.
             </p>
           </div>
-        </Link>
+          <div className="grid grid-cols-3 gap-3 text-sm">
+            {['Resources', 'Constraints', 'Versions'].map((item) => (
+              <div key={item} className="rounded-xl border border-rule bg-paper-raised p-3">
+                <p className="text-label-caps text-mono-grey" style={{ fontSize: 8 }}>{item}</p>
+                <div className="mt-3 h-1.5 rounded-full bg-primary/70" />
+              </div>
+            ))}
+          </div>
+        </section>
 
-        {/* Card */}
-        <div className="bg-paper-raised border-2 border-rule rounded-xl p-8 shadow-lg">
-          <h2 className="text-headline-sm text-on-surface mb-1">Sign In</h2>
-          <p className="text-body-sm text-on-surface-variant mb-6">
-            Access your institution's scheduling dashboard
-          </p>
+        <section className="flex items-center justify-center p-6 sm:p-10">
+          <div className="w-full max-w-md">
+            <Link to="/" className="mb-8 flex items-center gap-3 lg:hidden">
+              <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="SlotForge Logo" className="h-11 w-11 object-contain" />
+              <div>
+                <h1 className="text-headline-sm text-on-surface">SlotForge</h1>
+                <p className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>Institutional Scheduling</p>
+              </div>
+            </Link>
+
+          <h2 className="text-headline-sm text-on-surface mb-1">Sign in</h2>
+          <p className="text-body-sm text-on-surface-variant mb-6">Access your scheduling workspace.</p>
 
           {error && (
             <div className="mb-4 px-4 py-3 bg-error-container text-on-error-container text-sm rounded-lg border border-error/20">
@@ -85,9 +107,10 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 bg-primary text-on-primary font-semibold rounded-lg hover:bg-primary-container transition-colors disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-on-primary transition-colors hover:bg-primary-container disabled:opacity-60"
             >
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading && <span className="h-2 w-2 animate-pulse rounded-full bg-on-primary" />}
+              {loading ? 'Signing in' : 'Sign in'}
             </button>
           </form>
 
@@ -97,7 +120,8 @@ export default function LoginPage() {
               Register Institution
             </Link>
           </p>
-        </div>
+          </div>
+        </section>
       </div>
     </div>
   );
