@@ -48,6 +48,7 @@ class AssignmentLocation(Base):
     location_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("locations.id", ondelete="CASCADE"), primary_key=True)
     student_count: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     sub_group: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    capacity_contribution: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
 
 
 event.listen(Assignment, "before_insert", auto_populate_workspace_id_listener, propagate=True)

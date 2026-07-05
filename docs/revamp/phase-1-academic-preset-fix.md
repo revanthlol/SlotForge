@@ -58,52 +58,18 @@ taught together but physically split across **multiple classrooms** for the same
 period because no single room holds 120 students.
 
 ### Data Model (on top of Phase 0)
-
-```python
-# In the Assignment model, location_ids is already a list.
-# Add metadata for the split:
-{
-  "assignment_id": "...",
-  "task": "Mathematics",
-  "resource": "Dr. Smith",
-  "group": "BSc CS-A",
-  "timeslot": "Monday Period 2",
-  "location_ids": ["room-101", "room-102"],
-  "split_config": {
-    "room-101": { "student_count": 60, "sub_group": "A1" },
-    "room-102": { "student_count": 60, "sub_group": "A2" }
-  }
-}
-```
-
-### UI Behaviour (for Codex in Phase 2/3)
-- When adding a section, show a toggle: "Split across multiple rooms?"
-- If toggled ON, allow specifying sub-groups and room assignments
-- Timetable view shows the section as one row, with room split shown as a chip
+Using the `assignment_locations` join table, one assignment can link to multiple locations. Each link stores split-specific metadata:
+- `assignment_id` (foreign key to `assignments.id`)
+- `location_id` (foreign key to `locations.id`)
+- `student_count` (integer, nullable)
+- `sub_group` (string, nullable)
+- `capacity_contribution` (integer, nullable)
 
 ---
 
 ## Solver Adapter — Academic
 
-The AcademicSolverAdapter translates the generic workspace data into what
-the CP-SAT solver expects:
-
-```python
-class AcademicSolverAdapter:
-    def build_input(self, workspace_id: UUID) -> SolverInput:
-        return SolverInput(
-            teachers=self.get_resources(workspace_id, type="teacher"),
-            subjects=self.get_tasks(workspace_id, type="subject"),
-            sections=self.get_groups(workspace_id, type="section"),
-            rooms=self.get_locations(workspace_id, type=["classroom", "lab"]),
-            periods=self.get_timeslots(workspace_id),
-            constraints=self.get_constraints(workspace_id),
-        )
-
-    def translate_output(self, solver_result: RawSolverResult) -> list[Assignment]:
-        """Map solver output back to generic Assignment records"""
-        ...
-```
+The `AcademicSolverAdapter` translates generic workspace models into what `app.solver.engine.py` and `app.solver.models.ProblemInstance` expect. It maps solver outputs back to generic `Assignment` and `AssignmentLocation` records.
 
 ---
 
@@ -140,13 +106,13 @@ The following constraints must be working correctly after this phase:
 ## Files to Create / Modify
 
 ### New Files
-- `backend/app/services/presets/academic.py` — AcademicSolverAdapter
-- `backend/app/api/presets/academic.py` — preset-specific routes
+- `backend/app/services/presets/academic.py` — AcademicSolverAdapter (or update `backend/app/services/solver_adapter.py`)
+- `backend/app/api/routes/workspaces.py` — workspace & preset-specific routes
 
 ### Modified Files
-- `backend/app/solver/solver.py` — use adapter pattern
-- `backend/app/solver/constraints.py` — add section-room split constraint
-- `backend/app/models/assignment.py` — ensure split_config in metadata
+- `backend/app/solver/engine.py` — CP-SAT model building, section-room split constraint
+- `backend/app/models/assignment.py` — update `AssignmentLocation` model to include `capacity_contribution`
+- `backend/app/services/timetable_service.py` — update to use solver adapter and save `AssignmentLocation` records
 
 ---
 
@@ -154,7 +120,8 @@ The following constraints must be working correctly after this phase:
 
 - [ ] Academic preset config endpoint returns correct schema
 - [ ] Timetable generation works end-to-end using new generic schema
-- [ ] Section-room split is supported: an assignment can reference multiple locations
+- [ ] Section-room split is supported: an assignment can reference multiple locations through `assignment_locations` with split metadata
 - [ ] All 7 constraints in the table above are tested and passing
 - [ ] Faculty timetable endpoint (`/faculty/{resource_id}/timetable`) returns correct data
-- [ ] Solver output stored correctly as `Assignment` records in the DB
+- [ ] Solver output stored correctly as `Assignment` and `AssignmentLocation` records in the DB
+
