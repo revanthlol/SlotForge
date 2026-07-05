@@ -21,12 +21,12 @@ Refactor the entire backend data model from academic-specific terms to a
 
 | Old (Academic-specific) | New (Generic) |
 |---|---|
-| Teacher | Resource |
-| Subject | Task |
-| Section | Group |
-| Room / Lab | Location |
+| Teacher | Resource (with resource_type="teacher") |
+| Subject | Task (with task_type="subject") |
+| Section | Group (with group_type="section") |
+| Room / Lab | Location (with location_type="classroom"/"lab") |
 | Period | TimeSlot |
-| Timetable | Schedule |
+| Timetable | ScheduleVersion |
 | Class Assignment | Assignment |
 
 ### New Core Models
@@ -89,17 +89,54 @@ class TimeSlot(Base):
     end_time: time
     slot_index: int
 
+# schedule_version.py
+class ScheduleVersion(Base):
+    id: UUID
+    workspace_id: UUID
+    version_label: str       # "v1", "v2", "Draft A"
+    status: str              # "draft" | "published" | "archived"
+    scores: JSONB            # quality scores (dict)
+    explanation: JSONB | None
+    parent_version_id: UUID | None # for branching
+    is_manual_override: bool
+    metadata: JSONB
+    created_by: UUID | None
+    created_at: datetime
+
+# schedule_run.py
+class ScheduleRun(Base):
+    id: UUID
+    workspace_id: UUID
+    schedule_version_id: UUID | None # version generated/updated by this run
+    status: str              # "running" | "success" | "failed"
+    solver_score: JSONB | None
+    explanation: JSONB | None
+    duration_seconds: float | None
+    error_message: str | None
+    created_at: datetime
+
 # assignment.py
 class Assignment(Base):
     id: UUID
-    schedule_run_id: UUID
+    schedule_version_id: UUID
     task_id: UUID
-    resource_ids: list[UUID]  # can be multiple (teacher + room)
     group_id: UUID | None
-    location_ids: list[UUID]  # split section → multiple rooms
     timeslot_id: UUID
+    duration_slots: int
     is_manual_override: bool
     metadata: JSONB
+
+# assignment_resources.py
+class AssignmentResource(Base):
+    assignment_id: UUID      # Composite PK
+    resource_id: UUID        # Composite PK
+
+# assignment_locations.py
+class AssignmentLocation(Base):
+    assignment_id: UUID      # Composite PK
+    location_id: UUID        # Composite PK
+    student_count: int | None # for section-room split
+    sub_group: str | None    # for section-room split
 
 # constraint.py
 class ConstraintRule(Base):
@@ -112,17 +149,6 @@ class ConstraintRule(Base):
     priority: int
     penalty: int | None      # for soft constraints
     enabled: bool
-
-# schedule_run.py
-class ScheduleRun(Base):
-    id: UUID
-    workspace_id: UUID
-    version_label: str
-    status: str              # "draft" | "published" | "archived"
-    solver_score: float | None
-    explanation: JSONB | None
-    parent_run_id: UUID | None  # for branching
-    created_at: datetime
 ```
 
 ---
@@ -131,31 +157,26 @@ class ScheduleRun(Base):
 
 One section can be split across multiple classrooms per period.
 This is a real college pattern where large sections are divided into rooms.
-
-```python
-# In Assignment model — location_ids is a list
-# e.g. Section CS-A (100 students) → Room 101 (50) + Room 102 (50)
-class AssignmentRoomSplit(Base):
-    assignment_id: UUID
-    location_id: UUID
-    student_count: int
-```
+This is fully supported via the `assignment_locations` join table.
 
 ---
 
 ## Migration Strategy
 
-1. Create new models alongside old ones (do NOT delete old tables yet)
+1. Create new models alongside old ones.
 2. Write a migration script that copies existing academic data into new generic models:
+   - Organizations → Default Org used to seed new SchedulingWorkspace
    - Teachers → Resources (resource_type = "teacher")
    - Subjects → Tasks (task_type = "subject")
    - Sections → Groups (group_type = "section")
    - Rooms → Locations (location_type = "classroom")
    - Labs → Locations (location_type = "lab")
-   - Periods → TimeSlots
-3. Run migration on dev, verify data integrity
-4. Update all API routes to use new models
-5. Delete old academic-specific tables in a follow-up migration
+   - TimetableVersions → ScheduleVersions
+   - TimetableSlots → Assignments + entries in `assignment_resources` and `assignment_locations`
+   - Constraints → ConstraintRules
+3. Run migration on dev, verify data integrity.
+4. Update all API routes to use new models.
+5. In the dev env (which is disposable), we remove the old academic-specific tables once the migration works and all backend tests pass.
 
 ---
 
@@ -190,8 +211,6 @@ Create a **SolverAdapter** that translates generic model → solver input:
 class AcademicSolverAdapter:
     """Translates generic workspace data → solver-compatible format"""
     def build_input(self, workspace_id: UUID) -> SolverInput:
-        resources = filter(resources, type="teacher")
-        tasks = filter(tasks, type="subject")
         ...
 ```
 
@@ -202,16 +221,17 @@ Each preset will have its own adapter in Phase 4.
 ## Files to Create / Modify
 
 ### New Files
+- `backend/app/models/workspace.py`
 - `backend/app/models/resource.py`
 - `backend/app/models/task.py`
 - `backend/app/models/group.py`
 - `backend/app/models/location.py`
 - `backend/app/models/timeslot.py`
+- `backend/app/models/schedule_version.py`
+- `backend/app/models/schedule_run.py`
 - `backend/app/models/assignment.py`
 - `backend/app/models/constraint_rule.py`
-- `backend/app/models/schedule_run.py`
-- `backend/app/models/workspace.py`
-- `backend/app/api/workspaces.py` (new generic router)
+- `backend/app/api/routes/workspaces.py` (new generic router)
 - `backend/app/services/solver_adapter.py`
 - `backend/migrations/versions/XXXX_generic_schema.py`
 
@@ -230,4 +250,4 @@ Each preset will have its own adapter in Phase 4.
 - [ ] Old academic-specific tables are removed (or clearly marked deprecated)
 - [ ] SolverAdapter for academic preset translates correctly
 - [ ] All existing timetable generation still works with the new schema
-- [ ] Section-room split model exists in Assignment
+- [ ] Section-room split model exists via join table and is fully schema-ready

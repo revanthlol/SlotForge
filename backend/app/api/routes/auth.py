@@ -120,6 +120,7 @@ def signup_organization(payload: SignupOrganizationRequest, db: Session = Depend
             full_name=payload.full_name
         )
         db.add(profile)
+        db.flush()
         db.add(OrganizationMembership(
             user_id=profile.id,
             organization_id=org.id,
