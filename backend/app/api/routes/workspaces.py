@@ -19,9 +19,11 @@ from app.models.subject import Subject
 from app.models.section import Section
 from app.models.room import Room
 from app.schemas.onboarding import OnboardingProgressResponse, OnboardingProgressUpdate, PreflightCheckResponse, PreflightWarning
+from app.schemas.workspace import WorkspaceResponse, WorkspaceUpdate
 from app.services.timetable_service import TimetableService
 
 router = APIRouter()
+
 
 def _parse_uuid(value: str, label: str) -> uuid.UUID:
     try:
@@ -318,3 +320,40 @@ def get_run_faculty_timetable(
     ).all()
     
     return [TimetableService._slot_schema(sc) for sc in slots]
+
+@router.get("/", response_model=list[WorkspaceResponse])
+def list_workspaces(
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    workspaces = db.query(SchedulingWorkspace).filter(
+        SchedulingWorkspace.organization_id == current_user.organization_id
+    ).all()
+    if not workspaces:
+        workspace = SchedulingWorkspace(
+            organization_id=current_user.organization_id,
+            name="Default Workspace",
+            domain_preset="academic"
+        )
+        db.add(workspace)
+        db.commit()
+        db.refresh(workspace)
+        workspaces = [workspace]
+    return workspaces
+
+@router.put("/{id}", response_model=WorkspaceResponse)
+def update_workspace(
+    id: str,
+    payload: WorkspaceUpdate,
+    current_user: Profile = Depends(require_org_admin),
+    db: Session = Depends(get_db)
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    if payload.name is not None:
+        workspace.name = payload.name
+    if payload.domain_preset is not None:
+        workspace.domain_preset = payload.domain_preset
+    db.commit()
+    db.refresh(workspace)
+    return workspace
+

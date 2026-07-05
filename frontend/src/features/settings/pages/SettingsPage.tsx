@@ -5,6 +5,8 @@ import api from '../../../lib/api';
 import PageHeader from '../../../components/ui/PageHeader';
 import Modal from '../../../components/ui/Modal';
 import { getApiErrorMessage } from '../../../lib/errors';
+import PresetSelector from '../../presets/PresetSelector';
+
 
 export default function SettingsPage() {
   const { organizationId } = useAuth();
@@ -146,6 +148,8 @@ export default function SettingsPage() {
       <div className="grid grid-cols-12 gap-6">
         {/* Left Column: Core Institutional parameters */}
         <div className="col-span-12 lg:col-span-8 space-y-6">
+          <PresetSelector />
+          
           {/* Institutional Identity */}
           <div className="bg-paper-raised border-2 border-rule rounded-xl p-inset-standard space-y-5">
             <div className="flex items-center gap-3 border-b border-rule pb-3">

@@ -10,9 +10,11 @@ import SearchInput from '../../../components/ui/SearchInput';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import { getApiErrorMessage } from '../../../lib/errors';
 import { SUBJECT_PALETTE, colorMix, getSubjectColor } from '../../../lib/subjectColors';
+import { usePresetConfig } from '../../presets/hooks/usePresetConfig';
 
 export default function SubjectsPage() {
   const { organizationId } = useAuth();
+  const config = usePresetConfig();
   const { data: subjects, loading, refetch } = useSubjects(organizationId);
   const { data: teachers } = useTeachers(organizationId);
   const { data: teacherSubjects, refetch: refetchTeacherSubjects } = useTeacherSubjectAssignments(organizationId);
@@ -59,17 +61,17 @@ export default function SubjectsPage() {
 
   useShortcutAction(useMemo(() => ({
     id: 'subjects.create',
-    label: 'Create Subject',
+    label: `Create ${config.subjectLabel}`,
     shortcut: 'c s',
     handler: openCreate,
-  }), [openCreate]));
+  }), [openCreate, config.subjectLabel]));
 
   useShortcutAction(useMemo(() => ({
     id: 'subjects.search',
-    label: 'Focus Subject Search',
+    label: `Focus ${config.subjectLabel} Search`,
     shortcut: '/',
     handler: () => searchRef.current?.focus(),
-  }), []));
+  }), [config.subjectLabel]));
 
   const openEdit = (s: Subject) => {
     setEditing(s);
@@ -110,7 +112,7 @@ export default function SubjectsPage() {
       refetch();
       refetchTeacherSubjects();
     } catch (err) {
-      setDeleteError(getApiErrorMessage(err, 'Could not delete subject'));
+      setDeleteError(getApiErrorMessage(err, `Could not delete ${config.subjectLabel.toLowerCase()}`));
     } finally {
       setSaving(false);
     }
@@ -169,9 +171,9 @@ export default function SubjectsPage() {
   return (
     <div>
       <PageHeader
-        breadcrumb="RESOURCES / SUBJECTS"
-        title="Subject Resources"
-        subtitle="Configure academic subjects, weekly periods, and course requirements"
+        breadcrumb={`RESOURCES / ${config.subjectTitle.toUpperCase()}`}
+        title={config.subjectTitle}
+        subtitle={`Configure ${config.subjectTitle.toLowerCase()}, weekly ${config.timeUnitLabel.toLowerCase()}, and requirements`}
         actions={
           <>
             <button className="px-4 py-2 border-2 border-rule text-on-surface text-sm font-semibold rounded-lg hover:bg-accent-soft transition-colors flex items-center gap-2">
@@ -183,7 +185,7 @@ export default function SubjectsPage() {
               className="px-4 py-2.5 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors flex items-center gap-2"
             >
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-              New Subject
+              New {config.subjectLabel}
               <ShortcutHint shortcut="c s" />
             </button>
           </>
@@ -197,7 +199,7 @@ export default function SubjectsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onClear={() => setSearch('')}
-          placeholder="Search subjects..."
+          placeholder={`Search ${config.subjectTitle.toLowerCase()}...`}
           shortcut="/"
         />
       </div>
@@ -208,10 +210,10 @@ export default function SubjectsPage() {
           <thead>
             <tr className="bg-on-background text-paper-raised">
               <th className="text-left px-6 py-3 text-data-table font-semibold w-16">#</th>
-              <th className="text-left px-6 py-3 text-data-table font-semibold">Subject Name</th>
-              <th className="text-left px-6 py-3 text-data-table font-semibold">Weekly Periods</th>
+              <th className="text-left px-6 py-3 text-data-table font-semibold">{config.subjectLabel} Name</th>
+              <th className="text-left px-6 py-3 text-data-table font-semibold">Weekly {config.timeUnitLabel}</th>
               <th className="text-left px-6 py-3 text-data-table font-semibold">Session</th>
-              <th className="text-left px-6 py-3 text-data-table font-semibold">Teachers</th>
+              <th className="text-left px-6 py-3 text-data-table font-semibold">{config.teacherTitle}</th>
               <th className="text-left px-6 py-3 text-data-table font-semibold">Status</th>
               <th className="text-left px-6 py-3 text-data-table font-semibold">ID</th>
               <th className="text-right px-6 py-3 text-data-table font-semibold">Actions</th>
@@ -223,7 +225,7 @@ export default function SubjectsPage() {
             ) : filtered.length === 0 ? (
               <tr><td colSpan={8} className="px-6 py-12 text-center">
                 <span className="material-symbols-outlined text-outline-variant mb-2 block" style={{ fontSize: 36 }}>menu_book</span>
-                <p className="text-body-sm text-on-surface-variant">No subjects configured</p>
+                <p className="text-body-sm text-on-surface-variant">No {config.subjectTitle.toLowerCase()} configured</p>
               </td></tr>
             ) : filtered.map((s, idx) => {
               const assignedTeachers = getSubjectTeachers(s.id);
@@ -251,7 +253,7 @@ export default function SubjectsPage() {
                 </td>
                 <td className="px-6 py-3">
                   <span className="inline-flex items-center rounded-full border border-rule bg-surface-container px-2 py-0.5 text-[10px] font-medium text-on-surface-variant" style={{ fontFamily: 'var(--font-mono)' }}>
-                    {s.session_length === 2 ? '2h lab' : '1h'}
+                    {s.session_length === 2 ? 'Double' : 'Single'}
                   </span>
                 </td>
                 <td className="px-6 py-3">
@@ -270,7 +272,7 @@ export default function SubjectsPage() {
                 <td className="px-6 py-3 text-code-snippet text-mono-grey">{s.id.slice(0, 8)}</td>
                 <td className="px-6 py-3">
                   <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button onClick={() => openTeacherModal(s)} className="p-1.5 rounded-lg hover:bg-accent-soft transition-colors" title="Teachers">
+                    <button onClick={() => openTeacherModal(s)} className="p-1.5 rounded-lg hover:bg-accent-soft transition-colors" title={config.teacherTitle}>
                       <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 18 }}>rule</span>
                     </button>
                     <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg hover:bg-accent-soft transition-colors">
@@ -289,12 +291,12 @@ export default function SubjectsPage() {
           </tbody>
         </table>
         <div className="px-6 py-3 border-t border-rule bg-surface-container-low">
-          <p className="text-data-table text-mono-grey">{filtered.length} subject{filtered.length !== 1 ? 's' : ''}</p>
+          <p className="text-data-table text-mono-grey">{filtered.length} {filtered.length !== 1 ? config.subjectTitle.toLowerCase() : config.subjectLabel.toLowerCase()}</p>
         </div>
       </div>
 
       {/* Modal */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Subject' : 'New Subject'}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? `Edit ${config.subjectLabel}` : `New ${config.subjectLabel}`}
         actions={
           <>
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-on-surface-variant border border-rule rounded-lg hover:bg-surface-container transition-colors">Cancel</button>
@@ -306,11 +308,11 @@ export default function SubjectsPage() {
       >
         <div className="space-y-5">
           <div>
-            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>Subject Name</label>
-            <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="academic-input w-full" placeholder="Mathematics" autoFocus />
+            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>{config.subjectLabel} Name</label>
+            <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="academic-input w-full" placeholder={config.subjectPlaceholder} autoFocus />
           </div>
           <div>
-            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>Weekly Hours</label>
+            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>Weekly {config.timeUnitLabel}</label>
             <input type="number" value={formHours} onChange={(e) => setFormHours(e.target.value)} className="academic-input w-full" placeholder="5" min={1} />
           </div>
           <div>
@@ -323,16 +325,16 @@ export default function SubjectsPage() {
                   onClick={() => setFormSessionLength(length)}
                   className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${formSessionLength === length ? 'border-primary bg-accent-soft text-primary' : 'border-rule text-on-surface-variant hover:bg-surface-container'}`}
                 >
-                  {length === 1 ? 'Single Period' : 'Double Period Lab'}
+                  {length === 1 ? 'Single Unit' : 'Double Unit'}
                 </button>
               ))}
             </div>
             {formHours && parseInt(formHours) % formSessionLength !== 0 && (
-              <p className="mt-2 text-xs text-error">Weekly hours must be divisible by session length.</p>
+              <p className="mt-2 text-xs text-error">Weekly {config.timeUnitLabel.toLowerCase()} must be divisible by session length.</p>
             )}
           </div>
           <div>
-            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>Subject Color</label>
+            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>{config.subjectLabel} Color</label>
             <div className="grid grid-cols-8 gap-2">
               {SUBJECT_PALETTE.map(color => (
                 <button
@@ -351,9 +353,9 @@ export default function SubjectsPage() {
                 value={formColor}
                 onChange={(event) => setFormColor(event.target.value)}
                 className="h-10 w-14 rounded border border-rule bg-paper-raised p-1"
-                aria-label="Custom subject color"
+                aria-label={`Custom ${config.subjectLabel.toLowerCase()} color`}
               />
-              <span className="text-sm text-on-surface-variant">Custom color stays synced across Subjects and Timetable.</span>
+              <span className="text-sm text-on-surface-variant">Custom color stays synced across {config.subjectTitle} and Timetable.</span>
             </div>
           </div>
         </div>
@@ -361,8 +363,8 @@ export default function SubjectsPage() {
 
       <ConfirmModal
         open={!!deleteTarget}
-        title="Delete subject"
-        message={`Delete ${deleteTarget?.name || 'this subject'}? Related teacher mappings and generated schedule references may need regeneration.`}
+        title={`Delete ${config.subjectLabel.toLowerCase()}`}
+        message={`Delete ${deleteTarget?.name || `this ${config.subjectLabel.toLowerCase()}`}? Related mappings and generated schedule references may need regeneration.`}
         loading={saving}
         error={deleteError}
         onCancel={() => {
@@ -372,7 +374,7 @@ export default function SubjectsPage() {
         onConfirm={handleDelete}
       />
 
-      <Modal open={!!teacherModalSubject} onClose={() => setTeacherModalSubject(null)} title={`Teachers for ${teacherModalSubject?.name || ''}`}
+      <Modal open={!!teacherModalSubject} onClose={() => setTeacherModalSubject(null)} title={`${config.teacherTitle} for ${teacherModalSubject?.name || ''}`}
         maxWidth="max-w-xl"
         actions={
           <>

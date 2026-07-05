@@ -286,10 +286,17 @@ class TimetableService:
         db.add(run)
         db.flush()
 
-        from app.services.solver_adapter import AcademicSolverAdapter
+        from app.services.presets import get_preset_adapter, PRESET_REGISTRY
+        preset_key = workspace.domain_preset or "academic"
+        adapter_cls = get_preset_adapter(preset_key)
+        adapter = adapter_cls()
+        
         try:
-            instance = AcademicSolverAdapter.build_instance(workspace_id, db)
-            solver_result = solve(instance)
+            if hasattr(adapter, "solve_custom"):
+                solver_result = adapter.solve_custom(workspace_id, db)
+            else:
+                instance = adapter.build_instance(workspace_id, db)
+                solver_result = solve(instance)
         except Exception as e:
             run.status = "failed"
             run.error_message = str(e)
@@ -331,16 +338,34 @@ class TimetableService:
 
         if solver_result.status in ("OPTIMAL", "FEASIBLE"):
             for a in solver_result.assignments:
-                ts_id = uuid.UUID(a.slot_id)
-                db_timeslot = db.query(DbTimeSlot).filter(DbTimeSlot.id == ts_id).first()
+                # Parse timeslot ID
+                try:
+                    ts_id = uuid.UUID(a.slot_id)
+                    db_timeslot = db.query(DbTimeSlot).filter(DbTimeSlot.id == ts_id).first()
+                except ValueError:
+                    db_timeslot = db.query(DbTimeSlot).filter(
+                        DbTimeSlot.workspace_id == workspace_id,
+                        DbTimeSlot.name == a.slot_id
+                    ).first()
+
                 if not db_timeslot:
                     continue
+                
+                # If section_id has virtual slot suffix, clean it for database section_id key
+                section_uuid_str = a.section_id
+                sub_group_val = None
+                if "_slot_" in section_uuid_str:
+                    parts = section_uuid_str.split("_slot_")
+                    section_uuid_str = parts[0]
+                    sub_group_val = f"Slot {int(parts[1]) + 1}"
+                
+                section_uuid = uuid.UUID(section_uuid_str)
                 
                 slot = SlotModel(
                     organization_id=org_id,
                     workspace_id=workspace_id,
                     schedule_version_id=version.id,
-                    section_id=uuid.UUID(a.section_id),
+                    section_id=section_uuid,
                     subject_id=uuid.UUID(a.subject_id),
                     teacher_id=uuid.UUID(a.teacher_id),
                     room_id=uuid.UUID(a.room_id),
@@ -354,20 +379,21 @@ class TimetableService:
 
                 from app.models.assignment import AssignmentLocation
                 for ra in a.room_assignments:
+                    sub_group_to_use = ra.sub_group or sub_group_val
                     exists = db.query(AssignmentLocation).filter(
                         AssignmentLocation.assignment_id == slot.id,
                         AssignmentLocation.location_id == uuid.UUID(ra.room_id)
                     ).first()
                     if exists:
                         exists.student_count = ra.student_count
-                        exists.sub_group = ra.sub_group
+                        exists.sub_group = sub_group_to_use
                         exists.capacity_contribution = ra.capacity_contribution
                     else:
                         db_al = AssignmentLocation(
                             assignment_id=slot.id,
                             location_id=uuid.UUID(ra.room_id),
                             student_count=ra.student_count,
-                            sub_group=ra.sub_group,
+                            sub_group=sub_group_to_use,
                             capacity_contribution=ra.capacity_contribution
                         )
                         db.add(db_al)
@@ -388,4 +414,5 @@ class TimetableService:
             "version_number": version.version_number,
             "scores": version.scores
         }
+
 

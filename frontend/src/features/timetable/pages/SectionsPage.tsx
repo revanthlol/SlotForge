@@ -15,9 +15,11 @@ import Modal from '../../../components/ui/Modal';
 import SearchInput from '../../../components/ui/SearchInput';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import { getApiErrorMessage } from '../../../lib/errors';
+import { usePresetConfig } from '../../presets/hooks/usePresetConfig';
 
 export default function SectionsPage() {
   const { organizationId } = useAuth();
+  const config = usePresetConfig();
   const { data: sections, loading, refetch } = useSections(organizationId);
   const { data: teachers, refetch: refetchTeachers } = useTeachers(organizationId);
   const { data: subjects } = useSubjects(organizationId);
@@ -76,18 +78,18 @@ export default function SectionsPage() {
 
   useShortcutAction(useMemo(() => ({
     id: 'sections.create',
-    label: 'Create Section',
+    label: `Create ${config.sectionLabel}`,
     shortcut: 'c c',
-    keywords: ['class'],
+    keywords: [`${config.sectionLabel.toLowerCase()}`],
     handler: openCreate,
-  }), []));
+  }), [config.sectionLabel]));
 
   useShortcutAction(useMemo(() => ({
     id: 'sections.search',
-    label: 'Focus Section Search',
+    label: `Focus ${config.sectionLabel} Search`,
     shortcut: '/',
     handler: () => searchRef.current?.focus(),
-  }), []));
+  }), [config.sectionLabel]));
 
   const handleSave = async () => {
     if (!formName.trim() || !formSize || !organizationId) return;
@@ -114,7 +116,7 @@ export default function SectionsPage() {
       refetch();
       refetchSectionTeachers();
     } catch (err) {
-      setDeleteError(getApiErrorMessage(err, 'Could not delete section'));
+      setDeleteError(getApiErrorMessage(err, `Could not delete ${config.sectionLabel.toLowerCase()}`));
     } finally {
       setSaving(false);
     }
@@ -159,14 +161,14 @@ export default function SectionsPage() {
   return (
     <div>
       <PageHeader
-        breadcrumb="RESOURCES / SECTIONS"
-        title="Class Sections"
-        subtitle="Manage student sections and class sizes for scheduling"
+        breadcrumb={`RESOURCES / ${config.sectionTitle.toUpperCase()}`}
+        title={config.sectionTitle}
+        subtitle={`Manage ${config.sectionTitle.toLowerCase()} and sizes for scheduling`}
         actions={
           <button onClick={openCreate}
             className="px-4 py-2.5 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors flex items-center gap-2">
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-            Add Section
+            Add {config.sectionLabel}
             <ShortcutHint shortcut="c c" />
           </button>
         }
@@ -178,7 +180,7 @@ export default function SectionsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onClear={() => setSearch('')}
-          placeholder="Search sections..."
+          placeholder={`Search ${config.sectionTitle.toLowerCase()}...`}
           shortcut="/"
         />
       </div>
@@ -186,9 +188,9 @@ export default function SectionsPage() {
       <div className="bg-paper-raised border-2 border-rule rounded-xl overflow-hidden">
         <div className="grid grid-cols-12 bg-on-background text-paper-raised px-6 py-3">
           <div className="col-span-1 text-data-table font-semibold">#</div>
-          <div className="col-span-4 text-data-table font-semibold">Section Name</div>
-          <div className="col-span-2 text-data-table font-semibold">Class Size</div>
-          <div className="col-span-2 text-data-table font-semibold">Class Teacher</div>
+          <div className="col-span-4 text-data-table font-semibold">{config.sectionLabel} Name</div>
+          <div className="col-span-2 text-data-table font-semibold">{config.sectionLabel} Size</div>
+          <div className="col-span-2 text-data-table font-semibold">{config.teacherLabel} Leader</div>
           <div className="col-span-2 text-data-table font-semibold">ID</div>
           <div className="col-span-1 text-data-table font-semibold text-right">Actions</div>
         </div>
@@ -197,7 +199,7 @@ export default function SectionsPage() {
         ) : filtered.length === 0 ? (
           <div className="px-6 py-12 text-center">
             <span className="material-symbols-outlined text-outline-variant mb-2" style={{ fontSize: 36 }}>groups</span>
-            <p className="text-body-sm text-on-surface-variant">No sections configured</p>
+            <p className="text-body-sm text-on-surface-variant">No {config.sectionTitle.toLowerCase()} configured</p>
           </div>
         ) : (
           <div className="divide-y divide-rule">
@@ -214,14 +216,14 @@ export default function SectionsPage() {
                   <div className="w-16 h-1.5 bg-surface-container rounded-full overflow-hidden">
                     <div className="h-full bg-secondary rounded-full" style={{ width: `${Math.min((s.size / 100) * 100, 100)}%` }} />
                   </div>
-                  <span className="text-data-table text-on-surface font-medium">{s.size} students</span>
+                  <span className="text-data-table text-on-surface font-medium">{s.size} capacity</span>
                 </div>
                 <div className="col-span-2 text-data-table text-on-surface">
                   {s.class_teacher_id ? teacherById.get(s.class_teacher_id)?.name || 'Assigned' : <span className="text-mono-grey">—</span>}
                 </div>
                 <div className="col-span-2 text-code-snippet text-mono-grey">{s.id.slice(0, 8)}</div>
                 <div className="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => openTeachingMap(s)} className="p-1.5 rounded-lg hover:bg-accent-soft transition-colors" title="Teaching map">
+                  <button onClick={() => openTeachingMap(s)} className="p-1.5 rounded-lg hover:bg-accent-soft transition-colors" title={`${config.subjectLabel} Allocation`}>
                     <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 18 }}>account_tree</span>
                   </button>
                   <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg hover:bg-accent-soft transition-colors">
@@ -239,11 +241,11 @@ export default function SectionsPage() {
           </div>
         )}
         <div className="px-6 py-3 border-t border-rule bg-surface-container-low">
-          <p className="text-data-table text-mono-grey">{filtered.length} section{filtered.length !== 1 ? 's' : ''}</p>
+          <p className="text-data-table text-mono-grey">{filtered.length} {filtered.length !== 1 ? config.sectionTitle.toLowerCase() : config.sectionLabel.toLowerCase()}</p>
         </div>
       </div>
 
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Edit Section' : 'Add Section'}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? `Edit ${config.sectionLabel}` : `Add ${config.sectionLabel}`}
         actions={
           <>
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-on-surface-variant border border-rule rounded-lg hover:bg-surface-container transition-colors">Cancel</button>
@@ -255,15 +257,15 @@ export default function SectionsPage() {
       >
         <div className="space-y-5">
           <div>
-            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>Section Name</label>
-            <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="academic-input w-full" placeholder="Section A" autoFocus />
+            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>{config.sectionLabel} Name</label>
+            <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="academic-input w-full" placeholder={config.sectionPlaceholder} autoFocus />
           </div>
           <div>
-            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>Class Size</label>
+            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>{config.sectionLabel} Size</label>
             <input type="number" value={formSize} onChange={(e) => setFormSize(e.target.value)} className="academic-input w-full" placeholder="60" min={1} />
           </div>
           <div>
-            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>Class Teacher</label>
+            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>{config.teacherLabel} Leader</label>
             <select value={classTeacherId} onChange={(e) => setClassTeacherId(e.target.value)} className="academic-input w-full">
               <option value="">Unassigned</option>
               {(teachers || []).map(teacher => (
@@ -276,8 +278,8 @@ export default function SectionsPage() {
 
       <ConfirmModal
         open={!!deleteTarget}
-        title="Delete section"
-        message={`Delete ${deleteTarget?.name || 'this section'}? Related section-teacher assignments and generated schedules may need regeneration.`}
+        title={`Delete ${config.sectionLabel.toLowerCase()}`}
+        message={`Delete ${deleteTarget?.name || `this ${config.sectionLabel.toLowerCase()}`}? Related assignments and generated schedules may need regeneration.`}
         loading={saving}
         error={deleteError}
         onCancel={() => {
@@ -287,7 +289,7 @@ export default function SectionsPage() {
         onConfirm={handleDelete}
       />
 
-      <Modal open={!!mapSection} onClose={() => setMapSection(null)} title={`Teaching map for ${mapSection?.name || ''}`}
+      <Modal open={!!mapSection} onClose={() => setMapSection(null)} title={`${config.subjectLabel} Allocations for ${mapSection?.name || ''}`}
         maxWidth="max-w-3xl"
         actions={
           <>
@@ -318,7 +320,7 @@ export default function SectionsPage() {
                   />
                   <div>
                     <p className="text-sm font-medium text-on-surface">{subject.name}</p>
-                  <p className="text-data-table text-mono-grey">{subject.weekly_hours} weekly periods</p>
+                    <p className="text-data-table text-mono-grey">{subject.weekly_hours} weekly {config.timeUnitLabel.toLowerCase()}</p>
                   </div>
                 </div>
                 <div className="col-span-7">
@@ -328,7 +330,7 @@ export default function SectionsPage() {
                     className="academic-input w-full"
                     disabled={subjectEnabledMap[subject.id] === false}
                   >
-                    <option value="">Included, use qualified teacher pool</option>
+                    <option value="">Included, use qualified {config.teacherLabel.toLowerCase()} pool</option>
                     {sortedTeachers.map(teacher => (
                       <option key={teacher.id} value={teacher.id}>
                         {teacher.name}{qualifiedIds.has(teacher.id) ? '' : ' (adds qualification)'}

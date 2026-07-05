@@ -8,9 +8,16 @@ import Modal from '../../../components/ui/Modal';
 import SearchInput from '../../../components/ui/SearchInput';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import { getApiErrorMessage } from '../../../lib/errors';
+import { usePresetConfig } from '../../presets/hooks/usePresetConfig';
+import { useWorkspaces } from '../../../lib/api/hooks/useWorkspaces';
 
 export default function RoomsPage() {
   const { organizationId } = useAuth();
+  const config = usePresetConfig();
+  const { data: workspaces } = useWorkspaces();
+  const workspace = workspaces?.[0];
+  const activePreset = workspace?.domain_preset || 'academic';
+
   const { data: rooms, loading, refetch } = useRooms(organizationId);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [search, setSearch] = useState('');
@@ -24,6 +31,17 @@ export default function RoomsPage() {
   const [deleteTarget, setDeleteTarget] = useState<Room | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  const allowedTypes = useMemo(() => {
+    switch (activePreset) {
+      case 'academic': return ['classroom', 'lab'];
+      case 'staff_roster': return ['work_zone'];
+      case 'event': return ['hall'];
+      case 'exam': return ['exam_hall'];
+      case 'facility': return ['facility'];
+      default: return ['classroom', 'lab'];
+    }
+  }, [activePreset]);
+
   const filtered = rooms?.filter(r =>
     r.name.toLowerCase().includes(search.toLowerCase()) ||
     r.type.toLowerCase().includes(search.toLowerCase())
@@ -33,7 +51,7 @@ export default function RoomsPage() {
     setEditingRoom(null);
     setFormName('');
     setFormCapacity('');
-    setFormType('lecture');
+    setFormType(allowedTypes[0] || 'classroom');
     setModalOpen(true);
   };
 
@@ -49,21 +67,21 @@ export default function RoomsPage() {
     maybeOpen();
     window.addEventListener('slotforge:create-resource', onCreate);
     return () => window.removeEventListener('slotforge:create-resource', onCreate);
-  }, []);
+  }, [allowedTypes]);
 
   useShortcutAction(useMemo(() => ({
     id: 'rooms.create',
-    label: 'Create Room',
+    label: `Create ${config.roomLabel}`,
     shortcut: 'c r',
     handler: openCreate,
-  }), []));
+  }), [config.roomLabel, allowedTypes]));
 
   useShortcutAction(useMemo(() => ({
     id: 'rooms.search',
-    label: 'Focus Room Search',
+    label: `Focus ${config.roomLabel} Search`,
     shortcut: '/',
     handler: () => searchRef.current?.focus(),
-  }), []));
+  }), [config.roomLabel]));
 
   const openEdit = (r: Room) => {
     setEditingRoom(r);
@@ -81,14 +99,14 @@ export default function RoomsPage() {
         await api.put(`/rooms/${editingRoom.id}`, {
           name: formName,
           capacity: parseInt(formCapacity),
-          type: formType,
+          room_type: formType,
         });
       } else {
         await api.post('/rooms', {
           organization_id: organizationId,
           name: formName,
           capacity: parseInt(formCapacity),
-          type: formType,
+          room_type: formType,
         });
       }
       setModalOpen(false);
@@ -109,25 +127,27 @@ export default function RoomsPage() {
       setDeleteTarget(null);
       refetch();
     } catch (err) {
-      setDeleteError(getApiErrorMessage(err, 'Could not delete room'));
+      setDeleteError(getApiErrorMessage(err, `Could not delete ${config.roomLabel.toLowerCase()}`));
     } finally {
       setSaving(false);
     }
   };
 
   const typeColors: Record<string, string> = {
-    lecture: 'bg-accent-soft text-primary',
+    classroom: 'bg-accent-soft text-primary',
     lab: 'bg-signal-soft text-secondary',
-    auditorium: 'bg-tertiary-fixed text-on-tertiary-fixed',
-    seminar: 'bg-primary-fixed text-on-primary-fixed',
+    work_zone: 'bg-tertiary-fixed text-on-tertiary-fixed',
+    hall: 'bg-primary-fixed text-on-primary-fixed',
+    exam_hall: 'bg-signal-soft text-secondary',
+    facility: 'bg-accent-soft text-primary',
   };
 
   return (
     <div>
       <PageHeader
-        breadcrumb="RESOURCES / ROOMS"
-        title="Rooms & Facilities"
-        subtitle="Manage physical spaces, capacities, and equipment assignments"
+        breadcrumb={`RESOURCES / ${config.roomTitle.toUpperCase()}`}
+        title={config.roomTitle}
+        subtitle={`Manage physical ${config.roomTitle.toLowerCase()}, capacities, and configurations`}
         actions={
           <>
             {/* View toggle */}
@@ -150,7 +170,7 @@ export default function RoomsPage() {
               className="px-4 py-2.5 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors flex items-center gap-2"
             >
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-              New Room
+              New {config.roomLabel}
               <ShortcutHint shortcut="c r" />
             </button>
           </>
@@ -164,7 +184,7 @@ export default function RoomsPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onClear={() => setSearch('')}
-          placeholder="Search rooms..."
+          placeholder={`Search ${config.roomTitle.toLowerCase()}...`}
           shortcut="/"
         />
       </div>
@@ -174,8 +194,8 @@ export default function RoomsPage() {
       ) : filtered.length === 0 ? (
         <div className="bg-paper-raised border-2 border-rule rounded-xl px-6 py-16 text-center">
           <span className="material-symbols-outlined text-outline-variant mb-3" style={{ fontSize: 48 }}>meeting_room</span>
-          <p className="text-body-lg text-on-surface-variant">No rooms configured</p>
-          <p className="text-data-table text-mono-grey mt-1">Add rooms to enable timetable generation</p>
+          <p className="text-body-lg text-on-surface-variant">No {config.roomTitle.toLowerCase()} configured</p>
+          <p className="text-data-table text-mono-grey mt-1">Add {config.roomTitle.toLowerCase()} to enable generation</p>
         </div>
       ) : viewMode === 'grid' ? (
         /* Grid View */
@@ -202,7 +222,7 @@ export default function RoomsPage() {
                   <div className="flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 16 }}>group</span>
                     <span className="text-sm font-medium text-on-surface">{r.capacity}</span>
-                    <span className="text-data-table text-mono-grey">seats</span>
+                    <span className="text-data-table text-mono-grey">capacity</span>
                   </div>
                 </div>
 
@@ -241,7 +261,7 @@ export default function RoomsPage() {
         <div className="bg-paper-raised border-2 border-rule rounded-xl overflow-hidden">
           <div className="grid grid-cols-12 bg-on-background text-paper-raised px-6 py-3">
             <div className="col-span-1 text-data-table font-semibold">#</div>
-            <div className="col-span-3 text-data-table font-semibold">Room Name</div>
+            <div className="col-span-3 text-data-table font-semibold">{config.roomLabel} Name</div>
             <div className="col-span-2 text-data-table font-semibold">Type</div>
             <div className="col-span-2 text-data-table font-semibold">Capacity</div>
             <div className="col-span-2 text-data-table font-semibold">ID</div>
@@ -276,7 +296,7 @@ export default function RoomsPage() {
             ))}
           </div>
           <div className="px-6 py-3 border-t border-rule bg-surface-container-low">
-            <p className="text-data-table text-mono-grey">{filtered.length} room{filtered.length !== 1 ? 's' : ''}</p>
+            <p className="text-data-table text-mono-grey">{filtered.length} {filtered.length !== 1 ? config.roomTitle.toLowerCase() : config.roomLabel.toLowerCase()}</p>
           </div>
         </div>
       )}
@@ -285,7 +305,7 @@ export default function RoomsPage() {
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editingRoom ? 'Edit Room' : 'New Room'}
+        title={editingRoom ? `Edit ${config.roomLabel}` : `New ${config.roomLabel}`}
         actions={
           <>
             <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-on-surface-variant border border-rule rounded-lg hover:bg-surface-container transition-colors">
@@ -299,20 +319,19 @@ export default function RoomsPage() {
       >
         <div className="space-y-5">
           <div>
-            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>Room Name</label>
-            <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="academic-input w-full" placeholder="Room 101" autoFocus />
+            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>{config.roomLabel} Name</label>
+            <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="academic-input w-full" placeholder={config.roomPlaceholder} autoFocus />
           </div>
           <div>
             <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>Capacity</label>
             <input type="number" value={formCapacity} onChange={(e) => setFormCapacity(e.target.value)} className="academic-input w-full" placeholder="60" min={1} />
           </div>
           <div>
-            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>Room Type</label>
+            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>{config.roomLabel} Type</label>
             <select value={formType} onChange={(e) => setFormType(e.target.value)} className="academic-input w-full">
-              <option value="lecture">Lecture</option>
-              <option value="lab">Lab</option>
-              <option value="auditorium">Auditorium</option>
-              <option value="seminar">Seminar</option>
+              {allowedTypes.map(t => (
+                <option key={t} value={t}>{t.charAt(0).toUpperCase() + t.slice(1).replace('_', ' ')}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -320,8 +339,8 @@ export default function RoomsPage() {
 
       <ConfirmModal
         open={!!deleteTarget}
-        title="Delete room"
-        message={`Delete ${deleteTarget?.name || 'this room'}? Existing timetable slots using this room may need regeneration.`}
+        title={`Delete ${config.roomLabel.toLowerCase()}`}
+        message={`Delete ${deleteTarget?.name || `this ${config.roomLabel.toLowerCase()}`}? Existing timetable slots using this ${config.roomLabel.toLowerCase()} may need regeneration.`}
         loading={saving}
         error={deleteError}
         onCancel={() => {

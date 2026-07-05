@@ -8,9 +8,11 @@ import Modal from '../../../components/ui/Modal';
 import SearchInput from '../../../components/ui/SearchInput';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import { getApiErrorMessage } from '../../../lib/errors';
+import { usePresetConfig } from '../../presets/hooks/usePresetConfig';
 
 export default function TeachersPage() {
   const { organizationId } = useAuth();
+  const config = usePresetConfig();
   const { data: teachers, loading, refetch } = useTeachers(organizationId);
   const { data: subjects } = useSubjects(organizationId);
   const { data: teacherSubjects, refetch: refetchTeacherSubjects } = useTeacherSubjectAssignments(organizationId);
@@ -56,18 +58,18 @@ export default function TeachersPage() {
 
   useShortcutAction(useMemo(() => ({
     id: 'teachers.create',
-    label: 'Create Teacher',
+    label: `Create ${config.teacherLabel}`,
     shortcut: 'c t',
-    keywords: ['faculty add'],
+    keywords: [`${config.teacherLabel.toLowerCase()} add`],
     handler: openCreate,
-  }), []));
+  }), [config.teacherLabel]));
 
   useShortcutAction(useMemo(() => ({
     id: 'teachers.search',
-    label: 'Focus Teacher Search',
+    label: `Focus ${config.teacherLabel} Search`,
     shortcut: '/',
     handler: () => searchRef.current?.focus(),
-  }), []));
+  }), [config.teacherLabel]));
 
   const openEdit = (t: Teacher) => {
     setEditingTeacher(t);
@@ -103,7 +105,7 @@ export default function TeachersPage() {
       refetch();
       refetchTeacherSubjects();
     } catch (err) {
-      setDeleteError(getApiErrorMessage(err, 'Could not delete teacher'));
+      setDeleteError(getApiErrorMessage(err, `Could not delete ${config.teacherLabel.toLowerCase()}`));
     } finally {
       setSaving(false);
     }
@@ -143,16 +145,16 @@ export default function TeachersPage() {
   return (
     <div>
       <PageHeader
-        breadcrumb="RESOURCES / TEACHERS"
-        title="Faculty Roster"
-        subtitle="Manage teaching staff, view load distribution and active constraints"
+        breadcrumb={`RESOURCES / ${config.teacherTitle.toUpperCase()}`}
+        title={config.teacherTitle}
+        subtitle={`Manage ${config.teacherTitle.toLowerCase()}, view load distribution and active constraints`}
         actions={
           <button
             onClick={openCreate}
             className="px-4 py-2.5 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors flex items-center gap-2"
           >
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
-            Add Teacher
+            Add {config.teacherLabel}
             <ShortcutHint shortcut="c t" />
           </button>
         }
@@ -165,7 +167,7 @@ export default function TeachersPage() {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onClear={() => setSearch('')}
-          placeholder="Search teachers..."
+          placeholder={`Search ${config.teacherTitle.toLowerCase()}...`}
           shortcut="/"
         />
       </div>
@@ -175,8 +177,8 @@ export default function TeachersPage() {
         {/* Header */}
           <div className="grid grid-cols-12 bg-on-background text-paper-raised px-6 py-3">
           <div className="col-span-1 text-data-table font-semibold">#</div>
-          <div className="col-span-4 text-data-table font-semibold">Teacher Name</div>
-          <div className="col-span-3 text-data-table font-semibold">Subjects</div>
+          <div className="col-span-4 text-data-table font-semibold">{config.teacherLabel} Name</div>
+          <div className="col-span-3 text-data-table font-semibold">{config.subjectTitle}</div>
           <div className="col-span-2 text-data-table font-semibold">ID</div>
           <div className="col-span-2 text-data-table font-semibold text-right">Actions</div>
         </div>
@@ -187,8 +189,8 @@ export default function TeachersPage() {
         ) : filtered.length === 0 ? (
           <div className="px-6 py-12 text-center">
             <span className="material-symbols-outlined text-outline-variant mb-2" style={{ fontSize: 36 }}>school</span>
-            <p className="text-body-sm text-on-surface-variant">No teachers found</p>
-            <p className="text-data-table text-mono-grey mt-1">Add your first teacher to get started</p>
+            <p className="text-body-sm text-on-surface-variant">No {config.teacherTitle.toLowerCase()} found</p>
+            <p className="text-data-table text-mono-grey mt-1">Add your first {config.teacherLabel.toLowerCase()} to get started</p>
           </div>
         ) : (
           <div className="divide-y divide-rule">
@@ -231,7 +233,7 @@ export default function TeachersPage() {
                     <button
                       onClick={() => openSubjectModal(t)}
                       className="p-1.5 rounded-lg hover:bg-accent-soft transition-colors"
-                      title="Subjects"
+                      title={config.subjectTitle}
                     >
                       <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 18 }}>rule</span>
                     </button>
@@ -262,7 +264,7 @@ export default function TeachersPage() {
         {/* Footer */}
         <div className="px-6 py-3 border-t border-rule bg-surface-container-low flex items-center justify-between">
           <p className="text-data-table text-mono-grey">
-            {filtered.length} teacher{filtered.length !== 1 ? 's' : ''}
+            {filtered.length} {filtered.length !== 1 ? config.teacherTitle.toLowerCase() : config.teacherLabel.toLowerCase()}
           </p>
         </div>
       </div>
@@ -271,7 +273,7 @@ export default function TeachersPage() {
       <Modal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editingTeacher ? 'Edit Teacher' : 'Add Teacher'}
+        title={editingTeacher ? `Edit ${config.teacherLabel}` : `Add ${config.teacherLabel}`}
         actions={
           <>
             <button
@@ -293,14 +295,14 @@ export default function TeachersPage() {
       >
         <div>
           <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>
-            Teacher Name
+            {config.teacherLabel} Name
           </label>
           <input
             type="text"
             value={formName}
             onChange={(e) => setFormName(e.target.value)}
             className="academic-input w-full"
-            placeholder="Dr. Jane Smith"
+            placeholder={config.teacherPlaceholder}
             autoFocus
           />
         </div>
@@ -308,8 +310,8 @@ export default function TeachersPage() {
 
       <ConfirmModal
         open={!!deleteTarget}
-        title="Delete teacher"
-        message={`Delete ${deleteTarget?.name || 'this teacher'}? Related teaching assignments will also be removed.`}
+        title={`Delete ${config.teacherLabel.toLowerCase()}`}
+        message={`Delete ${deleteTarget?.name || `this ${config.teacherLabel.toLowerCase()}`}? Related assignments will also be removed.`}
         loading={saving}
         error={deleteError}
         onCancel={() => {
@@ -322,7 +324,7 @@ export default function TeachersPage() {
       <Modal
         open={!!subjectModalTeacher}
         onClose={() => setSubjectModalTeacher(null)}
-        title={`Subjects for ${subjectModalTeacher?.name || ''}`}
+        title={`${config.subjectTitle} for ${subjectModalTeacher?.name || ''}`}
         maxWidth="max-w-xl"
         actions={
           <>
