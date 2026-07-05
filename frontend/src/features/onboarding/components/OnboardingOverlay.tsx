@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -149,6 +150,14 @@ export default function OnboardingOverlay() {
       workspaceName: `${organization?.name || 'Academic'} workspace`,
     },
   });
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
 
   useEffect(() => {
     if (!progressState.loading) setCurrentStep(progressState.progress.current_step || 0);
@@ -461,12 +470,14 @@ export default function OnboardingOverlay() {
     );
   };
 
-  if (organizationLoading || progressState.loading) return <OnboardingSkeleton />;
+  if (organizationLoading || progressState.loading) {
+    return createPortal(<OnboardingSkeleton />, document.body);
+  }
 
   const completedCount = progressState.progress.completed_steps.length;
 
-  return (
-    <div className="fixed inset-0 z-[100] bg-paper">
+  const overlay = (
+    <div className="fixed inset-0 z-[200] bg-paper">
       <div className="grid h-full lg:grid-cols-[320px_minmax(0,1fr)]">
         <StepProgress
           steps={steps}
@@ -538,4 +549,6 @@ export default function OnboardingOverlay() {
       </div>
     </div>
   );
+
+  return createPortal(overlay, document.body);
 }

@@ -1,6 +1,6 @@
 export function OnboardingSkeleton() {
   return (
-    <div className="fixed inset-0 z-[100] bg-paper">
+    <div className="fixed inset-0 z-[200] bg-paper">
       <div className="grid h-full lg:grid-cols-[320px_minmax(0,1fr)]">
         <div className="border-r-2 border-rule bg-paper-raised p-6">
           <div className="h-3 w-24 rounded-full bg-surface-container onboarding-skeleton" />
