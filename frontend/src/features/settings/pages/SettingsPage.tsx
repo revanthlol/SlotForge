@@ -123,7 +123,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12">
+    <div className="space-y-6 pb-32">
       <PageHeader
         breadcrumb="SYSTEM / SETTINGS"
         title="Settings"
@@ -362,21 +362,33 @@ export default function SettingsPage() {
       </div>
 
       {/* Persistent Footer bar */}
-      <div className="fixed bottom-0 right-0 bg-paper-raised border-t-2 border-rule px-margin-page py-4 flex items-center justify-between z-40 shadow-md" style={{ left: 'var(--slotforge-sidebar-offset, 16rem)' }}>
-        <span className="text-xs text-mono-grey italic">
-          Unsaved changes will be lost unless committed.
-        </span>
+      <div
+        className="fixed bg-paper-raised/90 backdrop-blur-md border-t border-rule px-margin-page py-5 flex items-center justify-between z-40 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.08)]"
+        style={{
+          left: 'calc(-1 * var(--spacing-margin-page))',
+          right: 'calc(-1 * var(--spacing-margin-page))',
+          bottom: 'calc(-1 * var(--spacing-margin-page))',
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-secondary animate-pulse" style={{ fontSize: 16 }}>
+            info
+          </span>
+          <span className="text-xs text-on-surface-variant font-medium">
+            Unsaved changes will be lost unless committed.
+          </span>
+        </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => refetch()}
-            className="px-4 py-2 text-sm text-on-surface-variant border border-rule rounded-lg hover:bg-surface-container transition-colors"
+            className="px-4 py-2 text-sm text-on-surface-variant border border-rule rounded-lg hover:bg-surface-container transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
           >
             Discard
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-5 py-2 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors shadow-sm flex items-center gap-2"
+            className="px-5 py-2 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             {saving && <span className="material-symbols-outlined animate-spin" style={{ fontSize: 16 }}>sync</span>}
             Save Changes
