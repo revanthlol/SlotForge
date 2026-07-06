@@ -62,6 +62,18 @@ SlotForge is currently **100% complete through Phase 5** of the engineering road
    ```bash
    alembic upgrade head
    ```
+   In development, this also runs an idempotent demo seed so the local app has a stable test account and realistic academic data after every upgrade.
+
+   Demo login:
+   - Email: `demo@slotforge.local`
+   - Password: `SlotForgeDemo123!`
+
+   The seed creates a demo organization, teachers, rooms, subjects, sections, constraints, timeslots, and a published sample timetable. Set `DEMO_SEED_ON_ALEMBIC_UPGRADE=false` or `APP_ENV=production` to disable automatic seeding.
+
+   You can also repair the demo data manually:
+   ```bash
+   PYTHONPATH=. python scripts/seed_demo_data.py
+   ```
 4. **Start the API Server**:
    ```bash
    PYTHONPATH=. uvicorn app.main:app --reload

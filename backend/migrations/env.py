@@ -4,6 +4,7 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
+from sqlalchemy.orm import Session
 from alembic import context
 
 # Add the backend directory to sys.path to enable app module imports
@@ -11,6 +12,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.core.config import settings
 from app.models import Base
+from scripts.seed_demo_data import seed_demo_data, should_seed_on_alembic_upgrade
 
 
 # this is the Alembic Config object, which provides
@@ -80,6 +82,10 @@ def run_migrations_online() -> None:
 
         with context.begin_transaction():
             context.run_migrations()
+
+        if should_seed_on_alembic_upgrade():
+            with Session(bind=connection) as seed_session:
+                seed_demo_data(seed_session, sync_auth=True, require_auth=False, echo=True)
 
 
 if context.is_offline_mode():
