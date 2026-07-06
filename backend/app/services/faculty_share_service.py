@@ -2,10 +2,11 @@ import io
 import re
 import uuid
 from datetime import datetime
+from html import escape
 
 from fastapi import HTTPException, Request
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
+from reportlab.lib.pagesizes import landscape, letter
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 from sqlalchemy.orm import Session
@@ -176,15 +177,29 @@ class FacultyShareService:
     @staticmethod
     def generate_faculty_pdf(payload: dict) -> bytes:
         out = io.BytesIO()
-        doc = SimpleDocTemplate(out, pagesize=letter, rightMargin=36, leftMargin=36, topMargin=36, bottomMargin=36)
+        doc = SimpleDocTemplate(out, pagesize=landscape(letter), rightMargin=28, leftMargin=28, topMargin=28, bottomMargin=28)
         styles = getSampleStyleSheet()
         title_style = ParagraphStyle(
             "FacultyTimetableTitle",
             parent=styles["Heading1"],
-            fontSize=19,
-            leading=23,
-            textColor=colors.HexColor("#2d5d4f"),
-            spaceAfter=12,
+            fontSize=22,
+            leading=26,
+            textColor=colors.HexColor("#173f35"),
+            spaceAfter=8,
+        )
+        meta_style = ParagraphStyle(
+            "FacultyTimetableMeta",
+            parent=styles["Normal"],
+            fontSize=9,
+            leading=12,
+            textColor=colors.HexColor("#4a5651"),
+        )
+        slot_style = ParagraphStyle(
+            "FacultySlot",
+            parent=styles["Normal"],
+            fontSize=7.4,
+            leading=9.2,
+            textColor=colors.HexColor("#15231f"),
         )
 
         faculty_name = payload["faculty"]["name"]
@@ -195,33 +210,57 @@ class FacultyShareService:
 
         story = [
             Paragraph(f"{faculty_name} - Weekly Timetable", title_style),
-            Paragraph(f"{org_name} | {version_label} | Published {published}", styles["Normal"]),
+            Paragraph(f"{org_name} | {version_label} | Published {published}", meta_style),
             Spacer(1, 14),
         ]
 
-        table_data = [["Day", "Period", "Subject", "Section", "Room"]]
-        for item in payload["assignments"]:
-            table_data.append([
-                item["day"],
-                str(item["period"]),
-                item["subject_name"],
-                item.get("section_name") or "",
-                item["room_name"],
-            ])
+        assignments = payload["assignments"]
+        found_days = sorted(
+            {item["day"] for item in assignments},
+            key=lambda day: (DAY_ORDER.get(day, 99), day),
+        )
+        days = found_days or ["Mon", "Tue", "Wed", "Thu", "Fri"]
+        periods = max([item["period"] + (item.get("duration_periods") or 1) - 1 for item in assignments] + [5])
+        by_slot = {(item["day"], item["period"]): item for item in assignments}
 
-        table = Table(table_data, colWidths=[78, 52, 150, 130, 130])
+        table_data = [["Day", *[f"Period {period}" for period in range(1, periods + 1)]]]
+        for day in days:
+            row = [day]
+            for period in range(1, periods + 1):
+                item = by_slot.get((day, period))
+                if not item:
+                    row.append(Paragraph("-", slot_style))
+                    continue
+                row.append(Paragraph(
+                    "<b>{subject}</b><br/>{section}<br/>{room}".format(
+                        subject=escape(item["subject_name"]),
+                        section=escape(item.get("section_name") or ""),
+                        room=escape(item.get("room_name") or ""),
+                    ),
+                    slot_style,
+                ))
+            table_data.append(row)
+
+        day_width = 70
+        period_width = max(82, int((735 - day_width) / periods))
+        table = Table(table_data, colWidths=[day_width, *([period_width] * periods)], repeatRows=1)
         table.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d5d4f")),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#173f35")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-            ("ALIGN", (0, 0), (1, -1), "CENTER"),
-            ("ALIGN", (2, 1), (-1, -1), "LEFT"),
+            ("ALIGN", (0, 0), (-1, 0), "CENTER"),
+            ("ALIGN", (0, 1), (0, -1), "LEFT"),
+            ("ALIGN", (1, 1), (-1, -1), "LEFT"),
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f7f9f8")]),
+            ("BACKGROUND", (0, 1), (0, -1), colors.HexColor("#eef2f6")),
+            ("BACKGROUND", (1, 1), (-1, -1), colors.HexColor("#ffffff")),
             ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#d7ddd9")),
-            ("FONTSIZE", (0, 0), (-1, -1), 9),
-            ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-            ("TOPPADDING", (0, 0), (-1, -1), 7),
+            ("FONTSIZE", (0, 0), (-1, 0), 8),
+            ("FONTSIZE", (0, 1), (0, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("LEFTPADDING", (0, 0), (-1, -1), 7),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 7),
         ]))
         story.append(table)
         doc.build(story)

@@ -14,6 +14,8 @@ import TimetableGrid from '../../../components/ui/TimetableGrid';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import SolverBottleneckHeatmap from '../../../components/ui/SolverBottleneckHeatmap';
 import { Link, useLocation } from 'react-router-dom';
+import ExportButton from '../../exports/ExportButton';
+import { buildExportDataFromScheduledSlots } from '../../exports/buildExportData';
 
 export default function TimetablePage() {
   const { organizationId } = useAuth();
@@ -54,10 +56,21 @@ export default function TimetablePage() {
 
   const activeVersion = versions?.find((v) => v.id === selectedVersionId);
 
-  const handleExport = () => {
-    if (!activeVersion) return;
-    alert(`Exporting Version ${activeVersion.version_number} to Excel/PDF format...`);
-  };
+  const exportData = timetable && activeVersion ? buildExportDataFromScheduledSlots({
+    assignments: timetable.assignments,
+    teachers,
+    rooms,
+    subjects,
+    sections,
+    organization: organization || null,
+    meta: {
+      title: 'Weekly Schedule',
+      subtitle: 'Full institutional timetable',
+      organizationName: organization?.name || 'SlotForge Institution',
+      scheduleLabel: `Version ${activeVersion.version_number} (${activeVersion.status})`,
+      filename: `schedule-v${activeVersion.version_number}`,
+    },
+  }) : null;
 
   return (
     <div className="space-y-6">
@@ -66,17 +79,7 @@ export default function TimetablePage() {
         title="Weekly Schedule"
         subtitle="View and verify generated timetables across sections, teachers, and rooms"
         actions={
-          activeVersion && (
-            <button
-              onClick={handleExport}
-              className="px-4 py-2.5 bg-paper-raised text-primary border-2 border-rule text-sm font-semibold rounded-lg hover:bg-accent-soft transition-colors flex items-center gap-2"
-            >
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                download
-              </span>
-              Export Schedule
-            </button>
-          )
+          activeVersion && <ExportButton data={exportData} />
         }
       />
 

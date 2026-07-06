@@ -1,7 +1,8 @@
 import { Link, useParams } from 'react-router-dom';
-import api from '../../lib/api';
 import { usePublicFacultyShare } from '../../hooks/useApi';
 import FacultyTimetableView from './FacultyTimetableView';
+import ExportButton from '../exports/ExportButton';
+import { buildExportDataFromFacultyAssignments } from '../exports/buildExportData';
 
 function versionText(version: { version_label: string; version_number: number | null; status: string } | null) {
   if (!version) return 'Unversioned';
@@ -11,19 +12,17 @@ function versionText(version: { version_label: string; version_number: number | 
 export default function PublicSharePage() {
   const { token } = useParams();
   const { data, loading, error } = usePublicFacultyShare(token);
-
-  const downloadPdf = async () => {
-    if (!token) return;
-    const response = await api.get(`/api/v1/share/faculty/${token}/pdf`, { responseType: 'blob' });
-    const blobUrl = URL.createObjectURL(response.data);
-    const link = document.createElement('a');
-    link.href = blobUrl;
-    link.download = `${data?.faculty.name || 'faculty'}-timetable.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(blobUrl);
-  };
+  const exportData = data && !data.is_expired ? buildExportDataFromFacultyAssignments({
+    assignments: data.assignments,
+    meta: {
+      title: `${data.faculty.name} Weekly Timetable`,
+      subtitle: data.organization.name,
+      organizationName: data.organization.name,
+      scheduleLabel: versionText(data.schedule_version),
+      generatedAt: data.published_at,
+      filename: `${data.faculty.name}-timetable`,
+    },
+  }) : null;
 
   return (
     <main className="min-h-screen bg-paper px-4 py-5 sm:px-6 lg:px-8">
@@ -79,14 +78,7 @@ export default function PublicSharePage() {
                     Weekly timetable · {versionText(data.schedule_version)} · Published {new Date(data.published_at).toLocaleDateString()}
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={downloadPdf}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary hover:bg-primary-container"
-                >
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>download</span>
-                  Download PDF
-                </button>
+                <ExportButton data={exportData} pdfOnly />
               </div>
             </section>
 

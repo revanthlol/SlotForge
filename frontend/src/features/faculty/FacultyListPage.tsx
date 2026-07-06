@@ -16,6 +16,8 @@ import {
 import FacultyCard from './FacultyCard';
 import FacultyTimetableView from './FacultyTimetableView';
 import ShareLinkPanel from './ShareLinkPanel';
+import ExportButton from '../exports/ExportButton';
+import { buildExportDataFromFacultyAssignments } from '../exports/buildExportData';
 
 const resourceTypeByPreset: Record<string, string> = {
   academic: 'teacher',
@@ -84,6 +86,19 @@ export default function FacultyListPage() {
     }
     return map;
   }, [selectedFacultyId, timetable]);
+
+  const exportData = selectedFaculty && selectedRun ? buildExportDataFromFacultyAssignments({
+    assignments: timetable || [],
+    organization: organization || null,
+    meta: {
+      title: `${selectedFaculty.name} Weekly Timetable`,
+      subtitle: 'Faculty schedule distribution copy',
+      organizationName: organization?.name || 'SlotForge Institution',
+      scheduleLabel: `Run ${selectedRun.id.slice(0, 8)}`,
+      generatedAt: selectedRun.created_at,
+      filename: `${selectedFaculty.name}-timetable`,
+    },
+  }) : null;
 
   const generateRun = async () => {
     if (!workspaceId) return;
@@ -223,6 +238,9 @@ export default function FacultyListPage() {
         </section>
 
         <aside className="col-span-12 lg:col-span-12 xl:col-span-3">
+          <div className="mb-4 flex justify-end">
+            <ExportButton data={exportData} align="right" />
+          </div>
           <ShareLinkPanel workspaceId={workspaceId || null} faculty={selectedFaculty} activeRun={selectedRun} />
         </aside>
       </div>
