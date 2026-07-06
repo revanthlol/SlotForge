@@ -10,6 +10,7 @@ from app.models.location import Location
 from app.models.timeslot import TimeSlot
 from app.models.schedule_version import ScheduleVersion
 from app.models.schedule_run import ScheduleRun
+from app.models.faculty_share_link import FacultyShareLink
 from app.models.onboarding_progress import OnboardingProgress
 from app.models.assignment import Assignment, AssignmentResource, AssignmentLocation
 from app.models.constraint_rule import ConstraintRule
@@ -38,6 +39,7 @@ __all__ = [
     "TimeSlot",
     "ScheduleVersion",
     "ScheduleRun",
+    "FacultyShareLink",
     "OnboardingProgress",
     "Assignment",
     "AssignmentResource",

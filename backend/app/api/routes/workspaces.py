@@ -1,10 +1,11 @@
 import uuid
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 
 from app.core.auth import get_current_user_profile, require_org_admin
 from app.core.db import get_db
+from app.models.faculty_share_link import FacultyShareLink
 from app.models.profile import Profile
 from app.models.workspace import SchedulingWorkspace
 from app.models.onboarding_progress import OnboardingProgress
@@ -19,7 +20,11 @@ from app.models.subject import Subject
 from app.models.section import Section
 from app.models.room import Room
 from app.schemas.onboarding import OnboardingProgressResponse, OnboardingProgressUpdate, PreflightCheckResponse, PreflightWarning
+from app.schemas.faculty_share import FacultyShareLinkCreate, FacultyShareLinkResponse
+from app.schemas.resource import ResourceResponse
+from app.schemas.schedule_run import ScheduleRunResponse
 from app.schemas.workspace import WorkspaceResponse, WorkspaceUpdate
+from app.services.faculty_share_service import FacultyShareService
 from app.services.timetable_service import TimetableService
 
 router = APIRouter()
@@ -86,6 +91,49 @@ def _get_or_create_progress(workspace: SchedulingWorkspace, db: Session) -> Onbo
 
 def _progress_schema(progress: OnboardingProgress) -> OnboardingProgressResponse:
     return OnboardingProgressResponse.model_validate(progress)
+
+
+def _resource_schema(resource: Resource) -> dict:
+    return {
+        "id": resource.id,
+        "organization_id": resource.organization_id,
+        "workspace_id": resource.workspace_id,
+        "name": resource.name,
+        "resource_type": resource.resource_type,
+        "metadata": resource.resource_metadata,
+        "availability": resource.availability,
+        "max_hours_per_week": resource.max_hours_per_week,
+        "created_at": resource.created_at,
+    }
+
+
+def _require_workspace_resource(
+    db: Session,
+    workspace: SchedulingWorkspace,
+    resource_id: str,
+) -> Resource:
+    resource_uuid = _parse_uuid(resource_id, "resource_id")
+    resource = db.query(Resource).filter(
+        Resource.id == resource_uuid,
+        Resource.workspace_id == workspace.id,
+        Resource.organization_id == workspace.organization_id,
+    ).first()
+    if not resource:
+        raise HTTPException(status_code=404, detail="Faculty resource not found")
+    return resource
+
+
+def _require_successful_run(db: Session, workspace: SchedulingWorkspace, schedule_run_id: uuid.UUID) -> ScheduleRun:
+    run = db.query(ScheduleRun).filter(
+        ScheduleRun.id == schedule_run_id,
+        ScheduleRun.workspace_id == workspace.id,
+        ScheduleRun.organization_id == workspace.organization_id,
+    ).first()
+    if not run:
+        raise HTTPException(status_code=404, detail="Schedule run not found")
+    if run.status != "success" or not run.schedule_version_id:
+        raise HTTPException(status_code=409, detail="Only successful schedule runs can be shared")
+    return run
 
 
 @router.get("/{id}/onboarding/progress", response_model=OnboardingProgressResponse)
@@ -214,6 +262,35 @@ def trigger_schedule_run(
         
     return result
 
+@router.get("/{id}/resources", response_model=list[ResourceResponse])
+def list_workspace_resources(
+    id: str,
+    type: str | None = Query(None),
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db),
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    query = db.query(Resource).filter(
+        Resource.workspace_id == workspace.id,
+        Resource.organization_id == current_user.organization_id,
+    )
+    if type:
+        query = query.filter(Resource.resource_type == type)
+    resources = query.order_by(Resource.name.asc()).all()
+    return [_resource_schema(resource) for resource in resources]
+
+@router.get("/{id}/schedule-runs/", response_model=list[ScheduleRunResponse])
+def list_schedule_runs(
+    id: str,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db),
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    return db.query(ScheduleRun).filter(
+        ScheduleRun.workspace_id == workspace.id,
+        ScheduleRun.organization_id == current_user.organization_id,
+    ).order_by(ScheduleRun.created_at.desc()).all()
+
 @router.get("/{id}/schedule-runs/{run_id}/assignments")
 def get_run_assignments(
     id: str,
@@ -312,14 +389,97 @@ def get_run_faculty_timetable(
         
     if not run.schedule_version_id:
         return []
-        
-    from app.models.assignment import AssignmentResource
-    slots = db.query(SlotModel).join(AssignmentResource, SlotModel.id == AssignmentResource.assignment_id).filter(
-        SlotModel.schedule_version_id == run.schedule_version_id,
-        AssignmentResource.resource_id == res_uuid
+
+    resource = db.query(Resource).filter(
+        Resource.id == res_uuid,
+        Resource.workspace_id == ws_uuid,
+        Resource.organization_id == current_user.organization_id,
+    ).first()
+    if not resource:
+        raise HTTPException(status_code=404, detail="Faculty resource not found")
+
+    return FacultyShareService.faculty_assignments(db, run.schedule_version_id, resource.id)
+
+@router.get("/{id}/faculty/{resource_id}/share-links", response_model=list[FacultyShareLinkResponse])
+def list_faculty_share_links(
+    id: str,
+    resource_id: str,
+    request: Request,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db),
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    resource = _require_workspace_resource(db, workspace, resource_id)
+    links = db.query(FacultyShareLink).filter(
+        FacultyShareLink.workspace_id == workspace.id,
+        FacultyShareLink.resource_id == resource.id,
+    ).order_by(FacultyShareLink.created_at.desc()).all()
+    return [FacultyShareService.link_schema(link, request) for link in links]
+
+@router.post("/{id}/faculty/{resource_id}/share-link", response_model=FacultyShareLinkResponse, status_code=201)
+def create_faculty_share_link(
+    id: str,
+    resource_id: str,
+    payload: FacultyShareLinkCreate,
+    request: Request,
+    current_user: Profile = Depends(require_org_admin),
+    db: Session = Depends(get_db),
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    resource = _require_workspace_resource(db, workspace, resource_id)
+    run = _require_successful_run(db, workspace, payload.schedule_run_id)
+
+    active_links = db.query(FacultyShareLink).filter(
+        FacultyShareLink.workspace_id == workspace.id,
+        FacultyShareLink.resource_id == resource.id,
+        FacultyShareLink.is_active.is_(True),
     ).all()
-    
-    return [TimetableService._slot_schema(sc) for sc in slots]
+    for link in active_links:
+        link.is_active = False
+        link.revoked_at = datetime.utcnow()
+
+    token = str(uuid.uuid4())
+    while db.query(FacultyShareLink).filter(FacultyShareLink.token == token).first():
+        token = str(uuid.uuid4())
+
+    link = FacultyShareLink(
+        token=token,
+        organization_id=workspace.organization_id,
+        workspace_id=workspace.id,
+        resource_id=resource.id,
+        schedule_run_id=run.id,
+        created_by=current_user.id,
+        expires_at=payload.expires_at,
+        is_active=True,
+    )
+    db.add(link)
+    db.commit()
+    db.refresh(link)
+    return FacultyShareService.link_schema(link, request)
+
+@router.delete("/{id}/faculty/{resource_id}/share-link/{link_id}", status_code=204)
+def revoke_faculty_share_link(
+    id: str,
+    resource_id: str,
+    link_id: str,
+    current_user: Profile = Depends(require_org_admin),
+    db: Session = Depends(get_db),
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    resource = _require_workspace_resource(db, workspace, resource_id)
+    link_uuid = _parse_uuid(link_id, "link_id")
+    link = db.query(FacultyShareLink).filter(
+        FacultyShareLink.id == link_uuid,
+        FacultyShareLink.workspace_id == workspace.id,
+        FacultyShareLink.resource_id == resource.id,
+    ).first()
+    if not link:
+        raise HTTPException(status_code=404, detail="Share link not found")
+
+    link.is_active = False
+    link.revoked_at = datetime.utcnow()
+    db.commit()
+    return None
 
 @router.get("/", response_model=list[WorkspaceResponse])
 def list_workspaces(
@@ -356,4 +516,3 @@ def update_workspace(
     db.commit()
     db.refresh(workspace)
     return workspace
-

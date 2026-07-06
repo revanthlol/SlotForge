@@ -18,6 +18,7 @@ const resourceLinks: SidebarLink[] = [
 const primaryLinks: SidebarLink[] = [
   { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
   { label: 'Timetable', path: '/timetable', icon: 'calendar_month' },
+  { label: 'Faculty', path: '/faculty', icon: 'badge' },
   { label: 'Canvas View', path: '/canvas', icon: 'hub' },
   { label: 'Solver Engine', path: '/solver', icon: 'precision_manufacturing' },
   { label: 'Version History', path: '/versions', icon: 'history' },

@@ -18,6 +18,8 @@ import VersionHistoryPage from '../features/versions/pages/VersionHistoryPage';
 import SettingsPage from '../features/settings/pages/SettingsPage';
 import ProfilePage from '../features/settings/pages/ProfilePage';
 import OnboardingPage from '../features/onboarding/pages/OnboardingPage';
+import FacultyListPage from '../features/faculty/FacultyListPage';
+import PublicSharePage from '../features/faculty/PublicSharePage';
 
 function LoadingRouteState() {
   return (
@@ -75,6 +77,7 @@ export default function AppRouter() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<PublicAuthRoute><LoginPage /></PublicAuthRoute>} />
       <Route path="/signup" element={<PublicAuthRoute><SignupPage /></PublicAuthRoute>} />
+      <Route path="/share/faculty/:token" element={<PublicSharePage />} />
 
       <Route
         element={
@@ -95,6 +98,8 @@ export default function AppRouter() {
           <Route path="sections" element={<SectionsPage />} />
         </Route>
         <Route path="/timetable" element={<TimetablePage />} />
+        <Route path="/faculty" element={<FacultyListPage />} />
+        <Route path="/workspace/:workspaceId/faculty" element={<FacultyListPage />} />
         <Route path="/canvas" element={<CanvasViewPage />} />
         <Route path="/solver" element={<SolverEnginePage />} />
         <Route path="/versions" element={<VersionHistoryPage />} />

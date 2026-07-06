@@ -1,0 +1,109 @@
+import { Link, useParams } from 'react-router-dom';
+import api from '../../lib/api';
+import { usePublicFacultyShare } from '../../hooks/useApi';
+import FacultyTimetableView from './FacultyTimetableView';
+
+function versionText(version: { version_label: string; version_number: number | null; status: string } | null) {
+  if (!version) return 'Unversioned';
+  return version.version_number ? `v${version.version_number}` : version.version_label;
+}
+
+export default function PublicSharePage() {
+  const { token } = useParams();
+  const { data, loading, error } = usePublicFacultyShare(token);
+
+  const downloadPdf = async () => {
+    if (!token) return;
+    const response = await api.get(`/api/v1/share/faculty/${token}/pdf`, { responseType: 'blob' });
+    const blobUrl = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = `${data?.faculty.name || 'faculty'}-timetable.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(blobUrl);
+  };
+
+  return (
+    <main className="min-h-screen bg-paper px-4 py-5 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl">
+        <header className="mb-5 flex flex-wrap items-center justify-between gap-4 border-b-2 border-rule pb-5">
+          <Link to="/" className="flex items-center gap-3" aria-label="SlotForge">
+            <img src="/logo/logo-symbol.svg" alt="" className="h-9 w-9" />
+            <div>
+              <div className="text-sm font-semibold text-on-surface">SlotForge</div>
+              <div className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>Faculty share</div>
+            </div>
+          </Link>
+          <div className="rounded-lg border border-rule bg-paper-raised px-3 py-2 text-data-table text-mono-grey">
+            Powered by SlotForge
+          </div>
+        </header>
+
+        {loading ? (
+          <div className="rounded-xl border-2 border-rule bg-paper-raised p-12 text-center text-sm text-mono-grey">
+            Loading shared timetable...
+          </div>
+        ) : error || !data ? (
+          <div className="rounded-xl border-2 border-rule bg-paper-raised p-12 text-center">
+            <span className="material-symbols-outlined text-outline-variant" style={{ fontSize: 42 }}>link_off</span>
+            <h1 className="mt-3 text-headline-sm text-on-surface">Share link unavailable</h1>
+            <p className="mx-auto mt-2 max-w-md text-body-sm text-on-surface-variant">
+              This faculty timetable link may have been revoked or does not exist.
+            </p>
+          </div>
+        ) : data.is_expired ? (
+          <div className="rounded-xl border-2 border-rule bg-paper-raised p-12 text-center">
+            <span className="material-symbols-outlined text-secondary" style={{ fontSize: 42 }}>event_busy</span>
+            <h1 className="mt-3 text-headline-sm text-on-surface">This link has expired</h1>
+            <p className="mx-auto mt-2 max-w-md text-body-sm text-on-surface-variant">
+              {data.message || 'Ask your timetable administrator for a fresh share link.'}
+            </p>
+            {data.expires_at && (
+              <p className="mt-4 text-data-table text-mono-grey">Expired {new Date(data.expires_at).toLocaleString()}</p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-5">
+            <section className="rounded-xl border-2 border-rule bg-paper-raised p-inset-standard">
+              <div className="flex flex-wrap items-start justify-between gap-5">
+                <div>
+                  <p className="text-label-caps text-mono-grey" style={{ fontSize: 10 }}>
+                    {data.organization.name}
+                  </p>
+                  <h1 className="mt-2 text-display-lg text-on-surface" style={{ fontSize: 42 }}>
+                    {data.faculty.name}
+                  </h1>
+                  <p className="mt-2 text-body-sm text-on-surface-variant">
+                    Weekly timetable · {versionText(data.schedule_version)} · Published {new Date(data.published_at).toLocaleDateString()}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={downloadPdf}
+                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-on-primary hover:bg-primary-container"
+                >
+                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>download</span>
+                  Download PDF
+                </button>
+              </div>
+            </section>
+
+            <FacultyTimetableView
+              facultyName={`${data.faculty.name} - Weekly Timetable`}
+              assignments={data.assignments}
+              compact
+              versionLabel={versionText(data.schedule_version)}
+              publishedAt={data.published_at}
+            />
+
+            <footer className="border-t-2 border-rule py-5 text-center text-data-table text-mono-grey">
+              Generated by SlotForge 2.0 · Schedule Version: {versionText(data.schedule_version)} · Published {new Date(data.published_at).toLocaleDateString()}
+            </footer>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}

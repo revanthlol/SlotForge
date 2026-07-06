@@ -86,7 +86,7 @@ def health_db(db: Session = Depends(get_db)):
 
 
 # Route modules get included here as they're built (Phase 2 onward):
-from app.api.routes import auth, organizations, teachers, rooms, subjects, sections, constraints, timetables, exports, assignments, workspaces, presets
+from app.api.routes import auth, organizations, teachers, rooms, subjects, sections, constraints, timetables, exports, assignments, workspaces, presets, share
 
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
@@ -101,3 +101,4 @@ app.include_router(exports.router, prefix="/timetables", tags=["exports"])
 app.include_router(assignments.router, prefix="/assignments", tags=["assignments"])
 app.include_router(workspaces.router, prefix="/api/v1/workspaces", tags=["workspaces"])
 app.include_router(presets.router, prefix="/api/v1/presets", tags=["presets"])
+app.include_router(share.router, prefix="/api/v1/share", tags=["share"])
