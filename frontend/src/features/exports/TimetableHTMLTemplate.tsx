@@ -1,5 +1,6 @@
 import type { ExportTimetableData } from './types';
 import { colorMix } from '../../lib/subjectColors';
+import { safeSubjectColor } from '../../lib/timetableVisuals';
 import { dayLabel, escapeHTML, normalizeExportData } from './utils';
 
 export const exportCSS = `
@@ -123,13 +124,9 @@ export const exportCSS = `
   }
 `;
 
-function safeHexColor(value?: string | null) {
-  return /^#[0-9a-f]{6}$/i.test(value || '') ? value as string : '#0d5d4a';
-}
-
 function renderSlot(cell?: ExportTimetableData['cells'][number]) {
   if (!cell) return '<div class="empty-slot">-</div>';
-  const color = safeHexColor(cell.color);
+  const color = safeSubjectColor(cell.color, cell.subject || cell.id);
   const duration = cell.duration > 1 ? `${cell.duration} periods` : '';
   return `
     <div class="slot-card" style="background:${colorMix(color, 0.15)}; border-color:${colorMix(color, 0.38)}; box-shadow:inset 4px 0 0 ${color};">

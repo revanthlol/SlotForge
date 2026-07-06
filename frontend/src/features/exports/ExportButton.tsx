@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { exportAsDOCX } from './exportDOCX';
 import { exportAsCSV, exportAsExcel } from './exportExcel';
 import { exportToGoogleDocs } from './exportGoogleDocs';
@@ -107,7 +108,7 @@ export default function ExportButton({ data, pdfOnly = false, align = 'right' }:
         {!pdfOnly && <span className="material-symbols-outlined" style={{ fontSize: 18 }}>expand_more</span>}
       </button>
 
-      {open && (
+      {open && createPortal(
         <div
           ref={menuRef}
           className="fixed z-[1000] w-64 overflow-hidden rounded-xl border-2 border-rule bg-paper-raised shadow-2xl"
@@ -130,7 +131,8 @@ export default function ExportButton({ data, pdfOnly = false, align = 'right' }:
               {error}
             </div>
           )}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

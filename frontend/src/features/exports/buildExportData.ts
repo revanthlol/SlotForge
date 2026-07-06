@@ -1,5 +1,6 @@
 import type { FacultyAssignment, Organization, Room, ScheduledSlot, Section, Subject, Teacher } from '../../hooks/useApi';
 import { getSubjectColor, hashSubjectColor } from '../../lib/subjectColors';
+import { fallbackSubjectColor, safeSubjectColor } from '../../lib/timetableVisuals';
 import type { ExportCell, ExportTimetableData, ExportMeta } from './types';
 import { cleanFilename, inferDays } from './utils';
 
@@ -72,7 +73,9 @@ export function buildExportDataFromFacultyAssignments(options: BuildFromFacultyO
     period: slot.period,
     duration: slot.duration_periods || 1,
     subject: slot.subject_name || 'Class',
-    color: slot.subject_color || hashSubjectColor(slot.subject_id || slot.subject_name || slot.id),
+    color: slot.subject_color
+      ? safeSubjectColor(slot.subject_color, slot.subject_name || slot.subject_id || slot.id)
+      : fallbackSubjectColor(slot.subject_name, slot.subject_id || slot.id),
     section: slot.section_name || '',
     teacher: slot.teacher_name || '',
     room: slot.room_name || '',

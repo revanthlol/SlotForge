@@ -1,5 +1,11 @@
 import type { FacultyAssignment, Organization } from '../../hooks/useApi';
-import { colorMix, hashSubjectColor } from '../../lib/subjectColors';
+import {
+  fallbackSubjectColor,
+  safeSubjectColor,
+  timetableCardStyle,
+  timetableDividerStyle,
+  timetableLabelStyle,
+} from '../../lib/timetableVisuals';
 
 interface FacultyTimetableViewProps {
   facultyName: string;
@@ -60,9 +66,9 @@ function subjectCode(name?: string) {
 }
 
 function assignmentColor(slot: FacultyAssignment) {
-  return /^#[0-9a-f]{6}$/i.test(slot.subject_color || '')
-    ? slot.subject_color as string
-    : hashSubjectColor(slot.subject_id || slot.subject_name || slot.id);
+  return slot.subject_color
+    ? safeSubjectColor(slot.subject_color, slot.subject_name || slot.subject_id || slot.id)
+    : fallbackSubjectColor(slot.subject_name, slot.subject_id || slot.id);
 }
 
 export default function FacultyTimetableView({
@@ -153,14 +159,13 @@ export default function FacultyTimetableView({
                 <div key={slot.id} className="min-h-24 border-b border-r border-rule p-2" style={style}>
                   <div
                     className="flex h-full flex-col justify-between rounded-lg border p-3 text-on-surface"
-                    style={{
-                      background: colorMix(subjectColor, 0.15),
-                      borderColor: colorMix(subjectColor, 0.34),
-                      boxShadow: `inset 4px 0 0 ${subjectColor}`,
-                    }}
+                    style={timetableCardStyle(subjectColor)}
                   >
                     <div>
-                      <div className="text-[12px] font-black" style={{ fontFamily: 'var(--font-mono)', color: subjectColor }}>
+                      <div
+                        className="inline-flex rounded border px-1.5 py-0.5 text-[11px] font-black"
+                        style={{ ...timetableLabelStyle(subjectColor), fontFamily: 'var(--font-mono)' }}
+                      >
                         {subjectCode(slot.subject_name)}
                       </div>
                       <div className="mt-1 line-clamp-2 text-sm font-semibold leading-snug">
@@ -169,7 +174,7 @@ export default function FacultyTimetableView({
                     </div>
                     <div
                       className="mt-3 space-y-1 border-t pt-2 text-[11px] text-on-surface-variant"
-                      style={{ borderColor: colorMix(subjectColor, 0.24) }}
+                      style={timetableDividerStyle(subjectColor)}
                     >
                       <div className="truncate">{slot.section_name || 'Unassigned section'}</div>
                       <div className="truncate">{slot.room_name || 'Unassigned room'}</div>

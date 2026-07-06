@@ -3,7 +3,8 @@ import type { ScheduledSlot, Teacher, Room, Subject, Section, Organization } fro
 import api from '../../lib/api';
 import ConfirmModal from './ConfirmModal';
 import Modal from './Modal';
-import { colorMix, getSubjectColor, readableTextColor } from '../../lib/subjectColors';
+import { getSubjectColor } from '../../lib/subjectColors';
+import { timetableCardStyle, timetableDividerStyle, timetableLabelStyle, timetablePillStyle } from '../../lib/timetableVisuals';
 
 interface TimetableGridProps {
   timetableId: string;
@@ -220,7 +221,6 @@ export default function TimetableGrid({
   const renderSlot = (slot: ScheduledSlot) => {
     const subject = subjectMap.get(slot.subject_id);
     const subjectColor = subject ? getSubjectColor(subject) : '#64748b';
-    const textColor = readableTextColor(subjectColor);
     const duration = Math.min(slot.duration_periods || 1, periodsPerDay - slot.period + 1);
     const isPending = pendingSlotId === slot.id;
 
@@ -235,33 +235,32 @@ export default function TimetableGrid({
           setDraggingId(slot.id);
         }}
         onDragEnd={() => setDraggingId(null)}
-        className={`group h-full rounded-lg border p-3.5 shadow-sm transition-all ${
+        className={`group h-full rounded-lg border p-3.5 text-on-surface transition-all ${
           editable && !isPending ? 'cursor-grab active:cursor-grabbing hover:-translate-y-0.5 hover:shadow-md' : ''
         } ${draggingId === slot.id ? 'opacity-45 ring-2 ring-primary' : ''}`}
-        style={{
-          background: `linear-gradient(135deg, ${subjectColor}, ${colorMix(subjectColor, 0.74)})`,
-          borderColor: subjectColor,
-          color: textColor,
-        }}
+        style={timetableCardStyle(subjectColor)}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="truncate text-[13px] font-black" style={{ fontFamily: 'var(--font-mono)', letterSpacing: 0 }}>
+            <div
+              className="inline-flex max-w-full rounded border px-1.5 py-0.5 text-[11px] font-black"
+              style={{ ...timetableLabelStyle(subjectColor), fontFamily: 'var(--font-mono)', letterSpacing: 0 }}
+            >
               {subjectCode(subject?.name)}
             </div>
-            <div className="mt-1 line-clamp-2 text-[13px] font-semibold leading-snug" style={{ color: textColor }}>
+            <div className="mt-2 line-clamp-2 text-[13px] font-semibold leading-snug text-on-surface">
               {subject?.name || 'Unknown Subject'}
             </div>
           </div>
           <span
-            className="shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-black"
-            style={{ borderColor: 'rgba(255,255,255,0.38)', background: 'rgba(255,255,255,0.2)', color: textColor }}
+            className="shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-black shadow-sm"
+            style={timetablePillStyle(subjectColor)}
           >
             {duration}h
           </span>
         </div>
 
-        <div className="mt-2 grid gap-1 border-t pt-2 text-[11px]" style={{ borderColor: 'rgba(255,255,255,0.28)', color: textColor }}>
+        <div className="mt-2 grid gap-1 border-t pt-2 text-[11px] text-on-surface-variant" style={timetableDividerStyle(subjectColor)}>
           <span className="truncate">{teacherMap.get(slot.teacher_id) || 'Unknown Teacher'}</span>
           <span className="truncate">{roomMap.get(slot.room_id) || 'Unknown Room'}</span>
           {viewType !== 'section' && <span className="truncate">{sectionMap.get(slot.section_id) || 'Unknown Section'}</span>}
