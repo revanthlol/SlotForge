@@ -1,5 +1,6 @@
 import type { ExportTimetableData } from './types';
-import { buildGridRows, dayLabel, escapeHTML, normalizeExportData } from './utils';
+import { colorMix } from '../../lib/subjectColors';
+import { dayLabel, escapeHTML, normalizeExportData } from './utils';
 
 export const exportCSS = `
   :root { color-scheme: light; }
@@ -90,7 +91,6 @@ export const exportCSS = `
     color: #14221e;
   }
   .slot-subject {
-    color: #0d5d4a;
     font-weight: 800;
     margin-bottom: 8px;
   }
@@ -123,16 +123,21 @@ export const exportCSS = `
   }
 `;
 
-function renderSlot(content: string) {
-  if (!content) return '<div class="empty-slot">-</div>';
-  const [subject, section, teacher, room, duration] = content.split('\n');
+function safeHexColor(value?: string | null) {
+  return /^#[0-9a-f]{6}$/i.test(value || '') ? value as string : '#0d5d4a';
+}
+
+function renderSlot(cell?: ExportTimetableData['cells'][number]) {
+  if (!cell) return '<div class="empty-slot">-</div>';
+  const color = safeHexColor(cell.color);
+  const duration = cell.duration > 1 ? `${cell.duration} periods` : '';
   return `
-    <div class="slot-card">
-      <div class="slot-subject">${escapeHTML(subject)}</div>
-      <div class="slot-line">
-        ${section ? `<div>${escapeHTML(section)}</div>` : ''}
-        ${teacher ? `<div>${escapeHTML(teacher)}</div>` : ''}
-        ${room ? `<div>${escapeHTML(room)}</div>` : ''}
+    <div class="slot-card" style="background:${colorMix(color, 0.15)}; border-color:${colorMix(color, 0.38)}; box-shadow:inset 4px 0 0 ${color};">
+      <div class="slot-subject" style="color:${color};">${escapeHTML(cell.subject)}</div>
+      <div class="slot-line" style="border-top-color:${colorMix(color, 0.24)};">
+        ${cell.section ? `<div>${escapeHTML(cell.section)}</div>` : ''}
+        ${cell.teacher ? `<div>${escapeHTML(cell.teacher)}</div>` : ''}
+        ${cell.room ? `<div>${escapeHTML(cell.room)}</div>` : ''}
         ${duration ? `<div>${escapeHTML(duration)}</div>` : ''}
       </div>
     </div>
@@ -141,9 +146,8 @@ function renderSlot(content: string) {
 
 export function renderTimetableBody(data: ExportTimetableData) {
   const normalized = normalizeExportData(data);
-  const rows = buildGridRows(normalized);
-  const header = rows[0];
-  const bodyRows = rows.slice(1);
+  const header = ['Day', ...Array.from({ length: normalized.periods }).map((_, index) => `Period ${index + 1}`)];
+  const slotByStart = new Map(normalized.cells.map((cell) => [`${cell.day}:${cell.period}`, cell]));
   return `
     <section class="export-page" id="slotforge-export-page">
       <header class="export-header">
@@ -164,12 +168,27 @@ export function renderTimetableBody(data: ExportTimetableData) {
           <tr>${header.map((cell) => `<th>${escapeHTML(cell)}</th>`).join('')}</tr>
         </thead>
         <tbody>
-          ${bodyRows.map((row) => `
+          ${normalized.days.map((day) => {
+            const covered = new Set<number>();
+            const periodCells: string[] = [];
+            for (let period = 1; period <= normalized.periods; period += 1) {
+              if (covered.has(period)) continue;
+              const cell = slotByStart.get(`${day}:${period}`);
+              if (!cell) {
+                periodCells.push(`<td>${renderSlot()}</td>`);
+                continue;
+              }
+              const span = Math.min(cell.duration || 1, normalized.periods - period + 1);
+              for (let offset = 1; offset < span; offset += 1) covered.add(period + offset);
+              periodCells.push(`<td${span > 1 ? ` colspan="${span}"` : ''}>${renderSlot(cell)}</td>`);
+            }
+            return `
             <tr>
-              <td class="day-cell">${escapeHTML(dayLabel(row[0]))}</td>
-              ${row.slice(1).map((cell) => `<td>${renderSlot(cell)}</td>`).join('')}
+              <td class="day-cell">${escapeHTML(dayLabel(day))}</td>
+              ${periodCells.join('')}
             </tr>
-          `).join('')}
+          `;
+          }).join('')}
         </tbody>
       </table>
 

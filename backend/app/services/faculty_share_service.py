@@ -3,6 +3,7 @@ import re
 import uuid
 from datetime import datetime
 from html import escape
+from urllib.parse import urlparse
 
 from fastapi import HTTPException, Request
 from reportlab.lib import colors
@@ -45,10 +46,32 @@ DAY_ORDER = {
 
 class FacultyShareService:
     @staticmethod
+    def _origin_candidates(*values: str | None) -> list[str]:
+        origins: list[str] = []
+        for value in values:
+            for origin in (value or "").split(","):
+                cleaned = origin.strip().rstrip("/")
+                if cleaned:
+                    origins.append(cleaned)
+        return origins
+
+    @staticmethod
+    def _is_local_origin(origin: str) -> bool:
+        hostname = urlparse(origin).hostname
+        return hostname in {"localhost", "127.0.0.1", "0.0.0.0", "::1"}
+
+    @staticmethod
     def public_base_url(request: Request | None = None) -> str:
-        configured = (settings.FRONTEND_ORIGIN or "").strip()
+        request_origin = request.headers.get("origin") if request else None
+        if request_origin and not FacultyShareService._is_local_origin(request_origin):
+            return request_origin.rstrip("/")
+
+        configured = FacultyShareService._origin_candidates(settings.FRONTEND_ORIGIN, settings.FRONTEND_ORIGINS)
+        public_configured = [origin for origin in configured if not FacultyShareService._is_local_origin(origin)]
+        if public_configured:
+            return public_configured[0]
         if configured:
-            return configured.rstrip("/")
+            return configured[0]
         if request:
             return str(request.base_url).rstrip("/")
         return ""
@@ -117,6 +140,7 @@ class FacultyShareService:
             item.update({
                 "section_name": group.name if group else None,
                 "subject_name": task.name,
+                "subject_color": task.color,
                 "teacher_name": teacher.name,
                 "room_name": room.name,
                 "room_assignments": room_assignments,

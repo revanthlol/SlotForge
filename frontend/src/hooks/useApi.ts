@@ -169,6 +169,7 @@ export interface FacultyRoomAssignment {
 export interface FacultyAssignment extends ScheduledSlot {
   section_name?: string | null;
   subject_name?: string;
+  subject_color?: string | null;
   teacher_name?: string;
   room_name?: string;
   room_assignments?: FacultyRoomAssignment[];

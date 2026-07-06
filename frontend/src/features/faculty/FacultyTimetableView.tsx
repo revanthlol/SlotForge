@@ -1,4 +1,5 @@
 import type { FacultyAssignment, Organization } from '../../hooks/useApi';
+import { colorMix, hashSubjectColor } from '../../lib/subjectColors';
 
 interface FacultyTimetableViewProps {
   facultyName: string;
@@ -56,6 +57,12 @@ function subjectCode(name?: string) {
   if (!name) return 'CLS';
   const code = name.split(/\s+/).filter(Boolean).map((part) => part[0]).join('');
   return (code || name).slice(0, 5).toUpperCase();
+}
+
+function assignmentColor(slot: FacultyAssignment) {
+  return /^#[0-9a-f]{6}$/i.test(slot.subject_color || '')
+    ? slot.subject_color as string
+    : hashSubjectColor(slot.subject_id || slot.subject_name || slot.id);
 }
 
 export default function FacultyTimetableView({
@@ -140,18 +147,30 @@ export default function FacultyTimetableView({
                 );
               }
 
+              const subjectColor = assignmentColor(slot);
+
               return (
                 <div key={slot.id} className="min-h-24 border-b border-r border-rule p-2" style={style}>
-                  <div className="flex h-full flex-col justify-between rounded-lg border border-primary/20 bg-accent-soft p-3 text-on-surface">
+                  <div
+                    className="flex h-full flex-col justify-between rounded-lg border p-3 text-on-surface"
+                    style={{
+                      background: colorMix(subjectColor, 0.15),
+                      borderColor: colorMix(subjectColor, 0.34),
+                      boxShadow: `inset 4px 0 0 ${subjectColor}`,
+                    }}
+                  >
                     <div>
-                      <div className="text-[12px] font-black text-primary" style={{ fontFamily: 'var(--font-mono)' }}>
+                      <div className="text-[12px] font-black" style={{ fontFamily: 'var(--font-mono)', color: subjectColor }}>
                         {subjectCode(slot.subject_name)}
                       </div>
                       <div className="mt-1 line-clamp-2 text-sm font-semibold leading-snug">
                         {slot.subject_name || 'Class'}
                       </div>
                     </div>
-                    <div className="mt-3 space-y-1 border-t border-primary/20 pt-2 text-[11px] text-on-surface-variant">
+                    <div
+                      className="mt-3 space-y-1 border-t pt-2 text-[11px] text-on-surface-variant"
+                      style={{ borderColor: colorMix(subjectColor, 0.24) }}
+                    >
                       <div className="truncate">{slot.section_name || 'Unassigned section'}</div>
                       <div className="truncate">{slot.room_name || 'Unassigned room'}</div>
                     </div>

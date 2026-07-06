@@ -17,7 +17,7 @@ export async function exportAsPDF(data: ExportTimetableData) {
     await document.fonts?.ready;
     const element = host.querySelector('#slotforge-export-page') as HTMLElement;
     const canvas = await html2canvas(element, {
-      scale: 2,
+      scale: 1.25,
       backgroundColor: '#fffdf8',
       useCORS: true,
       logging: false,
@@ -30,12 +30,12 @@ export async function exportAsPDF(data: ExportTimetableData) {
     const imgWidth = pageWidth - margin * 2;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
     const pageContentHeight = pageHeight - margin * 2;
-    const imgData = canvas.toDataURL('image/png');
+    const imgData = canvas.toDataURL('image/jpeg', 0.82);
 
     let remainingHeight = imgHeight;
     let y = margin;
     while (remainingHeight > 0) {
-      pdf.addImage(imgData, 'PNG', margin, y, imgWidth, imgHeight);
+      pdf.addImage(imgData, 'JPEG', margin, y, imgWidth, imgHeight, undefined, 'FAST');
       remainingHeight -= pageContentHeight;
       if (remainingHeight > 0) {
         pdf.addPage();

@@ -4,6 +4,7 @@ export interface ExportCell {
   period: number;
   duration: number;
   subject: string;
+  color?: string | null;
   section?: string | null;
   teacher?: string | null;
   room?: string | null;

@@ -1,4 +1,5 @@
 import type { FacultyAssignment, Organization, Room, ScheduledSlot, Section, Subject, Teacher } from '../../hooks/useApi';
+import { getSubjectColor, hashSubjectColor } from '../../lib/subjectColors';
 import type { ExportCell, ExportTimetableData, ExportMeta } from './types';
 import { cleanFilename, inferDays } from './utils';
 
@@ -35,18 +36,22 @@ function organizationDays(organization: Organization | null | undefined, cells: 
 export function buildExportDataFromScheduledSlots(options: BuildFromScheduledOptions): ExportTimetableData {
   const teacherMap = new Map(options.teachers.map((item) => [item.id, item.name]));
   const roomMap = new Map(options.rooms.map((item) => [item.id, item.name]));
-  const subjectMap = new Map(options.subjects.map((item) => [item.id, item.name]));
+  const subjectMap = new Map(options.subjects.map((item) => [item.id, item]));
   const sectionMap = new Map(options.sections.map((item) => [item.id, item.name]));
-  const cells: ExportCell[] = options.assignments.map((slot) => ({
-    id: slot.id,
-    day: slot.day,
-    period: slot.period,
-    duration: slot.duration_periods || 1,
-    subject: subjectMap.get(slot.subject_id) || 'Unknown subject',
-    section: sectionMap.get(slot.section_id) || 'Unknown section',
-    teacher: teacherMap.get(slot.teacher_id) || 'Unknown teacher',
-    room: roomMap.get(slot.room_id) || 'Unknown room',
-  }));
+  const cells: ExportCell[] = options.assignments.map((slot) => {
+    const subject = subjectMap.get(slot.subject_id);
+    return {
+      id: slot.id,
+      day: slot.day,
+      period: slot.period,
+      duration: slot.duration_periods || 1,
+      subject: subject?.name || 'Unknown subject',
+      color: subject ? getSubjectColor(subject) : hashSubjectColor(slot.subject_id || slot.id),
+      section: sectionMap.get(slot.section_id) || 'Unknown section',
+      teacher: teacherMap.get(slot.teacher_id) || 'Unknown teacher',
+      room: roomMap.get(slot.room_id) || 'Unknown room',
+    };
+  });
 
   return {
     meta: {
@@ -67,6 +72,7 @@ export function buildExportDataFromFacultyAssignments(options: BuildFromFacultyO
     period: slot.period,
     duration: slot.duration_periods || 1,
     subject: slot.subject_name || 'Class',
+    color: slot.subject_color || hashSubjectColor(slot.subject_id || slot.subject_name || slot.id),
     section: slot.section_name || '',
     teacher: slot.teacher_name || '',
     room: slot.room_name || '',

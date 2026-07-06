@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { exportAsDOCX } from './exportDOCX';
 import { exportAsCSV, exportAsExcel } from './exportExcel';
 import { exportToGoogleDocs } from './exportGoogleDocs';
@@ -27,7 +27,44 @@ export default function ExportButton({ data, pdfOnly = false, align = 'right' }:
   const [open, setOpen] = useState(false);
   const [busyFormat, setBusyFormat] = useState<ExportFormat | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0 });
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const options = pdfOnly ? allOptions.filter((option) => option.format === 'pdf') : allOptions;
+
+  const updateMenuPosition = useCallback(() => {
+    const rect = buttonRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const menuWidth = 256;
+    const rawLeft = align === 'right' ? rect.right - menuWidth : rect.left;
+    const left = Math.min(Math.max(12, rawLeft), window.innerWidth - menuWidth - 12);
+    setMenuPosition({ top: rect.bottom + 8, left });
+  }, [align]);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    updateMenuPosition();
+
+    const handleMouseDown = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (buttonRef.current?.contains(target) || menuRef.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+
+    document.addEventListener('mousedown', handleMouseDown);
+    document.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('resize', updateMenuPosition);
+    window.addEventListener('scroll', updateMenuPosition, true);
+    return () => {
+      document.removeEventListener('mousedown', handleMouseDown);
+      document.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('resize', updateMenuPosition);
+      window.removeEventListener('scroll', updateMenuPosition, true);
+    };
+  }, [open, updateMenuPosition]);
 
   const runExport = async (format: ExportFormat) => {
     if (!data) return;
@@ -52,12 +89,14 @@ export default function ExportButton({ data, pdfOnly = false, align = 'right' }:
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
         onClick={() => {
           if (pdfOnly) {
             runExport('pdf');
             return;
           }
+          updateMenuPosition();
           setOpen((current) => !current);
         }}
         disabled={!data || Boolean(busyFormat)}
@@ -70,10 +109,9 @@ export default function ExportButton({ data, pdfOnly = false, align = 'right' }:
 
       {open && (
         <div
-          className={[
-            'absolute z-50 mt-2 w-64 overflow-hidden rounded-xl border-2 border-rule bg-paper-raised shadow-xl',
-            align === 'right' ? 'right-0' : 'left-0',
-          ].join(' ')}
+          ref={menuRef}
+          className="fixed z-[1000] w-64 overflow-hidden rounded-xl border-2 border-rule bg-paper-raised shadow-2xl"
+          style={{ top: menuPosition.top, left: menuPosition.left }}
         >
           {options.map((option) => (
             <button
