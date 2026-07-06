@@ -14,14 +14,14 @@ export default function AppLayout() {
   }, [sidebarExpanded]);
 
   return (
-    <div className="app-shell min-h-screen">
+    <div className="app-shell h-screen overflow-hidden">
       <Sidebar expanded={sidebarExpanded} onToggle={() => setSidebarExpanded((expanded) => !expanded)} />
       <div
-        className={`transition-[margin] duration-200 ease-out ${sidebarExpanded ? 'ml-64' : 'ml-20'}`}
+        className={`flex h-screen min-w-0 flex-col overflow-hidden transition-[margin] duration-200 ease-out ${sidebarExpanded ? 'ml-64' : 'ml-20'}`}
         style={{ '--slotforge-sidebar-offset': sidebarExpanded ? '16rem' : '5rem' } as CSSProperties & Record<string, string>}
       >
         <TopBar />
-        <main className="app-main p-margin-page min-h-[calc(100vh-56px)]">
+        <main className="app-main min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-margin-page">
           <div key={location.pathname} className="route-transition">
             <Outlet />
           </div>
