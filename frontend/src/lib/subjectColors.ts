@@ -17,6 +17,27 @@ export const SUBJECT_PALETTE = [
   '#e11d48',
 ];
 
+const SUBJECT_NAME_COLORS: Record<string, string> = {
+  mathematics: '#2563eb',
+  math: '#2563eb',
+  physics: '#7c3aed',
+  chemistry: '#059669',
+  english: '#dc2626',
+  'computer science': '#d97706',
+  cs: '#d97706',
+  biology: '#0d9488',
+  history: '#b45309',
+  geography: '#0284c7',
+  economics: '#ca8a04',
+  commerce: '#0891b2',
+  hindi: '#c026d3',
+  sanskrit: '#9333ea',
+};
+
+function normalizeSubjectName(value?: string | null) {
+  return (value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
 export function hashSubjectColor(id: string) {
   let hash = 0;
   for (let index = 0; index < id.length; index += 1) {
@@ -25,8 +46,13 @@ export function hashSubjectColor(id: string) {
   return SUBJECT_PALETTE[Math.abs(hash) % SUBJECT_PALETTE.length];
 }
 
-export function getSubjectColor(subject: { id: string; color?: string | null }) {
-  return subject.color || hashSubjectColor(subject.id);
+export function getSubjectFallbackColor(id: string, name?: string | null) {
+  const namedColor = SUBJECT_NAME_COLORS[normalizeSubjectName(name)];
+  return namedColor || hashSubjectColor(id || name || 'subject');
+}
+
+export function getSubjectColor(subject: { id: string; name?: string | null; color?: string | null }) {
+  return subject.color || getSubjectFallbackColor(subject.id, subject.name);
 }
 
 export function hexToRgb(hex: string) {

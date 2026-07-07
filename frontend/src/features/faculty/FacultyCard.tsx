@@ -25,14 +25,14 @@ export default function FacultyCard({ faculty, selected, assignedPeriods, onSele
       className={[
         'group w-full rounded-xl border-2 p-4 text-left transition-all',
         selected
-          ? 'border-primary bg-accent-soft text-primary shadow-sm'
-          : 'border-rule bg-paper-raised text-on-surface hover:border-primary/40 hover:bg-surface-container-low',
+          ? 'border-on-background bg-surface-container-low text-on-surface shadow-sm'
+          : 'border-rule bg-paper-raised text-on-surface hover:border-outline-variant hover:bg-surface-container-low',
       ].join(' ')}
     >
       <div className="flex items-start gap-3">
         <div className={[
           'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-xs font-black',
-          selected ? 'border-primary/30 bg-paper-raised text-primary' : 'border-rule bg-accent-soft text-primary',
+          selected ? 'border-on-background bg-paper-raised text-on-surface' : 'border-rule bg-surface-container-low text-on-surface-variant',
         ].join(' ')}>
           {initials(faculty.name)}
         </div>

@@ -1,12 +1,12 @@
 import type { CSSProperties } from 'react';
-import { colorMix, hashSubjectColor, readableTextColor } from './subjectColors';
+import { colorMix, getSubjectFallbackColor, hashSubjectColor, readableTextColor } from './subjectColors';
 
 export function safeSubjectColor(value?: string | null, fallbackKey = 'subject') {
   return /^#[0-9a-f]{6}$/i.test(value || '') ? value as string : hashSubjectColor(fallbackKey);
 }
 
 export function fallbackSubjectColor(name?: string | null, id?: string | null) {
-  return hashSubjectColor(name || id || 'subject');
+  return getSubjectFallbackColor(id || name || 'subject', name);
 }
 
 export function timetableCardStyle(color: string): CSSProperties {
