@@ -26,6 +26,13 @@ from app.schemas.schedule_run import ScheduleRunResponse
 from app.schemas.workspace import WorkspaceResponse, WorkspaceUpdate
 from app.services.faculty_share_service import FacultyShareService
 from app.services.timetable_service import TimetableService
+from app.services.heatmap_service import HeatmapService
+from app.schemas.heatmap import (
+    SchedulingPressureReport,
+    ViolationReport,
+    ImpactAnalysisReport,
+    AssignmentExplanationReport
+)
 
 router = APIRouter()
 
@@ -516,3 +523,51 @@ def update_workspace(
     db.commit()
     db.refresh(workspace)
     return workspace
+
+
+@router.post("/{id}/heatmap/pressure", response_model=SchedulingPressureReport)
+def get_heatmap_pressure(
+    id: str,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    return HeatmapService.calculate_pressure_report(workspace.id, db)
+
+
+@router.get("/{id}/schedule-runs/{run_id}/heatmap/violations", response_model=ViolationReport)
+def get_heatmap_violations(
+    id: str,
+    run_id: str,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    run_uuid = _parse_uuid(run_id, "run_id")
+    return HeatmapService.calculate_violations_report(workspace.id, run_uuid, db)
+
+
+@router.post("/{id}/impact-analysis", response_model=ImpactAnalysisReport)
+def get_impact_analysis(
+    id: str,
+    payload: dict,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    return HeatmapService.calculate_impact_report(workspace.id, payload, db)
+
+
+@router.get("/{id}/schedule-runs/{run_id}/assignments/{assignment_id}/explanation", response_model=AssignmentExplanationReport)
+def get_assignment_explanation(
+    id: str,
+    run_id: str,
+    assignment_id: str,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    run_uuid = _parse_uuid(run_id, "run_id")
+    assignment_uuid = _parse_uuid(assignment_id, "assignment_id")
+    return HeatmapService.calculate_explanation_report(workspace.id, run_uuid, assignment_uuid, db)
+

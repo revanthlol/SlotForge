@@ -20,6 +20,7 @@ import ProfilePage from '../features/settings/pages/ProfilePage';
 import OnboardingPage from '../features/onboarding/pages/OnboardingPage';
 import FacultyListPage from '../features/faculty/FacultyListPage';
 import PublicSharePage from '../features/faculty/PublicSharePage';
+import HeatmapPage from '../features/heatmap/HeatmapPage';
 
 function LoadingRouteState() {
   return (
@@ -100,6 +101,7 @@ export default function AppRouter() {
         <Route path="/timetable" element={<TimetablePage />} />
         <Route path="/faculty" element={<FacultyListPage />} />
         <Route path="/workspace/:workspaceId/faculty" element={<FacultyListPage />} />
+        <Route path="/heatmap" element={<HeatmapPage />} />
         <Route path="/canvas" element={<CanvasViewPage />} />
         <Route path="/solver" element={<SolverEnginePage />} />
         <Route path="/versions" element={<VersionHistoryPage />} />

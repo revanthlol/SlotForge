@@ -104,7 +104,7 @@ def test_section_room_split_end_to_end():
         
         for assignment in timetable_data["assignments"]:
             assert "room_assignments" in assignment
-            room_assigns = assignment["room_assignments"]
+            room_assigns = sorted(assignment["room_assignments"], key=lambda x: x["sub_group"] or "")
             assert len(room_assigns) == 2
             
             total_students = sum(ra["student_count"] for ra in room_assigns)

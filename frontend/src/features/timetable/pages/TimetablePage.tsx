@@ -12,7 +12,6 @@ import {
 import PageHeader from '../../../components/ui/PageHeader';
 import TimetableGrid from '../../../components/ui/TimetableGrid';
 import StatusBadge from '../../../components/ui/StatusBadge';
-import SolverBottleneckHeatmap from '../../../components/ui/SolverBottleneckHeatmap';
 import { Link, useLocation } from 'react-router-dom';
 import ExportButton from '../../exports/ExportButton';
 import { buildExportDataFromScheduledSlots } from '../../exports/buildExportData';
@@ -151,14 +150,21 @@ export default function TimetablePage() {
               </div>
             )}
 
-            <SolverBottleneckHeatmap
-              assignments={timetable.assignments}
-              teachers={teachers}
-              rooms={rooms}
-              sections={sections}
-              organization={organization || null}
-              infeasibleReason={timetable.infeasible_reason}
-            />
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border-2 border-rule bg-paper-raised p-inset-compact">
+              <div>
+                <p className="text-label-caps text-mono-grey" style={{ fontSize: 10 }}>Conflict analysis</p>
+                <p className="mt-1 text-sm text-on-surface-variant">
+                  Use the endpoint-backed heatmap for pressure and violation reports.
+                </p>
+              </div>
+              <Link
+                to="/heatmap"
+                className="inline-flex items-center gap-2 rounded-lg border border-rule px-3 py-2 text-xs font-semibold text-on-surface hover:bg-surface-container-low"
+              >
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>ssid_chart</span>
+                Open heatmap
+              </Link>
+            </div>
 
             <TimetableGrid
               timetableId={timetable.id}

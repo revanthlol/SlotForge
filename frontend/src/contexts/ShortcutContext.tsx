@@ -190,6 +190,7 @@ export function ShortcutProvider({ children }: { children: ReactNode }) {
     { id: 'nav.sections', label: 'Go to Sections', shortcut: 'g c', keywords: ['classes'], handler: () => navigate('/resources/sections') },
     { id: 'nav.timetable', label: 'Go to Timetable', shortcut: 'g m', handler: () => navigate('/timetable') },
     { id: 'nav.faculty', label: 'Go to Faculty Timetables', shortcut: 'g f', keywords: ['share links'], handler: () => navigate('/faculty') },
+    { id: 'nav.heatmap', label: 'Go to Conflict Heatmap', shortcut: 'g h', keywords: ['pressure', 'violations', 'explainability'], handler: () => navigate('/heatmap') },
     { id: 'nav.canvas', label: 'Go to Canvas View', shortcut: 'g a', keywords: ['graph'], handler: () => navigate('/canvas') },
     { id: 'nav.versions', label: 'Go to Version History', shortcut: 'g v', handler: () => navigate('/versions') },
     { id: 'nav.solver', label: 'Go to Solver Engine', shortcut: 'g e', handler: () => navigate('/solver') },
