@@ -1,27 +1,4 @@
-The `.puml` files are sufficient because they contain the classes, entities, relationships, multiplicities, components and deployment flow. The SVGs would only be needed to check the final layout or arrow readability.
-
-Here is a faculty-ready script. Shritha’s three sections are intentionally left blank.
-
 # SlotForge UML Diagrams — Weekly Review Script
-
-## Introduction
-
-Good morning, ma’am/sir.
-
-For this week’s review, we have prepared six diagrams for our mini-project, **SlotForge**. SlotForge is a timetable-generation system that helps institutions manage academic data and automatically generate timetables while considering constraints such as teacher availability, room capacity, subject hours and scheduling clashes.
-
-The six diagrams we have prepared are:
-
-1. Use-case diagram
-2. Activity diagram
-3. Class diagram
-4. Entity-Relationship diagram
-5. Sequence diagram
-6. Deployment diagram
-
-We have divided the explanation between us. Shritha will explain the **use-case, activity and sequence diagrams**, while I will explain the **class, ER and deployment diagrams**.
-
----
 
 # 1. Use-Case Diagram
 
@@ -408,6 +385,4 @@ schedule_run_constraints
 - schedule_run_id
 - constraint_id
 ```
-
-The SVGs are not necessary for creating the script. They would only help verify that every arrow and label is clearly visible on the projected diagram.
-
+---
