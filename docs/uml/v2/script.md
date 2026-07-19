@@ -27,11 +27,35 @@ We have divided the explanation between us. Shritha will explain the **use-case,
 
 ### Explained by Shritha
 
+The use-case diagram represents the functional view of SlotForge. It shows the different users of the system and the actions they can perform.
+
+[Point towards the actors.]
+
+There are two actors: Admin and Faculty.
+
+The Admin can manage the workspace, maintain academic resources such as teachers, subjects, sections, rooms, time slots and constraints, generate timetables, publish or roll back versions, and export the timetable.
+
+The Faculty can log in and view the published timetable.
+
+The Generate Timetable use case includes Validate Constraints, which ensures that the timetable satisfies rules like teacher availability, room capacity and scheduling constraints before it is generated.
+
+Therefore, the use-case diagram gives an overview of the main functions available in SlotForge.
+
 ---
 
 # 2. Activity Diagram
 
 ### Explained by Shritha
+
+The activity diagram represents the workflow of timetable generation in SlotForge.
+
+The process starts when the administrator logs in and opens a workspace. The administrator enters the required academic information, such as teachers, subjects, rooms, sections, time slots and constraints.
+
+The system then generates the timetable and validates all the scheduling constraints.
+
+If the timetable is valid, it is saved, displayed and can be exported. Otherwise, the system displays a conflict explanation so the administrator can correct the data and generate the timetable again.
+
+Thus, the activity diagram shows the complete flow of timetable generation.
 
 ---
 
@@ -235,6 +259,16 @@ Overall, the ER diagram explains how SlotForge stores its users, academic resour
 # 5. Sequence Diagram
 
 ### Explained by Shritha
+
+The sequence diagram represents the interaction between the different components of SlotForge during timetable generation.
+
+The administrator first logs into the React frontend, which communicates with the FastAPI backend for authentication.
+
+When the administrator generates a timetable, the backend retrieves the required academic data from the PostgreSQL database and sends it to the scheduler.
+
+The scheduler generates the timetable and returns either a valid schedule or a conflict report.
+
+Finally, the backend stores the result in the database and sends the generated timetable back to the frontend for display.
 
 ---
 

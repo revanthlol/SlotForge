@@ -1,0 +1,45 @@
+@startuml SlotForge-V2-Activity-Diagram
+title SlotForge — Simple Activity Diagram
+
+skinparam shadowing false
+skinparam linetype ortho
+skinparam ArrowColor #475569
+skinparam activity {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+}
+
+start
+
+:Login;
+
+:Open Workspace;
+
+:Manage Teachers,
+Subjects, Sections,
+Rooms, Time Slots,
+and Constraints;
+
+:Generate Timetable;
+
+if (Valid Schedule?) then (Yes)
+
+:Save Timetable Version;
+
+:Display Timetable;
+
+:Export PDF /
+Excel / Calendar;
+
+stop
+
+else (No)
+
+:Show Conflict
+Explanation;
+
+stop
+
+endif
+
+@enduml
