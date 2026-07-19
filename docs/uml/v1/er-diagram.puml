@@ -1,0 +1,302 @@
+@startuml SlotForge-ER-Diagram
+title SlotForge — Supabase PostgreSQL Entity-Relationship Diagram
+hide methods
+hide stereotypes
+skinparam linetype ortho
+skinparam shadowing false
+skinparam entity {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+  FontColor #0F172A
+}
+skinparam ArrowColor #475569
+
+entity alembic_version {
+  * version_num : varchar <<PK>>
+}
+entity organizations {
+  * id : uuid <<PK>>
+  --
+  name : varchar
+  scheduling_mode : varchar
+  cycle_length : integer
+  periods_per_day : integer
+  created_at : timestamptz
+}
+entity profiles {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  role : varchar
+  full_name : varchar?
+  created_at : timestamptz
+}
+entity organization_memberships {
+  * id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  organization_id : uuid <<FK>>
+  role : varchar
+  created_at : timestamptz
+}
+entity scheduling_workspaces {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  name : varchar
+  domain_preset : varchar
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+entity resources {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  workspace_id : uuid <<FK>>
+  name : varchar
+  resource_type : varchar
+  metadata : jsonb
+  availability : jsonb
+  max_hours_per_week : integer?
+  created_at : timestamptz
+}
+entity tasks {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  workspace_id : uuid <<FK>>
+  name : varchar
+  task_type : varchar
+  required_hours : integer?
+  requires_continuous_slots : boolean
+  metadata : jsonb
+  created_at : timestamptz
+}
+entity groups {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  workspace_id : uuid <<FK>>
+  name : varchar
+  group_type : varchar
+  size : integer?
+  metadata : jsonb
+  created_at : timestamptz
+}
+entity locations {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  workspace_id : uuid <<FK>>
+  name : varchar
+  location_type : varchar
+  capacity : integer
+  metadata : jsonb
+  created_at : timestamptz
+}
+entity timeslots {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  workspace_id : uuid <<FK>>
+  name : varchar
+  day : varchar
+  start_time : time?
+  end_time : time?
+  slot_index : integer
+  created_at : timestamptz
+}
+entity constraint_rules {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  workspace_id : uuid <<FK>>
+  name : varchar
+  rule_type : varchar
+  template_key : varchar
+  parameters : jsonb
+  priority : integer
+  penalty : integer?
+  enabled : boolean
+  created_at : timestamptz
+}
+entity schedule_versions {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  workspace_id : uuid <<FK>>
+  version_label : varchar
+  version_number : integer?
+  status : varchar
+  scores : jsonb
+  explanation : jsonb?
+  parent_version_id : uuid? <<FK>>
+  is_manual_override : boolean
+  metadata : jsonb
+  created_by : uuid? <<FK>>
+  created_at : timestamptz
+}
+entity schedule_runs {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  workspace_id : uuid <<FK>>
+  schedule_version_id : uuid? <<FK>>
+  status : varchar
+  solver_score : jsonb?
+  explanation : jsonb?
+  duration_seconds : double
+  error_message : varchar?
+  created_at : timestamptz
+}
+entity assignments {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  workspace_id : uuid <<FK>>
+  schedule_version_id : uuid <<FK>>
+  task_id : uuid <<FK>>
+  group_id : uuid? <<FK>>
+  timeslot_id : uuid? <<FK>>
+  duration_slots : integer
+  is_manual_override : boolean
+  metadata : jsonb
+  created_at : timestamptz
+  day : varchar
+  period : integer
+  teacher_id : uuid <<FK resources>>
+  room_id : uuid <<FK locations>>
+}
+entity assignment_resources {
+  * assignment_id : uuid <<PK, FK>>
+  * resource_id : uuid <<PK, FK>>
+}
+entity assignment_locations {
+  * assignment_id : uuid <<PK, FK>>
+  * location_id : uuid <<PK, FK>>
+  --
+  student_count : integer?
+  sub_group : varchar?
+  capacity_contribution : integer?
+}
+entity teacher_subject_assignments {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  workspace_id : uuid <<FK>>
+  teacher_id : uuid <<FK resources>>
+  subject_id : uuid <<FK tasks>>
+  created_at : timestamptz
+}
+entity section_subject_teacher_assignments {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  workspace_id : uuid <<FK>>
+  section_id : uuid <<FK groups>>
+  subject_id : uuid <<FK tasks>>
+  teacher_id : uuid? <<FK resources>>
+  created_at : timestamptz
+}
+entity onboarding_progress {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  workspace_id : uuid <<FK, UNIQUE>>
+  current_step : integer
+  completed_steps : jsonb
+  skipped : boolean
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+entity faculty_share_links {
+  * id : uuid <<PK>>
+  --
+  token : varchar <<UNIQUE>>
+  organization_id : uuid <<FK>>
+  workspace_id : uuid <<FK>>
+  resource_id : uuid <<FK>>
+  schedule_run_id : uuid <<FK>>
+  created_by : uuid? <<FK profiles>>
+  expires_at : timestamptz?
+  is_active : boolean
+  created_at : timestamptz
+  revoked_at : timestamptz?
+}
+entity audit_logs {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  actor_id : uuid? <<semantic profile id>>
+  action : varchar
+  target_table : varchar?
+  target_id : uuid?
+  diff : jsonb?
+  created_at : timestamptz
+}
+
+organizations ||--o{ profiles
+organizations ||--o{ organization_memberships
+profiles ||--o{ organization_memberships : user_id
+organizations ||--o{ scheduling_workspaces
+organizations ||--o{ audit_logs
+organizations ||--o{ resources
+organizations ||--o{ tasks
+organizations ||--o{ groups
+organizations ||--o{ locations
+organizations ||--o{ timeslots
+organizations ||--o{ constraint_rules
+organizations ||--o{ schedule_versions
+organizations ||--o{ schedule_runs
+organizations ||--o{ assignments
+organizations ||--o{ teacher_subject_assignments
+organizations ||--o{ section_subject_teacher_assignments
+organizations ||--o{ onboarding_progress
+organizations ||--o{ faculty_share_links
+
+scheduling_workspaces ||--o{ resources
+scheduling_workspaces ||--o{ tasks
+scheduling_workspaces ||--o{ groups
+scheduling_workspaces ||--o{ locations
+scheduling_workspaces ||--o{ timeslots
+scheduling_workspaces ||--o{ constraint_rules
+scheduling_workspaces ||--o{ schedule_versions
+scheduling_workspaces ||--o{ schedule_runs
+scheduling_workspaces ||--o{ assignments
+scheduling_workspaces ||--o{ teacher_subject_assignments
+scheduling_workspaces ||--o{ section_subject_teacher_assignments
+scheduling_workspaces ||--|| onboarding_progress
+scheduling_workspaces ||--o{ faculty_share_links
+
+schedule_versions ||--o{ assignments
+schedule_versions ||--o{ schedule_runs
+schedule_versions ||--o{ schedule_versions : parent_version_id
+profiles ||--o{ schedule_versions : created_by
+tasks ||--o{ assignments
+groups ||--o{ assignments
+timeslots ||--o{ assignments
+resources ||--o{ assignments : teacher_id
+locations ||--o{ assignments : room_id
+assignments ||--o{ assignment_resources
+resources ||--o{ assignment_resources
+assignments ||--o{ assignment_locations
+locations ||--o{ assignment_locations
+resources ||--o{ teacher_subject_assignments
+tasks ||--o{ teacher_subject_assignments
+groups ||--o{ section_subject_teacher_assignments
+tasks ||--o{ section_subject_teacher_assignments
+resources ||--o{ section_subject_teacher_assignments
+profiles ||--o{ faculty_share_links : created_by
+resources ||--o{ faculty_share_links
+schedule_runs ||--o{ faculty_share_links
+
+note right of alembic_version
+  Migration bookkeeping only;
+  no application relationship.
+end note
+note bottom of audit_logs
+  actor_id is not declared as a SQL FK
+  in the supplied schema; it is a semantic
+  reference to profiles.id.
+end note
+@enduml

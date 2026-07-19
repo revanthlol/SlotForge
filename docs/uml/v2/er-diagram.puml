@@ -1,0 +1,129 @@
+@startuml SlotForge-V2-ER-Diagram
+title SlotForge — Simple Entity-Relationship Diagram
+hide methods
+hide stereotypes
+skinparam linetype ortho
+skinparam shadowing false
+skinparam entity {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+}
+skinparam ArrowColor #475569
+
+entity users {
+  * id : uuid <<PK>>
+  --
+  name : varchar
+  role : varchar
+}
+
+entity workspaces {
+  * id : uuid <<PK>>
+  --
+  owner_id : uuid <<FK>>
+  name : varchar
+  academic_year : varchar
+}
+
+entity teachers {
+  * id : uuid <<PK>>
+  --
+  name : varchar
+  availability : json
+}
+
+entity subjects {
+  * id : uuid <<PK>>
+  --
+  name : varchar
+  weekly_hours : integer
+}
+
+entity sections {
+  * id : uuid <<PK>>
+  --
+  name : varchar
+  student_count : integer
+}
+
+entity rooms {
+  * id : uuid <<PK>>
+  --
+  name : varchar
+  capacity : integer
+}
+
+entity timeslots {
+  * id : uuid <<PK>>
+  --
+  day : varchar
+  period : integer
+}
+
+entity constraints {
+  * id : uuid <<PK>>
+  --
+  name : varchar
+  type : varchar
+  priority : integer
+  enabled : boolean
+}
+
+entity schedule_runs {
+  * id : uuid <<PK>>
+  --
+  workspace_id : uuid <<FK>>
+  status : varchar
+  started_at : timestamp
+  duration_seconds : decimal
+}
+
+entity timetable_versions {
+  * id : uuid <<PK>>
+  --
+  workspace_id : uuid <<FK>>
+  created_by : uuid <<FK>>
+  schedule_run_id : uuid <<FK>>
+  label : varchar
+  version_number : integer
+  status : varchar
+  created_at : timestamp
+}
+
+entity timetable_entries {
+  * id : uuid <<PK>>
+  --
+  timetable_version_id : uuid <<FK>>
+  teacher_id : uuid <<FK>>
+  subject_id : uuid <<FK>>
+  section_id : uuid <<FK>>
+  room_id : uuid <<FK>>
+  timeslot_id : uuid <<FK>>
+  duration : integer
+}
+
+users ||--o{ workspaces : owns
+workspaces ||--o{ teachers
+workspaces ||--o{ subjects
+workspaces ||--o{ sections
+workspaces ||--o{ rooms
+workspaces ||--o{ timeslots
+workspaces ||--o{ constraints
+workspaces ||--o{ schedule_runs : runs
+workspaces ||--o{ timetable_versions : contains
+users ||--o{ timetable_versions : creates
+schedule_runs ||--o{ timetable_versions : produces
+timetable_versions ||--|{ timetable_entries : contains
+teachers ||--o{ timetable_entries : teaches
+subjects ||--o{ timetable_entries : scheduled
+sections ||--o{ timetable_entries : attends
+rooms ||--o{ timetable_entries : uses
+timeslots ||--o{ timetable_entries : occurs_in
+constraints }o..o{ schedule_runs : applied_to
+
+note bottom of constraints
+  Examples: no teacher double-booking,
+  room capacity, teacher availability,
+  and weekly subject hours.
+end note
+@enduml

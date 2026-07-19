@@ -1,0 +1,329 @@
+@startuml SlotForge-Class-Diagram
+title SlotForge — Domain and Application Class Diagram
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam ArrowColor #475569
+skinparam ClassBackgroundColor #F8FAFC
+skinparam ClassBorderColor #334155
+skinparam NoteBackgroundColor #FEF3C7
+skinparam NoteBorderColor #B45309
+
+package "Multi-tenant domain model" #E0F2FE {
+  class Organization {
+    +id: UUID
+    +name: str
+    +scheduling_mode: str
+    +cycle_length: int
+    +periods_per_day: int
+  }
+  class Profile {
+    +id: UUID
+    +organization_id: UUID
+    +role: str
+    +full_name: str
+  }
+  class OrganizationMembership {
+    +id: UUID
+    +user_id: UUID
+    +organization_id: UUID
+    +role: str
+  }
+  class SchedulingWorkspace {
+    +id: UUID
+    +organization_id: UUID
+    +name: str
+    +domain_preset: str
+  }
+  class Resource {
+    +id: UUID
+    +name: str
+    +resource_type: str
+    +availability: JSON
+    +max_hours_per_week: int?
+  }
+  class Task {
+    +id: UUID
+    +name: str
+    +task_type: str
+    +required_hours: int?
+    +requires_continuous_slots: bool
+  }
+  class Group {
+    +id: UUID
+    +name: str
+    +group_type: str
+    +size: int?
+  }
+  class Location {
+    +id: UUID
+    +name: str
+    +location_type: str
+    +capacity: int
+  }
+  class TimeSlot {
+    +id: UUID
+    +name: str
+    +day: str
+    +slot_index: int
+    +start_time: time?
+    +end_time: time?
+  }
+}
+
+package "Scheduling lifecycle" #ECFCCB {
+  class ConstraintRule {
+    +id: UUID
+    +name: str
+    +rule_type: str
+    +template_key: str
+    +parameters: JSON
+    +priority: int
+    +penalty: int?
+    +enabled: bool
+  }
+  class ScheduleVersion {
+    +id: UUID
+    +version_label: str
+    +version_number: int?
+    +status: str
+    +scores: JSON
+    +explanation: JSON?
+    +parent_version_id: UUID?
+    +is_manual_override: bool
+  }
+  class ScheduleRun {
+    +id: UUID
+    +status: str
+    +solver_score: JSON?
+    +explanation: JSON?
+    +duration_seconds: float?
+    +error_message: str?
+  }
+  class Assignment {
+    +id: UUID
+    +task_id: UUID
+    +group_id: UUID?
+    +timeslot_id: UUID?
+    +duration_slots: int
+    +day: str
+    +period: int
+    +teacher_id: UUID
+    +room_id: UUID
+    +is_manual_override: bool
+  }
+  class AssignmentResource {
+    +assignment_id: UUID
+    +resource_id: UUID
+  }
+  class AssignmentLocation {
+    +assignment_id: UUID
+    +location_id: UUID
+    +student_count: int?
+    +sub_group: str?
+    +capacity_contribution: int?
+  }
+  class TeacherSubjectAssignment {
+    +teacher_id: UUID
+    +subject_id: UUID
+  }
+  class SectionSubjectTeacherAssignment {
+    +section_id: UUID
+    +subject_id: UUID
+    +teacher_id: UUID?
+  }
+}
+
+package "Collaboration and delivery" #FCE7F3 {
+  class OnboardingProgress {
+    +workspace_id: UUID
+    +current_step: int
+    +completed_steps: JSON
+    +skipped: bool
+  }
+  class FacultyShareLink {
+    +token: str
+    +resource_id: UUID
+    +schedule_run_id: UUID
+    +expires_at: datetime?
+    +is_active: bool
+    +revoked_at: datetime?
+  }
+  class AuditLog {
+    +organization_id: UUID
+    +actor_id: UUID?
+    +action: str
+    +target_table: str?
+    +target_id: UUID?
+    +diff: JSON?
+  }
+}
+
+package "Generic aliases used by academic preset" #F1F5F9 {
+  class Teacher <<alias>>
+  class Subject <<alias>>
+  class Section <<alias>>
+  class Room <<alias>>
+  Teacher -|> Resource
+  Subject -|> Task
+  Section -|> Group
+  Room -|> Location
+}
+
+package "Application services" #EDE9FE {
+  class PresetRegistry {
+    +get_preset(key): BasePreset
+  }
+  abstract class BasePreset {
+    +key: str
+    +default_constraints: list
+    +solver_adapter: BaseSolverAdapter
+  }
+  class AcademicPreset
+  class StaffRosterPreset
+  class EventPreset
+  class ExamPreset
+  class FacilityPreset
+  BasePreset <|-- AcademicPreset
+  BasePreset <|-- StaffRosterPreset
+  BasePreset <|-- EventPreset
+  BasePreset <|-- ExamPreset
+  BasePreset <|-- FacilityPreset
+  PresetRegistry --> BasePreset
+
+  class TimetableService {
+    +generate(workspace_id): ScheduleRun
+    +get_version(version_id): ScheduleVersion
+  }
+  class VersioningService {
+    +publish(version_id)
+    +rollback(version_id): ScheduleVersion
+  }
+  class HeatmapService {
+    +pressure(workspace_id)
+    +violations(run_id)
+    +impact_analysis(change)
+    +explain_assignment(assignment_id)
+  }
+  class FacultyShareService {
+    +create_link(resource_id, run_id): FacultyShareLink
+    +get_public_timetable(token)
+  }
+  class ExportService {
+    +export_html()
+    +export_pdf()
+    +export_xlsx_csv()
+    +export_docx_ical()
+  }
+  class AuditService {
+    +record(action, target)
+  }
+}
+
+package "Solver core" #FEF3C7 {
+  class SolverAdapter {
+    +build_input(workspace_id): ProblemInstance
+  }
+  class ProblemInstance
+  class SolverResult {
+    +status: OPTIMAL|FEASIBLE|INFEASIBLE
+    +assignments: list
+    +scores: JSON
+    +infeasible_reason: str?
+  }
+  class CPSATEngine {
+    +solve(instance): SolverResult
+  }
+  class ScoringEngine {
+    +compute(instance, assignments): JSON
+  }
+  class ConstraintCompiler {
+    +compile(template, parameters): Constraint
+  }
+  SolverAdapter --> ProblemInstance
+  CPSATEngine --> ProblemInstance
+  CPSATEngine --> SolverResult
+  CPSATEngine --> ScoringEngine
+  ConstraintCompiler --> ConstraintRule
+}
+
+Organization "1" o-- "0..*" Profile
+Organization "1" o-- "0..*" OrganizationMembership
+Profile "1" <-- "0..*" OrganizationMembership : user_id
+Organization "1" o-- "0..*" SchedulingWorkspace
+SchedulingWorkspace "1" o-- "0..*" Resource
+SchedulingWorkspace "1" o-- "0..*" Task
+SchedulingWorkspace "1" o-- "0..*" Group
+SchedulingWorkspace "1" o-- "0..*" Location
+SchedulingWorkspace "1" o-- "0..*" TimeSlot
+SchedulingWorkspace "1" o-- "0..*" ConstraintRule
+
+Organization "1" o-- "0..*" ScheduleVersion
+SchedulingWorkspace "1" o-- "0..*" ScheduleVersion
+ScheduleVersion "0..1" --> "0..*" ScheduleVersion : parent/branch
+Profile "0..1" --> "0..*" ScheduleVersion : created_by
+ScheduleVersion "1" o-- "0..*" Assignment
+ScheduleVersion "0..1" <-- "0..*" ScheduleRun
+SchedulingWorkspace "1" <-- "0..*" ScheduleRun
+ScheduleRun "1" <-- "0..*" FacultyShareLink
+ScheduleVersion "1" <-- "0..*" Assignment
+Task "1" <-- "0..*" Assignment
+Group "0..1" <-- "0..*" Assignment
+TimeSlot "0..1" <-- "0..*" Assignment
+Resource "1" <-- "0..*" Assignment : teacher_id
+Location "1" <-- "0..*" Assignment : room_id
+Assignment "1" o-- "0..*" AssignmentResource
+Resource "1" <-- "0..*" AssignmentResource
+Assignment "1" o-- "0..*" AssignmentLocation
+Location "1" <-- "0..*" AssignmentLocation
+Resource "1" <-- "0..*" TeacherSubjectAssignment : teacher_id
+Task "1" <-- "0..*" TeacherSubjectAssignment : subject_id
+Group "1" <-- "0..*" SectionSubjectTeacherAssignment : section_id
+Task "1" <-- "0..*" SectionSubjectTeacherAssignment : subject_id
+Resource "0..1" <-- "0..*" SectionSubjectTeacherAssignment : teacher_id
+SchedulingWorkspace "1" <-- "1" OnboardingProgress
+Organization "1" <-- "0..*" AuditLog
+Profile "0..1" <-- "0..*" AuditLog : actor_id (semantic)
+Resource "1" <-- "0..*" FacultyShareLink
+Profile "0..1" <-- "0..*" FacultyShareLink : created_by
+
+TimetableService --> PresetRegistry
+TimetableService --> SolverAdapter
+TimetableService --> CPSATEngine
+TimetableService --> ScheduleRun
+TimetableService --> ScheduleVersion
+VersioningService --> ScheduleVersion
+VersioningService --> AuditService
+HeatmapService --> ScheduleRun
+HeatmapService --> Assignment
+HeatmapService --> ConstraintRule
+FacultyShareService --> FacultyShareLink
+FacultyShareService --> Assignment
+ExportService --> ScheduleVersion
+ExportService --> Assignment
+AuditService --> AuditLog
+
+note right of PresetRegistry
+  Phase 4: academic, staff roster,
+  event, exam, and facility presets.
+  Shared generic entities; preset changes
+  labels, fields, defaults, and adapter.
+end note
+
+note bottom of HeatmapService
+  Phase 7/8: pressure analysis, post-run
+  violations, live impact analysis, assignment
+  explanations, and JSON constraint templates.
+end note
+
+note bottom of ScheduleVersion
+  Phase 9: append-only publish, compare,
+  branch, rollback, and audit history.
+end note
+
+note bottom of FacultyShareLink
+  Phase 5: public faculty timetable access
+  without requiring faculty login.
+end note
+@enduml

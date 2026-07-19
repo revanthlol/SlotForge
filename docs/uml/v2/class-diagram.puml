@@ -1,0 +1,124 @@
+@startuml SlotForge-V2-Class-Diagram
+title SlotForge — Simple Class Diagram
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam ArrowColor #475569
+skinparam ClassBackgroundColor #F8FAFC
+skinparam ClassBorderColor #334155
+
+class User {
+  +id: UUID
+  +name: String
+  +role: String
+}
+
+class Workspace {
+  +id: UUID
+  +name: String
+  +academicYear: String
+}
+
+class Teacher {
+  +id: UUID
+  +name: String
+  +availability: String
+}
+
+class Subject {
+  +id: UUID
+  +name: String
+  +weeklyHours: Integer
+}
+
+class Section {
+  +id: UUID
+  +name: String
+  +studentCount: Integer
+}
+
+class Room {
+  +id: UUID
+  +name: String
+  +capacity: Integer
+}
+
+class TimeSlot {
+  +id: UUID
+  +day: String
+  +period: Integer
+}
+
+class Constraint {
+  +id: UUID
+  +name: String
+  +type: String
+  +priority: Integer
+  +enabled: Boolean
+}
+
+class ScheduleRun {
+  +id: UUID
+  +status: String
+  +startedAt: DateTime
+  +durationSeconds: Decimal
+}
+
+class TimetableVersion {
+  +id: UUID
+  +label: String
+  +versionNumber: Integer
+  +status: String
+  +createdAt: DateTime
+}
+
+class TimetableEntry {
+  +id: UUID
+  +duration: Integer
+}
+
+class Scheduler {
+  +generateTimetable(): TimetableVersion
+  +checkConstraints(): Boolean
+}
+
+class ExportService {
+  +exportPDF(timetable): File
+  +exportExcel(timetable): File
+  +exportCalendar(timetable): File
+}
+
+User "1" --> "0..*" Workspace : manages
+Workspace "1" o-- "0..*" Teacher
+Workspace "1" o-- "0..*" Subject
+Workspace "1" o-- "0..*" Section
+Workspace "1" o-- "0..*" Room
+Workspace "1" o-- "0..*" TimeSlot
+Workspace "1" o-- "0..*" Constraint
+User "1" --> "0..*" TimetableVersion : creates
+Teacher "1" --> "0..*" TimetableEntry : teaches
+Subject "1" --> "0..*" TimetableEntry : scheduled as
+Section "1" --> "0..*" TimetableEntry : attends
+Room "1" --> "0..*" TimetableEntry : uses
+TimeSlot "1" --> "0..*" TimetableEntry : occurs in
+TimetableVersion "1" *-- "1..*" TimetableEntry
+ScheduleRun "1" --> "0..1" TimetableVersion : produces
+Constraint "0..*" --> "1" Scheduler : guides
+Scheduler --> ScheduleRun : records
+Scheduler --> TimetableVersion : generates
+Scheduler --> Teacher
+Scheduler --> Subject
+Scheduler --> Section
+Scheduler --> Room
+Scheduler --> TimeSlot
+ExportService --> TimetableVersion : reads
+
+note right of Scheduler
+  The scheduler assigns a subject,
+  teacher, section, room, and time
+  slot while respecting constraints.
+  A run can be feasible, optimal,
+  or infeasible with an explanation.
+end note
+@enduml

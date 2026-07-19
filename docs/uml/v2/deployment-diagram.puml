@@ -1,0 +1,100 @@
+@startuml SlotForge-V2-Deployment-Diagram
+title SlotForge — Simple Deployment Diagram
+skinparam shadowing false
+skinparam linetype ortho
+skinparam node {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+}
+skinparam component {
+  BackgroundColor #EEF2FF
+  BorderColor #4338CA
+}
+skinparam database {
+  BackgroundColor #ECFDF5
+  BorderColor #047857
+}
+skinparam ArrowColor #475569
+
+node "Faculty / Admin Browser" as user {
+  artifact "Web browser" as browser
+}
+
+cloud "Web Hosting" as webHosting {
+  component "React Frontend" as frontend
+  artifact "HTML / CSS / JavaScript" as staticAssets
+  component "Timetable UI" as timetableUI
+  component "Data Entry Forms" as forms
+  component "Results, Heatmap\nand Export Controls" as resultsUI
+  frontend --> staticAssets
+  frontend --> timetableUI
+  frontend --> forms
+  frontend --> resultsUI
+}
+
+node "Backend Application Server" as appServer {
+  component "FastAPI Backend" as backend {
+    component "Authentication\nand Access Control" as auth
+    component "Workspace and Data API" as dataAPI
+    component "Timetable Generation API" as scheduleAPI
+    component "Results and Export API" as outputAPI
+  }
+  component "Timetable Scheduler\n(Constraint Solver)" as solver
+  component "Validation and\nExplanation Service" as validation
+  backend --> auth
+  backend --> dataAPI
+  backend --> scheduleAPI
+  backend --> outputAPI
+  scheduleAPI --> solver
+  scheduleAPI --> validation
+  outputAPI --> validation
+}
+
+database "PostgreSQL Database" as database {
+  collections "Academic data\nTeachers, subjects, sections, rooms" as academicData
+  collections "Scheduling data\nTime slots, constraints, entries" as schedulingData
+  collections "Users and results\nAccounts, runs, versions" as resultData
+}
+
+cloud "Authentication Provider" as identity {
+  component "User Login\nand Session Tokens" as login
+}
+
+cloud "Optional External Services" as external {
+  component "File Download\nPDF / Excel / Calendar" as fileExport
+  component "Public Timetable Link" as shareLink
+}
+
+user --> webHosting : opens web app
+frontend --> backend : HTTPS API requests
+frontend --> identity : login / session
+backend --> identity : verifies session token
+dataAPI --> database : reads and writes workspace data
+scheduleAPI --> database : loads scheduling inputs
+backend --> solver : validated data + constraints
+solver --> validation : candidate timetable
+validation --> scheduleAPI : result + conflicts
+scheduleAPI --> database : saves run and timetable version
+outputAPI --> database : reads generated timetable
+outputAPI --> fileExport : creates downloadable files
+outputAPI --> shareLink : creates view-only link
+backend --> frontend : timetable, status, and explanations
+
+note right of solver
+  Generates a timetable while
+  avoiding clashes and respecting
+  the configured rules. It reports
+  whether the result is feasible.
+end note
+
+note bottom of database
+  Stores the project inputs, generated
+  schedules, run status, and version history.
+end note
+
+note bottom of validation
+  Checks capacity, availability, clashes,
+  and constraint violations, then returns
+  understandable feedback to the user.
+end note
+@enduml
