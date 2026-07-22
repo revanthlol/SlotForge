@@ -4,7 +4,7 @@ export default function AssignmentExplanation({ explanation }: { explanation: As
   if (!explanation) {
     return (
       <div className="rounded-lg border border-dashed border-rule bg-surface-container-low p-5 text-sm text-mono-grey">
-        Select a scheduled assignment to view placement reasoning once explanations are available.
+        Select a scheduled assignment to view its placement reasoning.
       </div>
     );
   }

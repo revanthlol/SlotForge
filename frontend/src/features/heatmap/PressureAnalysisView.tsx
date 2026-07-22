@@ -12,7 +12,9 @@ function ratio(item: PressureItem) {
   const required = item.required ?? item.demand ?? null;
   const available = item.available ?? item.capacity ?? null;
   if (typeof item.utilization === 'number') return Math.max(0, Math.min(100, Math.round(item.utilization)));
-  if (!required || !available) return 0;
+  if (required == null || available == null) return 0;
+  if (available === 0) return required > 0 ? 100 : 0;
+  if (required === 0) return 0;
   return Math.max(0, Math.round((required / available) * 100));
 }
 
@@ -90,9 +92,9 @@ export default function PressureAnalysisView({
 
       {unsupported ? (
         <div className="mt-4 rounded-lg border border-dashed border-rule bg-surface-container-low p-5">
-          <p className="text-sm font-semibold text-on-surface">Pressure endpoint is not available yet.</p>
+          <p className="text-sm font-semibold text-on-surface">Pressure analysis is currently unavailable.</p>
           <p className="mt-1 text-xs text-on-surface-variant">
-            Codex has wired the UI to <span className="font-mono">POST /api/v1/workspaces/:id/heatmap/pressure</span>. The panel will populate when Antigravity ships the backend engine.
+            The analysis request could not be served. Check the workspace connection and try again.
           </p>
         </div>
       ) : error ? (

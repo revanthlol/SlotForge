@@ -30,6 +30,7 @@ from app.services.heatmap_service import HeatmapService
 from app.schemas.heatmap import (
     SchedulingPressureReport,
     ViolationReport,
+    ImpactAnalysisRequest,
     ImpactAnalysisReport,
     AssignmentExplanationReport
 )
@@ -550,12 +551,12 @@ def get_heatmap_violations(
 @router.post("/{id}/impact-analysis", response_model=ImpactAnalysisReport)
 def get_impact_analysis(
     id: str,
-    payload: dict,
+    payload: ImpactAnalysisRequest,
     current_user: Profile = Depends(get_current_user_profile),
     db: Session = Depends(get_db)
 ):
     workspace = _get_workspace_or_default(id, current_user, db)
-    return HeatmapService.calculate_impact_report(workspace.id, payload, db)
+    return HeatmapService.calculate_impact_report(workspace.id, payload.model_dump(mode="json"), db)
 
 
 @router.get("/{id}/schedule-runs/{run_id}/assignments/{assignment_id}/explanation", response_model=AssignmentExplanationReport)
@@ -570,4 +571,3 @@ def get_assignment_explanation(
     run_uuid = _parse_uuid(run_id, "run_id")
     assignment_uuid = _parse_uuid(assignment_id, "assignment_id")
     return HeatmapService.calculate_explanation_report(workspace.id, run_uuid, assignment_uuid, db)
-

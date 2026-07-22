@@ -5,7 +5,6 @@ from collections import defaultdict
 from typing import List, Dict, Any, Optional
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 
 from app.models.workspace import SchedulingWorkspace
 from app.models.resource import Resource
@@ -15,10 +14,8 @@ from app.models.group import Group
 from app.models.timeslot import TimeSlot as DbTimeSlot
 from app.models.constraint_rule import ConstraintRule
 from app.models.schedule_run import ScheduleRun
-from app.models.schedule_version import ScheduleVersion
 from app.models.assignment import (
     Assignment as DbAssignment,
-    AssignmentLocation,
     SectionSubjectTeacherAssignment,
     TeacherSubjectAssignment
 )
@@ -58,7 +55,7 @@ class HeatmapService:
         ).all()
         db_constraints = db.query(ConstraintRule).filter(
             ConstraintRule.workspace_id == workspace_id,
-            ConstraintRule.enabled == True
+            ConstraintRule.enabled
         ).all()
         db_ssta = db.query(SectionSubjectTeacherAssignment).filter(
             SectionSubjectTeacherAssignment.workspace_id == workspace_id
@@ -113,8 +110,8 @@ class HeatmapService:
         for teacher in db_teachers:
             required = teacher_required_hours[teacher.id]
             unavail = teacher_unavail_counts[teacher.id]
-            available = max(1, total_slots - unavail)
-            utilization = (required / available) * 100
+            available = max(0, total_slots - unavail)
+            utilization = (required / available) * 100 if available > 0 else (100.0 if required > 0 else 0.0)
             
             severity = "none"
             if utilization >= 100:
@@ -152,7 +149,7 @@ class HeatmapService:
         for sec in db_sections:
             required = section_required_hours[sec.id]
             available = total_slots
-            utilization = (required / available) * 100
+            utilization = (required / available) * 100 if available > 0 else (100.0 if required > 0 else 0.0)
 
             severity = "none"
             if utilization > 100:
@@ -265,7 +262,7 @@ class HeatmapService:
                     
                     # check if this lab is compatible with section
                     sec_size = section_size_map.get(ssta.section_id, 0)
-                    compatible_labs = [l for l in lab_rooms if l.capacity >= sec_size]
+                    compatible_labs = [candidate for candidate in lab_rooms if candidate.capacity >= sec_size]
                     if lab in compatible_labs:
                         needed_blocks += sessions / len(compatible_labs)
 
@@ -275,11 +272,24 @@ class HeatmapService:
                 slots_by_day[ts.day].append(ts.slot_index)
             
             available_blocks = 0
-            for day, p_indices in slots_by_day.items():
-                available_blocks += len(p_indices) // session_length
+            for p_indices in slots_by_day.values():
+                sorted_periods = sorted(set(p_indices))
+                run_length = 0
+                previous_period = None
+                for current_period in sorted_periods:
+                    if previous_period is None or current_period == previous_period + 1:
+                        run_length += 1
+                    else:
+                        available_blocks += run_length // session_length
+                        run_length = 1
+                    previous_period = current_period
+                available_blocks += run_length // session_length
 
-            available_blocks = max(1, available_blocks)
-            utilization = (needed_blocks / available_blocks) * 100
+            utilization = (
+                (needed_blocks / available_blocks) * 100
+                if available_blocks > 0
+                else (100.0 if needed_blocks > 0 else 0.0)
+            )
             
             severity = "none"
             if utilization >= 100:
@@ -345,7 +355,7 @@ class HeatmapService:
         db_subjects = db.query(Task).filter(Task.workspace_id == workspace_id, Task.task_type == "subject").all()
         db_sections = db.query(Group).filter(Group.workspace_id == workspace_id, Group.group_type == "section").all()
         db_timeslots = db.query(DbTimeSlot).filter(DbTimeSlot.workspace_id == workspace_id).all()
-        db_constraints = db.query(ConstraintRule).filter(ConstraintRule.workspace_id == workspace_id, ConstraintRule.enabled == True).all()
+        db_constraints = db.query(ConstraintRule).filter(ConstraintRule.workspace_id == workspace_id, ConstraintRule.enabled).all()
 
         teacher_names = {t.id: t.name for t in db_teachers}
         room_names = {r.id: r.name for r in db_rooms}
@@ -405,7 +415,11 @@ class HeatmapService:
 
         # 3. Soft Teacher Unavailability Check
         soft_unavail_constraints = [c for c in db_constraints if c.template_key == "teacher_unavailable" and c.rule_type == "soft"]
-        scheduled_slots = {(a.teacher_id, a.day, a.period) for a in assignments}
+        scheduled_slots = {
+            (a.teacher_id, a.day, a.period + offset)
+            for a in assignments
+            for offset in range(a.duration_periods or 1)
+        }
         for c in soft_unavail_constraints:
             t_id_str = c.parameters.get("teacher_id")
             day = c.parameters.get("day")
@@ -526,13 +540,81 @@ class HeatmapService:
 
         entity_id = get_uuid(entity_id_str)
 
+        if not entity_id:
+            return ImpactAnalysisReport(
+                feasible=False,
+                change_type=change_type,
+                message="An entity_id is required for a specific impact analysis.",
+                conflicts=[ViolationItem(
+                    severity="critical",
+                    message="The requested change did not identify a teacher or room in this workspace.",
+                )],
+                suggested_actions=["Select a workspace entity and submit the change again."],
+            )
+
+        if change_type in {"teacher_availability", "teacher_subject"}:
+            entity = db.query(Resource).filter(
+                Resource.id == entity_id,
+                Resource.workspace_id == workspace_id,
+                Resource.resource_type == "teacher",
+            ).first()
+        else:
+            entity = db.query(Location).filter(
+                Location.id == entity_id,
+                Location.workspace_id == workspace_id,
+            ).first()
+        if not entity:
+            return ImpactAnalysisReport(
+                feasible=False,
+                change_type=change_type,
+                message="The requested entity does not belong to this workspace.",
+                conflicts=[ViolationItem(
+                    severity="critical",
+                    message="Impact analysis was rejected because the entity is outside the active workspace.",
+                )],
+                suggested_actions=["Select an entity from the active workspace and try again."],
+            )
+
+        proposed_room_capacity: Optional[int] = None
+        if change_type == "room_capacity":
+            try:
+                proposed_room_capacity = int(new_value)
+            except (TypeError, ValueError):
+                return ImpactAnalysisReport(
+                    feasible=False,
+                    change_type=change_type,
+                    message="Room capacity must be a non-negative integer.",
+                    conflicts=[ViolationItem(
+                        severity="critical",
+                        message="The proposed room capacity is invalid.",
+                        resource_name=entity.name,
+                    )],
+                    suggested_actions=["Enter a whole-number room capacity and try again."],
+                )
+            if proposed_room_capacity < 0:
+                return ImpactAnalysisReport(
+                    feasible=False,
+                    change_type=change_type,
+                    message="Room capacity must be a non-negative integer.",
+                    conflicts=[ViolationItem(
+                        severity="critical",
+                        message="The proposed room capacity cannot be negative.",
+                        resource_name=entity.name,
+                    )],
+                    suggested_actions=["Enter zero or a positive room capacity."],
+                )
+
         # If no active schedule assignments, run pre-flight structural checks
         if not latest_run or not latest_run.schedule_version_id:
             # We perform pre-flight checks
             if change_type == "teacher_availability" and entity_id:
                 # new_value is list of unavailable slots or single slots
                 # Check teacher load
-                teacher = db.query(Resource).filter(Resource.id == entity_id).first()
+                teacher = db.query(Resource).filter(
+                    Resource.id == entity_id,
+                    Resource.workspace_id == workspace_id,
+                    Resource.resource_type == "teacher",
+                ).first()
                 if teacher:
                     ssta_list = db.query(SectionSubjectTeacherAssignment).filter(
                         SectionSubjectTeacherAssignment.workspace_id == workspace_id,
@@ -552,7 +634,7 @@ class HeatmapService:
                     elif isinstance(new_value, dict):
                         unavail_count = 1
 
-                    available = max(1, total_slots - unavail_count)
+                    available = max(0, total_slots - unavail_count)
                     if required > available:
                         conflicts.append(ViolationItem(
                             severity="critical",
@@ -579,7 +661,11 @@ class HeatmapService:
         ).all()
 
         if change_type == "teacher_availability" and entity_id:
-            teacher = db.query(Resource).filter(Resource.id == entity_id).first()
+            teacher = db.query(Resource).filter(
+                Resource.id == entity_id,
+                Resource.workspace_id == workspace_id,
+                Resource.resource_type == "teacher",
+            ).first()
             if teacher:
                 # new_value can specify day/period that are marked unavailable
                 unavail_slots = set()
@@ -615,9 +701,12 @@ class HeatmapService:
                     ])
 
         elif change_type == "room_capacity" and entity_id:
-            room = db.query(Location).filter(Location.id == entity_id).first()
+            room = db.query(Location).filter(
+                Location.id == entity_id,
+                Location.workspace_id == workspace_id,
+            ).first()
             if room:
-                new_cap = int(new_value) if new_value is not None else 0
+                new_cap = proposed_room_capacity if proposed_room_capacity is not None else room.capacity
                 db_sections = db.query(Group).filter(Group.workspace_id == workspace_id, Group.group_type == "section").all()
                 section_sizes = {sec.id: (sec.size or 0) for sec in db_sections}
                 section_names = {sec.id: sec.name for sec in db_sections}
@@ -648,13 +737,21 @@ class HeatmapService:
             if sub_id:
                 # check if teacher is no longer qualified
                 qualified = db.query(TeacherSubjectAssignment).filter(
+                    TeacherSubjectAssignment.workspace_id == workspace_id,
                     TeacherSubjectAssignment.teacher_id == entity_id,
                     TeacherSubjectAssignment.subject_id == sub_id
                 ).first()
                 # If they were deleted, we flag the scheduled slots
                 if not qualified:
-                    teacher = db.query(Resource).filter(Resource.id == entity_id).first()
-                    subject = db.query(Task).filter(Task.id == sub_id).first()
+                    teacher = db.query(Resource).filter(
+                        Resource.id == entity_id,
+                        Resource.workspace_id == workspace_id,
+                        Resource.resource_type == "teacher",
+                    ).first()
+                    subject = db.query(Task).filter(
+                        Task.id == sub_id,
+                        Task.workspace_id == workspace_id,
+                    ).first()
                     t_name = teacher.name if teacher else "Teacher"
                     sub_name = subject.name if subject else "Subject"
 
@@ -682,22 +779,48 @@ class HeatmapService:
 
     @staticmethod
     def calculate_explanation_report(workspace_id: uuid.UUID, run_id: uuid.UUID, assignment_id: uuid.UUID, db: Session) -> AssignmentExplanationReport:
+        run = db.query(ScheduleRun).filter(
+            ScheduleRun.id == run_id,
+            ScheduleRun.workspace_id == workspace_id,
+        ).first()
+        if not run or not run.schedule_version_id:
+            return AssignmentExplanationReport(assignment_id=str(assignment_id), reasons=["Assignment not found or inactive in run."])
+
         a = db.query(DbAssignment).filter(
             DbAssignment.id == assignment_id,
-            DbAssignment.schedule_version_id == (
-                db.query(ScheduleRun.schedule_version_id).filter(ScheduleRun.id == run_id).scalar_subquery()
-            )
+            DbAssignment.workspace_id == workspace_id,
+            DbAssignment.schedule_version_id == run.schedule_version_id,
         ).first()
 
         if not a:
             return AssignmentExplanationReport(assignment_id=str(assignment_id), reasons=["Assignment not found or inactive in run."])
 
-        # Load entity records
-        teacher = db.query(Resource).filter(Resource.id == a.teacher_id).first()
-        room = db.query(Location).filter(Location.id == a.room_id).first()
-        subject = db.query(Task).filter(Task.id == a.subject_id).first()
-        section = db.query(Group).filter(Group.id == a.section_id).first()
-        db_constraints = db.query(ConstraintRule).filter(ConstraintRule.workspace_id == workspace_id, ConstraintRule.enabled == True).all()
+        # Load entity records only from the active workspace.
+        teacher = db.query(Resource).filter(
+            Resource.id == a.teacher_id,
+            Resource.workspace_id == workspace_id,
+        ).first()
+        room = db.query(Location).filter(
+            Location.id == a.room_id,
+            Location.workspace_id == workspace_id,
+        ).first()
+        subject = db.query(Task).filter(
+            Task.id == a.subject_id,
+            Task.workspace_id == workspace_id,
+        ).first()
+        section = db.query(Group).filter(
+            Group.id == a.section_id,
+            Group.workspace_id == workspace_id,
+        ).first()
+        active_assignments = db.query(DbAssignment).filter(
+            DbAssignment.workspace_id == workspace_id,
+            DbAssignment.schedule_version_id == run.schedule_version_id,
+        ).all()
+        db_constraints = db.query(ConstraintRule).filter(ConstraintRule.workspace_id == workspace_id, ConstraintRule.enabled).all()
+        room_names = {
+            location.id: location.name
+            for location in db.query(Location).filter(Location.workspace_id == workspace_id).all()
+        }
 
         t_name = teacher.name if teacher else "Teacher"
         r_name = room.name if room else "Room"
@@ -707,17 +830,80 @@ class HeatmapService:
         room_cap = room.capacity if room else 0
         sec_size = section.size if section else 0
 
-        reasons = [
-            f"{t_name} is available on {a.day} Period {a.period} (no availability constraints violated).",
-            f"Section {sec_name} has no other classes scheduled at {a.day} Period {a.period}.",
-            f"Teacher {t_name} has no other teaching sessions scheduled at {a.day} Period {a.period}.",
-            f"Room {r_name} is free and not double-booked.",
-            f"Room {r_name} capacity ({room_cap}) is sufficient for section size of {sec_name} ({sec_size}).",
-            f"Subject {sub_name} requires {weekly_hours} periods per week for section {sec_name}."
-        ]
+        assignment_periods = {
+            (a.day, a.period + offset)
+            for offset in range(a.duration_periods or 1)
+        }
+
+        def overlaps(other: DbAssignment) -> bool:
+            other_periods = {
+                (other.day, other.period + offset)
+                for offset in range(other.duration_periods or 1)
+            }
+            return bool(assignment_periods & other_periods)
+
+        other_assignments = [other for other in active_assignments if other.id != a.id]
+        teacher_conflict = any(other.teacher_id == a.teacher_id and overlaps(other) for other in other_assignments)
+        section_conflict = any(other.section_id == a.section_id and overlaps(other) for other in other_assignments)
+        room_conflict = any(other.room_id == a.room_id and overlaps(other) for other in other_assignments)
+
+        hard_unavailable = set()
+        for constraint in db_constraints:
+            if constraint.template_key != "teacher_unavailable" or constraint.rule_type != "hard":
+                continue
+            if constraint.parameters.get("teacher_id") != str(a.teacher_id):
+                continue
+            day = constraint.parameters.get("day")
+            period = constraint.parameters.get("period")
+            if day and period is not None:
+                try:
+                    hard_unavailable.add((day, int(period)))
+                except (TypeError, ValueError):
+                    continue
+        unavailable_periods = sorted(assignment_periods & hard_unavailable)
+
+        subject_periods = sum(
+            other.duration_periods or 1
+            for other in active_assignments
+            if other.subject_id == a.subject_id and other.section_id == a.section_id
+        )
+
+        reasons = []
+        if unavailable_periods:
+            warnings = [
+                f"{t_name} is scheduled during a hard unavailable period: "
+                f"{', '.join(f'{day} Period {period}' for day, period in unavailable_periods)}."
+            ]
+        else:
+            warnings = []
+            reasons.append(f"{t_name} is available on {a.day} Period {a.period}; no hard availability constraint overlaps this assignment.")
+
+        if section_conflict:
+            warnings.append(f"Section {sec_name} has another class overlapping {a.day} Period {a.period}.")
+        else:
+            reasons.append(f"Section {sec_name} has no other class overlapping {a.day} Period {a.period}.")
+
+        if teacher_conflict:
+            warnings.append(f"Teacher {t_name} has another teaching session overlapping {a.day} Period {a.period}.")
+        else:
+            reasons.append(f"Teacher {t_name} has no other teaching session overlapping {a.day} Period {a.period}.")
+
+        if room_conflict:
+            warnings.append(f"Room {r_name} has another assignment overlapping {a.day} Period {a.period}.")
+        else:
+            reasons.append(f"Room {r_name} is free at {a.day} Period {a.period}.")
+
+        if room and section and room_cap < sec_size:
+            warnings.append(f"Room {r_name} capacity ({room_cap}) is below section size {sec_size}.")
+        else:
+            reasons.append(f"Room {r_name} capacity ({room_cap}) covers section size of {sec_name} ({sec_size}).")
+
+        reasons.append(
+            f"Subject {sub_name} requires {weekly_hours} periods per week for section {sec_name}; "
+            f"this run contains {subject_periods} assigned periods including this slot."
+        )
 
         satisfied_constraints = []
-        warnings = []
 
         # Check soft constraints satisfied
         for c in db_constraints:

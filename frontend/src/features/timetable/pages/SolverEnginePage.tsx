@@ -14,6 +14,20 @@ import { useWorkspaces } from '../../../lib/api/hooks/useWorkspaces';
 import PressureAnalysisView from '../../heatmap/PressureAnalysisView';
 import { usePressureAnalysis } from '../../heatmap/hooks/usePressureAnalysis';
 
+function suggestedFixesFor(reason: string): string[] {
+  const normalized = reason.toLowerCase();
+  if (normalized.includes('room') || normalized.includes('capacity')) {
+    return ['Add a larger compatible room or reduce the affected section size.', 'Check room-type and preferred-room constraints.'];
+  }
+  if (normalized.includes('teacher') || normalized.includes('availability')) {
+    return ['Assign another qualified teacher or expand the teacher availability window.', 'Review teacher-subject and unavailable-slot constraints.'];
+  }
+  if (normalized.includes('weekly hours') || normalized.includes('time capacity')) {
+    return ['Reduce weekly subject hours or add more usable periods to the cycle.', 'Check for long session lengths consuming multiple consecutive periods.'];
+  }
+  return ['Review the listed resource, room, and slot constraints, then run the solver again.'];
+}
+
 export default function SolverEnginePage() {
   const { organizationId } = useAuth();
   const { data: constraints, refetch: refetchConstraints } = useConstraints(organizationId);
@@ -303,6 +317,12 @@ export default function SolverEnginePage() {
                     <p className="text-on-surface-variant text-[11px] font-mono leading-relaxed">
                       {generateResult.infeasible_reason}
                     </p>
+                    <div className="mt-2 border-t border-secondary/20 pt-2">
+                      <p className="font-semibold text-on-surface-variant">Suggested fixes</p>
+                      <ul className="mt-1 list-disc space-y-1 pl-4 text-on-surface-variant">
+                        {suggestedFixesFor(generateResult.infeasible_reason).map((fix) => <li key={fix}>{fix}</li>)}
+                      </ul>
+                    </div>
                   </div>
                 ) : (
                   <div className="p-3 bg-accent-soft/30 border border-primary/20 text-primary rounded-lg text-xs space-y-1">

@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Any, Literal, Optional, List
 from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel, Field
@@ -77,6 +77,12 @@ class ImpactAnalysisReport(BaseModel):
 
     class Config:
         from_attributes = True
+
+class ImpactAnalysisRequest(BaseModel):
+    change_type: Literal["preview", "teacher_availability", "room_capacity", "teacher_subject"] = "preview"
+    entity_id: Optional[UUID] = None
+    new_value: Any = None
+    subject_id: Optional[UUID] = None
 
 class AssignmentExplanationReport(BaseModel):
     assignment_id: str

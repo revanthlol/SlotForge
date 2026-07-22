@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import PageHeader from '../../components/ui/PageHeader';
 import { useWorkspaces } from '../../lib/api/hooks/useWorkspaces';
-import { useWorkspaceScheduleRuns } from '../../hooks/useApi';
+import { useWorkspaceRunAssignments, useWorkspaceScheduleRuns } from '../../hooks/useApi';
 import PressureAnalysisView from './PressureAnalysisView';
 import ViolationReport from './ViolationReport';
 import ConflictPanel from './ConflictPanel';
@@ -9,6 +9,7 @@ import AssignmentExplanation from './AssignmentExplanation';
 import { usePressureAnalysis } from './hooks/usePressureAnalysis';
 import { useViolationReport } from './hooks/useViolationReport';
 import { useImpactAnalysis } from './hooks/useImpactAnalysis';
+import { useAssignmentExplanation } from './hooks/useAssignmentExplanation';
 
 type Mode = 'pressure' | 'violations';
 
@@ -19,9 +20,15 @@ export default function HeatmapPage() {
   const { data: runs } = useWorkspaceScheduleRuns(workspaceId);
   const [mode, setMode] = useState<Mode>('pressure');
   const latestRun = useMemo(() => (runs || []).find((run) => run.status === 'success') || runs?.[0] || null, [runs]);
+  const assignments = useWorkspaceRunAssignments(workspaceId, latestRun?.id || null);
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const activeAssignmentId = assignments.data?.some((assignment) => assignment.id === selectedAssignmentId)
+    ? selectedAssignmentId
+    : null;
 
   const pressure = usePressureAnalysis(workspaceId);
   const violations = useViolationReport(workspaceId, latestRun?.id || null);
+  const explanation = useAssignmentExplanation(workspaceId, latestRun?.id || null, activeAssignmentId);
   const impact = useImpactAnalysis(workspaceId);
 
   const tabs: Array<{ id: Mode; label: string; icon: string }> = [
@@ -104,7 +111,33 @@ export default function HeatmapPage() {
           <h2 className="mt-1 text-headline-sm text-on-surface">Assignment reasoning</h2>
         </div>
         <div className="mt-4">
-          <AssignmentExplanation explanation={null} />
+          {assignments.data?.length ? (
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
+              <div className="max-h-72 space-y-2 overflow-y-auto rounded-lg border border-rule bg-surface-container-low p-2">
+                {assignments.data.map((assignment) => (
+                  <button
+                    key={assignment.id}
+                    type="button"
+                    onClick={() => setSelectedAssignmentId(assignment.id)}
+                    className={`w-full rounded-md border px-3 py-2 text-left text-xs transition-colors ${
+                      selectedAssignmentId === assignment.id
+                        ? 'border-primary bg-accent-soft text-on-surface'
+                        : 'border-transparent text-on-surface-variant hover:border-rule hover:bg-paper-raised'
+                    }`}
+                  >
+                    <span className="font-semibold">{assignment.day} Period {assignment.period}</span>
+                    <span className="mt-1 block font-mono text-[10px] text-mono-grey">{assignment.id}</span>
+                  </button>
+                ))}
+              </div>
+              <div>
+                <AssignmentExplanation explanation={explanation.data} />
+                {explanation.error && <p className="mt-2 text-xs text-error">{explanation.error}</p>}
+              </div>
+            </div>
+          ) : (
+            <AssignmentExplanation explanation={null} />
+          )}
         </div>
       </section>
 

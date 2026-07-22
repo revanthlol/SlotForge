@@ -45,9 +45,9 @@ export default function ViolationReport({
 
       {unsupported ? (
         <div className="mt-4 rounded-lg border border-dashed border-rule bg-surface-container-low p-5">
-          <p className="text-sm font-semibold text-on-surface">Violation endpoint is not available yet.</p>
+          <p className="text-sm font-semibold text-on-surface">Violation analysis is currently unavailable.</p>
           <p className="mt-1 text-xs text-on-surface-variant">
-            Codex has wired the UI to <span className="font-mono">GET /api/v1/workspaces/:id/schedule-runs/:run_id/heatmap/violations</span>. It will render the live report once the backend endpoint exists.
+            The report request could not be served. Check the selected schedule run and try again.
           </p>
         </div>
       ) : error ? (

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { ShortcutHint, useShortcutAction } from '../../../contexts/ShortcutContext';
 import { useRooms, type Room } from '../../../hooks/useApi';
@@ -10,6 +10,8 @@ import ConfirmModal from '../../../components/ui/ConfirmModal';
 import { getApiErrorMessage } from '../../../lib/errors';
 import { usePresetConfig } from '../../presets/hooks/usePresetConfig';
 import { useWorkspaces } from '../../../lib/api/hooks/useWorkspaces';
+import ConflictPanel from '../../heatmap/ConflictPanel';
+import { useImpactAnalysis } from '../../heatmap/hooks/useImpactAnalysis';
 
 export default function RoomsPage() {
   const { organizationId } = useAuth();
@@ -17,6 +19,7 @@ export default function RoomsPage() {
   const { data: workspaces } = useWorkspaces();
   const workspace = workspaces?.[0];
   const activePreset = workspace?.domain_preset || 'academic';
+  const impact = useImpactAnalysis(workspace?.id || null);
 
   const { data: rooms, loading, refetch } = useRooms(organizationId);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -47,13 +50,13 @@ export default function RoomsPage() {
     r.type.toLowerCase().includes(search.toLowerCase())
   ) || [];
 
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     setEditingRoom(null);
     setFormName('');
     setFormCapacity('');
     setFormType(allowedTypes[0] || 'classroom');
     setModalOpen(true);
-  };
+  }, [allowedTypes]);
 
   useEffect(() => {
     const maybeOpen = (resource?: string) => {
@@ -67,14 +70,14 @@ export default function RoomsPage() {
     maybeOpen();
     window.addEventListener('slotforge:create-resource', onCreate);
     return () => window.removeEventListener('slotforge:create-resource', onCreate);
-  }, [allowedTypes]);
+  }, [openCreate]);
 
   useShortcutAction(useMemo(() => ({
     id: 'rooms.create',
     label: `Create ${config.roomLabel}`,
     shortcut: 'c r',
     handler: openCreate,
-  }), [config.roomLabel, allowedTypes]));
+  }), [config.roomLabel, openCreate]));
 
   useShortcutAction(useMemo(() => ({
     id: 'rooms.search',
@@ -95,22 +98,31 @@ export default function RoomsPage() {
     if (!formName.trim() || !formCapacity || !formType || !organizationId) return;
     setSaving(true);
     try {
+      const nextCapacity = parseInt(formCapacity, 10);
+      const capacityChanged = Boolean(editingRoom && editingRoom.capacity !== nextCapacity);
       if (editingRoom) {
         await api.put(`/rooms/${editingRoom.id}`, {
           name: formName,
-          capacity: parseInt(formCapacity),
+          capacity: nextCapacity,
           room_type: formType,
         });
       } else {
         await api.post('/rooms', {
           organization_id: organizationId,
           name: formName,
-          capacity: parseInt(formCapacity),
+          capacity: nextCapacity,
           room_type: formType,
         });
       }
       setModalOpen(false);
       refetch();
+      if (capacityChanged && editingRoom && workspace?.id) {
+        await impact.analyze({
+          change_type: 'room_capacity',
+          entity_id: editingRoom.id,
+          new_value: nextCapacity,
+        });
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -348,6 +360,14 @@ export default function RoomsPage() {
           setDeleteError(null);
         }}
         onConfirm={handleDelete}
+      />
+
+      <ConflictPanel
+        open={Boolean(impact.data || impact.loading || impact.error)}
+        report={impact.data}
+        loading={impact.loading}
+        error={impact.error}
+        onClose={impact.clear}
       />
     </div>
   );

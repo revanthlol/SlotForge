@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 type Theme = 'light' | 'dark';
 
@@ -20,14 +20,14 @@ const getInitialTheme = (): Theme => {
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(getInitialTheme);
 
-  const setTheme = (nextTheme: Theme) => {
+  const setTheme = useCallback((nextTheme: Theme) => {
     setThemeState(nextTheme);
     window.localStorage.setItem(storageKey, nextTheme);
-  };
+  }, []);
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
+  }, [setTheme, theme]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -38,7 +38,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     theme,
     setTheme,
     toggleTheme,
-  }), [theme]);
+  }), [setTheme, theme, toggleTheme]);
 
   return (
     <ThemeContext.Provider value={value}>

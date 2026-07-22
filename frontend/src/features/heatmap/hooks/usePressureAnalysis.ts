@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import axios from 'axios';
 import api from '../../../lib/api';
 import type { SchedulingPressureReport } from '../types';
 
@@ -23,31 +24,50 @@ export function usePressureAnalysis(workspaceId: string | null): PressureState {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [unsupported, setUnsupported] = useState(false);
+  const requestId = useRef(0);
+  const controller = useRef<AbortController | null>(null);
 
   const refetch = useCallback(async () => {
-    if (!workspaceId) return;
+    const currentRequest = ++requestId.current;
+    controller.current?.abort();
+    if (!workspaceId) {
+      setData(null);
+      setError(null);
+      setUnsupported(false);
+      setLoading(false);
+      return;
+    }
+    const nextController = new AbortController();
+    controller.current = nextController;
     setLoading(true);
     setError(null);
     setUnsupported(false);
     try {
-      const response = await api.post<SchedulingPressureReport>(`/api/v1/workspaces/${workspaceId}/heatmap/pressure`);
-      setData(response.data);
+      const response = await api.post<SchedulingPressureReport>(
+        `/api/v1/workspaces/${workspaceId}/heatmap/pressure`,
+        undefined,
+        { signal: nextController.signal },
+      );
+      if (currentRequest === requestId.current) setData(response.data);
     } catch (err: unknown) {
       const status = typeof err === 'object' && err && 'response' in err
         ? (err as { response?: { status?: number } }).response?.status
         : undefined;
-      if (status === 404 || status === 501) {
+      if (!axios.isCancel(err) && (status === 404 || status === 501)) {
         setUnsupported(true);
       }
-      setData(null);
-      setError(errorMessage(err));
+      if (!axios.isCancel(err) && currentRequest === requestId.current) {
+        setData(null);
+        setError(errorMessage(err));
+      }
     } finally {
-      setLoading(false);
+      if (currentRequest === requestId.current) setLoading(false);
     }
   }, [workspaceId]);
 
   useEffect(() => {
-    refetch();
+    void refetch();
+    return () => controller.current?.abort();
   }, [refetch]);
 
   return { data, loading, error, unsupported, refetch };

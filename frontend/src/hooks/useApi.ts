@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import axios from 'axios';
 import api from '../lib/api';
 
 interface UseApiReturn<T> {
@@ -12,24 +13,39 @@ export function useApiGet<T>(url: string | null): UseApiReturn<T> {
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const requestId = useRef(0);
+  const controller = useRef<AbortController | null>(null);
 
   const fetch = useCallback(async () => {
-    if (!url) return;
+    const currentRequest = ++requestId.current;
+    controller.current?.abort();
+    if (!url) {
+      setData(null);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
+    const nextController = new AbortController();
+    controller.current = nextController;
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get(url);
-      setData(res.data);
+      const res = await api.get(url, { signal: nextController.signal });
+      if (currentRequest === requestId.current) setData(res.data);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Request failed';
-      setError(msg);
+      if (!axios.isCancel(err) && currentRequest === requestId.current) {
+        const msg = err instanceof Error ? err.message : 'Request failed';
+        setError(msg);
+      }
     } finally {
-      setLoading(false);
+      if (currentRequest === requestId.current) setLoading(false);
     }
   }, [url]);
 
   useEffect(() => {
-    fetch();
+    void fetch();
+    return () => controller.current?.abort();
   }, [fetch]);
 
   return { data, loading, error, refetch: fetch };
@@ -257,6 +273,14 @@ export function useWorkspaceResources(workspaceId: string | null, type?: string)
 
 export function useWorkspaceScheduleRuns(workspaceId: string | null) {
   return useApiGet<ScheduleRun[]>(workspaceId ? `/api/v1/workspaces/${workspaceId}/schedule-runs/` : null);
+}
+
+export function useWorkspaceRunAssignments(workspaceId: string | null, runId: string | null) {
+  return useApiGet<ScheduledSlot[]>(
+    workspaceId && runId
+      ? `/api/v1/workspaces/${workspaceId}/schedule-runs/${runId}/assignments`
+      : null
+  );
 }
 
 export function useFacultyTimetable(workspaceId: string | null, runId: string | null, resourceId: string | null) {

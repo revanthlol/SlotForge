@@ -6,7 +6,7 @@ SlotForge is an institutional scheduling and timetable optimization platform. It
 
 ## Current Project Status
 
-SlotForge is currently **100% complete through Phase 5** of the engineering roadmap. The backend API is fully integrated with PostgreSQL, handles multi-tenancy, verifies Supabase JWTs, logs admin actions, tracks timetable version states (draft, published, archived), and generates downloadable PDF, Excel, and CSV export formats.
+SlotForge currently contains the Phase 7 heatmap and explainability implementation. A stabilization audit is in progress across the backend API, solver, frontend, and integrations.
 
 ### Completed Phases & Features
 
@@ -58,6 +58,10 @@ SlotForge is currently **100% complete through Phase 5** of the engineering road
    cp .env.example .env
    ```
    By default, local development uses a local PostgreSQL connection (e.g. `postgresql+psycopg://postgres:password@127.0.0.1:5432/slotforge`).
+   Start the local PostgreSQL and Redis services before migrating:
+   ```bash
+   docker compose up -d postgres redis
+   ```
 3. **Run Database Migrations**:
    ```bash
    alembic upgrade head
@@ -87,7 +91,7 @@ SlotForge is currently **100% complete through Phase 5** of the engineering road
 We maintain a comprehensive suite of unit, integration, and end-to-end tests. For details, refer to the [TESTING.md](file:///home/rev/Documents/projects/slotforge/TESTING.md) guide.
 
 ### Running Automated Pytest Suite
-Run the 13 automated tests covering the solver, REST API, RBAC permissions, tenant isolation, versioning lifecycle, and formats export:
+Run the automated tests covering the solver, REST API, RBAC permissions, tenant isolation, versioning lifecycle, heatmap analysis, and export formats:
 ```bash
 cd backend
 PYTHONPATH=. pytest

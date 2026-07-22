@@ -9,10 +9,16 @@ import SearchInput from '../../../components/ui/SearchInput';
 import ConfirmModal from '../../../components/ui/ConfirmModal';
 import { getApiErrorMessage } from '../../../lib/errors';
 import { usePresetConfig } from '../../presets/hooks/usePresetConfig';
+import { useWorkspaces } from '../../../lib/api/hooks/useWorkspaces';
+import ConflictPanel from '../../heatmap/ConflictPanel';
+import { useImpactAnalysis } from '../../heatmap/hooks/useImpactAnalysis';
 
 export default function TeachersPage() {
   const { organizationId } = useAuth();
   const config = usePresetConfig();
+  const { data: workspaces } = useWorkspaces();
+  const workspace = workspaces?.[0];
+  const impact = useImpactAnalysis(workspace?.id || null);
   const { data: teachers, loading, refetch } = useTeachers(organizationId);
   const { data: subjects } = useSubjects(organizationId);
   const { data: teacherSubjects, refetch: refetchTeacherSubjects } = useTeacherSubjectAssignments(organizationId);
@@ -122,11 +128,22 @@ export default function TeachersPage() {
     if (!subjectModalTeacher) return;
     setSaving(true);
     try {
+      const previousSubjectIds = (teacherSubjects || [])
+        .filter(row => row.teacher_id === subjectModalTeacher.id)
+        .map(row => row.subject_id);
+      const removedSubjectId = previousSubjectIds.find(id => !selectedSubjectIds.includes(id));
       await api.put(`/assignments/teacher-subjects/${subjectModalTeacher.id}`, {
         subject_ids: selectedSubjectIds,
       });
       setSubjectModalTeacher(null);
       refetchTeacherSubjects();
+      if (removedSubjectId && workspace?.id) {
+        await impact.analyze({
+          change_type: 'teacher_subject',
+          entity_id: subjectModalTeacher.id,
+          new_value: { subject_id: removedSubjectId },
+        });
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -352,6 +369,14 @@ export default function TeachersPage() {
           })}
         </div>
       </Modal>
+
+      <ConflictPanel
+        open={Boolean(impact.data || impact.loading || impact.error)}
+        report={impact.data}
+        loading={impact.loading}
+        error={impact.error}
+        onClose={impact.clear}
+      />
     </div>
   );
 }
