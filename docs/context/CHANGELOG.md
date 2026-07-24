@@ -2,6 +2,7 @@
 
 ## 2026-07-24
 
+- Deployed `ca0df8a` to the Oracle VPS by fast-forward; service restart and post-deploy verification passed. VPS remains on Alembic head `fc1b2d3e4f50` with preserved untracked helpers `deploy.sh` and `diagnose.sh`.
 - Completed the Codex portion of Phase 8: added the Constraint Playground UI at `/constraints`, sidebar navigation, template configuration, rule preview, enable/disable, edit, and delete flows.
 - Fixed a backend Phase 8 gap where academic, event, exam, and staff-roster adapters bypassed `ConstraintCompiler` and passed raw penalties as solver weights. All active preset rules now use compiler mappings, preserving hard/soft semantics and template defaults.
 - Verification: backend `48 passed`; frontend build passed; frontend lint passed with the repository's existing Fast Refresh warnings and the normal large-chunk warning.
