@@ -23,4 +23,6 @@ class ConstraintRule(Base):
     enabled: Mapped[bool] = mapped_column(Boolean, default=True, server_default="true", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
-event.listen(ConstraintRule, "before_insert", auto_populate_workspace_id_listener)
+# Constraint is a compatibility subclass of ConstraintRule. Propagate the
+# listener so inserts through either model populate the required workspace_id.
+event.listen(ConstraintRule, "before_insert", auto_populate_workspace_id_listener, propagate=True)
