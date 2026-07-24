@@ -2,7 +2,7 @@
 
 ## 2026-07-24
 
-- Audited the handoff context against the local repository and Oracle VPS: local HEAD `ebd8f15`, backend VPS commit `38af1b0`, service active, and both health endpoints passing.
+- Audited and synchronized the handoff context against the local repository and Oracle VPS: repository checkout `e67ff26`, latest backend-affecting commit `38af1b0`, service active, and both health endpoints passing.
 - Repaired the production demo account by creating its missing local profile and organization membership, then verified Supabase login and authenticated `/auth/me` returned 200.
 - Fixed the resource-page impact drawer appearing at the right edge after successful no-conflict saves.
 - Added the reusable `slotforge-oracle-deploy` skill for pushing `dev`, updating the Oracle VPS through the `server` SSH alias, restarting/verifying `slotforge-api.service`, and diagnosing backend failures safely.

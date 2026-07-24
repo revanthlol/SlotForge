@@ -5,7 +5,7 @@ Last updated: 2026-07-24
 ## Verification snapshot
 
 - Local `dev` HEAD: `ebd8f15` (resource-page impact drawer fix).
-- Oracle VPS backend checkout: `38af1b0` (latest backend-affecting commit); the later local commits are frontend/context-only.
+- Oracle VPS repository checkout: `e67ff26`; latest backend-affecting commit remains `38af1b0`, while later commits are frontend/context-only.
 - VPS service: `slotforge-api.service` active.
 - VPS `/health`: `200`, status `ok`.
 - VPS `/health/db`: `200`, status `ok`, Alembic revision `fc1b2d3e4f50`.
