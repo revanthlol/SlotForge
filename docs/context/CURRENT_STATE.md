@@ -4,33 +4,32 @@ Last updated: 2026-07-24
 
 ## Verification snapshot
 
-- Local `dev` HEAD: `ebd8f15` (resource-page impact drawer fix).
-- Oracle VPS repository checkout: `e67ff26`; latest backend-affecting commit remains `38af1b0`, while later commits are frontend/context-only.
+- Local `dev` HEAD: `5588443` (feat: Phase 8 constraint playground compiler and workspace endpoints).
+- Oracle VPS repository checkout: pending deployment of `5588443`.
 - VPS service: `slotforge-api.service` active.
-- VPS `/health`: `200`, status `ok`.
-- VPS `/health/db`: `200`, status `ok`, Alembic revision `fc1b2d3e4f50`.
 - Known preserved VPS untracked helpers: `deploy.sh`, `diagnose.sh`.
 
 ## Product
 
-SlotForge is a multi-tenant institutional timetable and schedule optimization platform. The academic preset is the primary active experience. It manages teachers, rooms, subjects, sections, teacher/subject qualifications, section teaching maps, solver constraints, generated timetable versions, exports, faculty sharing, heatmaps, and a relationship Canvas.
+SlotForge is a multi-tenant institutional timetable and schedule optimization platform. The academic preset is the primary active experience. It manages teachers, rooms, subjects, sections, teacher/subject qualifications, section teaching maps, solver constraints, generated timetable versions, exports, faculty sharing, heatmaps, a relationship Canvas, and the Constraint Playground rule templates.
 
 ## Active implementation state
 
 - Backend: FastAPI + SQLAlchemy + Alembic + PostgreSQL/Supabase auth.
 - Solver: Google OR-Tools CP-SAT under `backend/app/solver/`.
+- Constraint Playground: Template registry (12 templates), solver function mappings, `ConstraintCompiler`, workspace constraint CRUD endpoints, and rule impact preview API implemented.
 - Frontend: React 19 + TypeScript + Vite + Tailwind CSS v4.
 - Frontend API auth: Supabase JWT is attached by `frontend/src/lib/api.ts`.
 - Mutating API routes require the organization-admin role.
 - Generated timetables are draft versions until promoted/published.
 
-## Recently fixed
+## Recently fixed / added
 
+- Phase 8 Constraint Playground backend completed: 12 pre-built rule templates added to registry, compiler maps rules to solver CP-SAT constraints, and endpoints added (`GET /api/v1/constraint-templates/`, `GET/POST/PATCH/DELETE /api/v1/workspaces/{id}/constraints`, `POST /api/v1/workspaces/{id}/constraints/preview`).
 - Teacher/subject assignment Save writes are ordered on the subject-side dialog so full-list replacement requests cannot race and overwrite each other.
 - Teacher and subject assignment dialogs now show API failures instead of silently logging them.
 - Assignment dialogs cannot be dismissed while a save is in progress.
-- Solver Engine now exposes an Add rule flow backed by `POST /constraints/`.
-- Canvas lanes were rebalanced to prevent the outer columns from clipping and to reduce edge collisions.
+- Canvas lanes rebalanced to prevent outer column clipping and edge collisions.
 
 ## Known limitations and risks
 

@@ -12,4 +12,5 @@
 - Added the SlotForge context pack for future LLM and developer handoffs.
 - Documented the current architecture and the teacher/subject assignment data flow.
 - Recorded recent fixes for assignment Save races, visible errors, constraint creation, and Canvas lane layout.
-- Verification recorded: frontend build passed; frontend lint passed with existing Fast Refresh warnings; backend solver/scoring tests passed (12 tests).
+- Implemented Phase 8 Constraint Playground backend: added constraint template registry (12 templates), solver function mappings (`SOLVER_FUNCTIONS`), `ConstraintCompiler`, workspace constraint CRUD endpoints, and rule impact preview API.
+- Verification recorded: frontend build and lint passed; backend pytest suite passed (14 unit/integration tests).
