@@ -24,9 +24,7 @@ templates_router = APIRouter()
 
 @router.get("/templates", response_model=List[ConstraintTemplateResponse])
 @templates_router.get("/", response_model=List[ConstraintTemplateResponse])
-def list_constraint_templates(
-    current_user: Profile = Depends(get_current_user_profile),
-):
+def list_constraint_templates():
     """
     List all available constraint templates with parameter metadata for the playground UI.
     """
