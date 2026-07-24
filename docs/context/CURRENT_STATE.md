@@ -1,16 +1,16 @@
 # Current State
 
-Last updated: 2026-07-24
+Last updated: 2026-07-25
 
 ## Verification snapshot
 
-- Local `dev` HEAD: `ca0df8a` (feat: complete constraint playground UI and compiler integration).
-- Oracle VPS repository checkout: `ca0df8a`.
+- Local `dev` HEAD: `20f24f3` (fix: preserve real auth ids during demo seeding).
+- Oracle VPS repository checkout: `20f24f3`.
 - VPS service: `slotforge-api.service` active.
 - VPS `/health`: `200`, status `ok`.
 - VPS `/health/db`: `200`, status `ok`, Alembic revision `fc1b2d3e4f50`.
 - Known preserved VPS untracked helpers: `deploy.sh`, `diagnose.sh`.
-- Latest deployment verification: service restarted after `ca0df8a`; `/health` and `/health/db` returned 200, templates endpoint returned successfully, and no new error-level service logs were present.
+- Latest deployment verification: service restarted after `20f24f3`; `/health`, `/health/db`, Supabase login, and authenticated `/auth/me` returned successfully, with no new error-level service logs.
 - Auth repair: demo seeding now preserves the real Supabase Auth user ID when optional admin password synchronization fails, preventing `/auth/me` 404s caused by synthetic fallback profiles.
 
 ## Product
