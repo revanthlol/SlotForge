@@ -373,6 +373,15 @@ def _solve_model(
                 if t_id:
                     room_requirements_teacher[t_id] = r_id
 
+    # Reserved slots / Assembly blocks (hard)
+    blocked_slots = set()
+    for c in instance.constraints:
+        if c.constraint_type in ("reserve_period_for_assembly", "hard_block_slot") and c.weight is None:
+            day = c.payload.get("day")
+            period = c.payload.get("period")
+            if day and period is not None:
+                blocked_slots.add((str(day), int(period)))
+
     # 2. Decision Variables
     # x[sec, sub, t, slot] = Boolean variable indicating session is scheduled
     # y[sec, sub, t, slot, r] = Boolean variable indicating room r is assigned to session
@@ -401,6 +410,9 @@ def _solve_model(
                             break
                         covered_slots.append(covered_slot.id)
                     if not covered_slots:
+                        continue
+                    # Reserved assembly slot block check
+                    if any((slots_map[cs_id].day, slots_map[cs_id].period) in blocked_slots for cs_id in covered_slots):
                         continue
                     # Teacher unavailability check
                     if not relax_teacher_availability and any((t.id, covered_slot_id) in unavailable_teacher_slots for covered_slot_id in covered_slots):
@@ -673,6 +685,81 @@ def _solve_model(
                         y_term = teacher_active.get((t_id, slot_obj.day, slot_obj.period), 0)
                         if isinstance(y_term, cp_model.IntVar):
                             objective_terms.append(c.weight * y_term)
+
+            elif c.constraint_type == "avoid_consecutive_same_subject":
+                penalty = c.weight or c.payload.get("penalty", 5)
+                for sec in instance.sections:
+                    for sub in instance.subjects:
+                        if (sec.id, sub.id) not in active_section_subjects:
+                            continue
+                        for day in days:
+                            day_slots_sorted = sorted([s for s in instance.slots if s.day == day], key=lambda s: s.period)
+                            for i in range(len(day_slots_sorted) - 1):
+                                p1_id = day_slots_sorted[i].id
+                                p2_id = day_slots_sorted[i+1].id
+                                vars_p1 = [var for (sec_id, sub_id_k, t_id, s_id), var in x.items() if sec_id == sec.id and sub_id_k == sub.id and s_id == p1_id]
+                                vars_p2 = [var for (sec_id, sub_id_k, t_id, s_id), var in x.items() if sec_id == sec.id and sub_id_k == sub.id and s_id == p2_id]
+                                if vars_p1 and vars_p2:
+                                    consec_b = model.NewBoolVar(f"consec_{sec.id}_{sub.id}_{day}_{i}")
+                                    model.Add(consec_b >= sum(vars_p1) + sum(vars_p2) - 1)
+                                    objective_terms.append(consec_b * penalty)
+
+            elif c.constraint_type == "avoid_last_period":
+                penalty = c.weight or c.payload.get("penalty", 3)
+                res_id = c.payload.get("resource_id")
+                max_period_by_day = {}
+                for slot in instance.slots:
+                    max_period_by_day[slot.day] = max(max_period_by_day.get(slot.day, 0), slot.period)
+                for (sec_id, sub_id_k, t_id, s_id), var in x.items():
+                    if res_id and t_id != res_id:
+                        continue
+                    slot_obj = slots_map.get(s_id)
+                    if slot_obj and slot_obj.period == max_period_by_day.get(slot_obj.day):
+                        objective_terms.append(var * penalty)
+
+            elif c.constraint_type == "prefer_morning_labs":
+                penalty = c.weight or c.payload.get("penalty", 4)
+                thresh = c.payload.get("morning_threshold", 3)
+                for (sec_id, sub_id_k, t_id, s_id), var in x.items():
+                    sub_obj = subjects_map.get(sub_id_k)
+                    is_lab = sub_obj and (getattr(sub_obj, "session_length", 1) > 1 or "lab" in sub_obj.name.lower())
+                    slot_obj = slots_map.get(s_id)
+                    if is_lab and slot_obj and slot_obj.period > thresh:
+                        objective_terms.append(var * penalty)
+
+            elif c.constraint_type == "limit_daily_load":
+                penalty = c.weight or c.payload.get("penalty", 5)
+                max_load = c.payload.get("max_periods_per_day", 4)
+                for t in instance.teachers:
+                    for day in days:
+                        day_slot_ids = {s.id for s in instance.slots if s.day == day}
+                        vars_t_day = [
+                            var for (sec_id, sub_id_k, t_id, s_id), var in x.items()
+                            if t_id == t.id and s_id in day_slot_ids
+                        ]
+                        if vars_t_day:
+                            t_load = model.NewIntVar(0, len(day_slot_ids), f"t_load_{t.id}_{day}")
+                            model.Add(t_load == sum(vars_t_day))
+                            t_over = model.NewIntVar(0, len(day_slot_ids), f"t_over_{t.id}_{day}")
+                            model.Add(t_load - max_load <= t_over)
+                            objective_terms.append(t_over * penalty)
+
+            elif c.constraint_type == "avoid_section_overload_day":
+                penalty = c.weight or c.payload.get("penalty", 6)
+                max_load = c.payload.get("max_periods_per_day", 5)
+                for sec in instance.sections:
+                    for day in days:
+                        day_slot_ids = {s.id for s in instance.slots if s.day == day}
+                        vars_sec_day = [
+                            var for (sec_id, sub_id_k, t_id, s_id), var in x.items()
+                            if sec_id == sec.id and s_id in day_slot_ids
+                        ]
+                        if vars_sec_day:
+                            sec_load = model.NewIntVar(0, len(day_slot_ids), f"sec_load_{sec.id}_{day}")
+                            model.Add(sec_load == sum(vars_sec_day))
+                            sec_over = model.NewIntVar(0, len(day_slot_ids), f"sec_over_{sec.id}_{day}")
+                            model.Add(sec_load - max_load <= sec_over)
+                            objective_terms.append(sec_over * penalty)
 
     # Penalize assigning multiple rooms to avoid unnecessary splits
     for var in y.values():

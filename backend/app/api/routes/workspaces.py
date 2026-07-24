@@ -34,6 +34,17 @@ from app.schemas.heatmap import (
     ImpactAnalysisReport,
     AssignmentExplanationReport
 )
+from app.models.constraint_rule import ConstraintRule
+from app.schemas.constraint import (
+    ConstraintRuleCreate,
+    ConstraintRuleUpdate,
+    ConstraintRuleResponse,
+    ConstraintPreviewRequest,
+    ConstraintPreviewResponse,
+    AffectedAssignmentInfo,
+)
+from app.services.constraints.registry import CONSTRAINT_TEMPLATES
+from app.services.audit_service import AuditService
 
 router = APIRouter()
 
@@ -571,3 +582,242 @@ def get_assignment_explanation(
     run_uuid = _parse_uuid(run_id, "run_id")
     assignment_uuid = _parse_uuid(assignment_id, "assignment_id")
     return HeatmapService.calculate_explanation_report(workspace.id, run_uuid, assignment_uuid, db)
+
+
+# ── Constraint Playground Routes ──────────────────────────────────
+
+@router.get("/{id}/constraints", response_model=list[ConstraintRuleResponse])
+@router.get("/{id}/constraints/", response_model=list[ConstraintRuleResponse])
+def list_workspace_constraints(
+    id: str,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    rules = db.query(ConstraintRule).filter(
+        ConstraintRule.workspace_id == workspace.id
+    ).all()
+    return rules
+
+
+@router.post("/{id}/constraints", response_model=ConstraintRuleResponse, status_code=201)
+@router.post("/{id}/constraints/", response_model=ConstraintRuleResponse, status_code=201)
+def create_workspace_constraint(
+    id: str,
+    payload: ConstraintRuleCreate,
+    current_user: Profile = Depends(require_org_admin),
+    db: Session = Depends(get_db)
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    template = CONSTRAINT_TEMPLATES.get(payload.template_key)
+    
+    rule_name = payload.name or (template["name"] if template else payload.template_key.replace("_", " ").title())
+    rule_type = payload.rule_type or (template["type"] if template else ("hard" if payload.penalty is None else "soft"))
+    
+    rule = ConstraintRule(
+        organization_id=workspace.organization_id,
+        workspace_id=workspace.id,
+        name=rule_name,
+        rule_type=rule_type,
+        template_key=payload.template_key,
+        parameters=payload.parameters or {},
+        priority=payload.priority,
+        penalty=payload.penalty,
+        enabled=payload.enabled
+    )
+    db.add(rule)
+    db.commit()
+    db.refresh(rule)
+
+    AuditService.log_action(
+        db=db,
+        org_id=current_user.organization_id,
+        actor_id=current_user.id,
+        action="constraint.create",
+        target_table="constraint_rules",
+        target_id=rule.id,
+        diff={"new_values": {"name": rule.name, "template_key": rule.template_key, "parameters": rule.parameters}}
+    )
+
+    return rule
+
+
+@router.patch("/{id}/constraints/{rule_id}", response_model=ConstraintRuleResponse)
+@router.put("/{id}/constraints/{rule_id}", response_model=ConstraintRuleResponse)
+def update_workspace_constraint(
+    id: str,
+    rule_id: str,
+    payload: ConstraintRuleUpdate,
+    current_user: Profile = Depends(require_org_admin),
+    db: Session = Depends(get_db)
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    r_uuid = _parse_uuid(rule_id, "rule_id")
+    
+    rule = db.query(ConstraintRule).filter(
+        ConstraintRule.id == r_uuid,
+        ConstraintRule.workspace_id == workspace.id
+    ).first()
+    if not rule:
+        raise HTTPException(status_code=404, detail="Constraint rule not found")
+
+    old_values = {
+        "name": rule.name,
+        "rule_type": rule.rule_type,
+        "parameters": rule.parameters,
+        "enabled": rule.enabled,
+        "penalty": rule.penalty,
+        "priority": rule.priority
+    }
+
+    if payload.name is not None:
+        rule.name = payload.name
+    if payload.rule_type is not None:
+        rule.rule_type = payload.rule_type
+    if payload.parameters is not None:
+        rule.parameters = payload.parameters
+    if payload.priority is not None:
+        rule.priority = payload.priority
+    if payload.penalty is not None:
+        rule.penalty = payload.penalty
+    if payload.enabled is not None:
+        rule.enabled = payload.enabled
+
+    db.commit()
+    db.refresh(rule)
+
+    AuditService.log_action(
+        db=db,
+        org_id=current_user.organization_id,
+        actor_id=current_user.id,
+        action="constraint.update",
+        target_table="constraint_rules",
+        target_id=rule.id,
+        diff={"old_values": old_values, "new_values": {"name": rule.name, "enabled": rule.enabled}}
+    )
+
+    return rule
+
+
+@router.delete("/{id}/constraints/{rule_id}", status_code=204)
+def delete_workspace_constraint(
+    id: str,
+    rule_id: str,
+    current_user: Profile = Depends(require_org_admin),
+    db: Session = Depends(get_db)
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    r_uuid = _parse_uuid(rule_id, "rule_id")
+    
+    rule = db.query(ConstraintRule).filter(
+        ConstraintRule.id == r_uuid,
+        ConstraintRule.workspace_id == workspace.id
+    ).first()
+    if not rule:
+        raise HTTPException(status_code=404, detail="Constraint rule not found")
+
+    rule_id_val = rule.id
+    db.delete(rule)
+    db.commit()
+
+    AuditService.log_action(
+        db=db,
+        org_id=current_user.organization_id,
+        actor_id=current_user.id,
+        action="constraint.delete",
+        target_table="constraint_rules",
+        target_id=rule_id_val,
+        diff={"old_values": {"name": rule.name}}
+    )
+    return
+
+
+@router.post("/{id}/constraints/preview", response_model=ConstraintPreviewResponse)
+def preview_workspace_constraint(
+    id: str,
+    payload: ConstraintPreviewRequest,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db)
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    template = CONSTRAINT_TEMPLATES.get(payload.template_key)
+    
+    assignments = db.query(SlotModel).filter(
+        SlotModel.workspace_id == workspace.id
+    ).all()
+    
+    impacted: list[AffectedAssignmentInfo] = []
+    rule_type = template["type"] if template else "hard"
+
+    if payload.template_key in ("reserve_period_for_assembly", "hard_block_slot"):
+        target_day = payload.parameters.get("day")
+        target_period = payload.parameters.get("period")
+        label = payload.parameters.get("label", "Assembly")
+        if target_day is not None and target_period is not None:
+            for a in assignments:
+                if str(a.day) == str(target_day) and int(a.period) == int(target_period):
+                    impacted.append(
+                        AffectedAssignmentInfo(
+                            section_id=str(a.group_id or a.metadata.get("section_id", "") if a.metadata else ""),
+                            subject_id=str(a.task_id or a.metadata.get("subject_id", "") if a.metadata else ""),
+                            teacher_id=str(a.teacher_id or ""),
+                            room_id=str(a.room_id or ""),
+                            day=str(a.day),
+                            period=int(a.period),
+                            reason=f"Conflicts with reserved period for '{label}'",
+                        )
+                    )
+
+    elif payload.template_key == "avoid_last_period":
+        resource_id = payload.parameters.get("resource_id")
+        max_period_by_day = {}
+        for a in assignments:
+            max_period_by_day[a.day] = max(max_period_by_day.get(a.day, 0), a.period)
+        for a in assignments:
+            if resource_id and str(a.teacher_id) != str(resource_id):
+                continue
+            if a.period == max_period_by_day.get(a.day):
+                impacted.append(
+                    AffectedAssignmentInfo(
+                        section_id=str(a.group_id or a.metadata.get("section_id", "") if a.metadata else ""),
+                        subject_id=str(a.task_id or a.metadata.get("subject_id", "") if a.metadata else ""),
+                        teacher_id=str(a.teacher_id or ""),
+                        room_id=str(a.room_id or ""),
+                        day=str(a.day),
+                        period=int(a.period),
+                        reason="Scheduled in the last period of the day",
+                    )
+                )
+
+    elif payload.template_key == "prefer_morning_labs":
+        thresh = payload.parameters.get("morning_threshold", 3)
+        for a in assignments:
+            is_lab = getattr(a, "duration_slots", 1) > 1 or (a.metadata and "lab" in str(a.metadata.get("subject_name", "")).lower())
+            if is_lab and a.period > thresh:
+                impacted.append(
+                    AffectedAssignmentInfo(
+                        section_id=str(a.group_id or a.metadata.get("section_id", "") if a.metadata else ""),
+                        subject_id=str(a.task_id or a.metadata.get("subject_id", "") if a.metadata else ""),
+                        teacher_id=str(a.teacher_id or ""),
+                        room_id=str(a.room_id or ""),
+                        day=str(a.day),
+                        period=int(a.period),
+                        reason=f"Lab scheduled after morning threshold (period {a.period} > {thresh})",
+                    )
+                )
+
+    impact_count = len(impacted)
+    infeasibility_risk = bool(rule_type == "hard" and impact_count > 5)
+    
+    if impact_count == 0:
+        summary = f"No existing assignments impacted by rule '{payload.template_key}'."
+    else:
+        summary = f"{impact_count} existing assignment(s) will be affected by this rule."
+
+    return ConstraintPreviewResponse(
+        template_key=payload.template_key,
+        impacted_assignments_count=impact_count,
+        impacted_assignments=impacted,
+        infeasibility_risk=infeasibility_risk,
+        summary=summary,
+    )

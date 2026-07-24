@@ -115,3 +115,4 @@ app.include_router(assignments.router, prefix="/assignments", tags=["assignments
 app.include_router(workspaces.router, prefix="/api/v1/workspaces", tags=["workspaces"])
 app.include_router(presets.router, prefix="/api/v1/presets", tags=["presets"])
 app.include_router(share.router, prefix="/api/v1/share", tags=["share"])
+app.include_router(constraints.templates_router, prefix="/api/v1/constraint-templates", tags=["constraint-templates"])

@@ -1,14 +1,58 @@
 import uuid
+from typing import List
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
-from app.schemas.constraint import Constraint as ConstraintSchema, ConstraintCreate, ConstraintUpdate
+
+from app.schemas.constraint import (
+    Constraint as ConstraintSchema,
+    ConstraintCreate,
+    ConstraintUpdate,
+    ConstraintTemplateResponse,
+    ConstraintTemplateParam,
+)
 from app.models.constraint import Constraint as ConstraintModel
+from app.models.constraint_rule import ConstraintRule
+from app.services.constraints.registry import CONSTRAINT_TEMPLATES
 from app.core.db import get_db
 from app.core.auth import get_current_user_profile, require_org_admin
 from app.models.profile import Profile
 from app.services.audit_service import AuditService
 
 router = APIRouter()
+templates_router = APIRouter()
+
+
+@router.get("/templates", response_model=List[ConstraintTemplateResponse])
+@templates_router.get("/", response_model=List[ConstraintTemplateResponse])
+def list_constraint_templates(
+    current_user: Profile = Depends(get_current_user_profile),
+):
+    """
+    List all available constraint templates with parameter metadata for the playground UI.
+    """
+    result = []
+    for key, template in CONSTRAINT_TEMPLATES.items():
+        params = [
+            ConstraintTemplateParam(
+                key=p["key"],
+                label=p["label"],
+                type=p["type"],
+                default=p.get("default"),
+            )
+            for p in template.get("parameters", [])
+        ]
+        result.append(
+            ConstraintTemplateResponse(
+                key=key,
+                name=template["name"],
+                description=template["description"],
+                type=template["type"],
+                parameters=params,
+                solver_fn=template["solver_fn"],
+            )
+        )
+    return result
+
 
 @router.post("/", response_model=ConstraintSchema, status_code=201)
 def create_constraint(
@@ -20,6 +64,7 @@ def create_constraint(
         organization_id=current_user.organization_id,
         name=payload.constraint_type.replace("_", " ").title(),
         rule_type="hard" if payload.weight is None else "soft",
+        template_key=payload.constraint_type,
         constraint_type=payload.constraint_type,
         payload=payload.payload,
         weight=payload.weight
@@ -46,6 +91,7 @@ def create_constraint(
         weight=constraint.weight
     )
 
+
 @router.get("/", response_model=list[ConstraintSchema])
 def list_constraints(
     current_user: Profile = Depends(get_current_user_profile),
@@ -63,6 +109,7 @@ def list_constraints(
             weight=c.weight
         ) for c in constraints
     ]
+
 
 @router.get("/{constraint_id}", response_model=ConstraintSchema)
 def get_constraint(
@@ -90,6 +137,7 @@ def get_constraint(
         payload=constraint.payload,
         weight=constraint.weight
     )
+
 
 @router.put("/{constraint_id}", response_model=ConstraintSchema)
 def update_constraint(
@@ -156,6 +204,7 @@ def update_constraint(
         payload=constraint.payload,
         weight=constraint.weight
     )
+
 
 @router.delete("/{constraint_id}", status_code=204)
 def delete_constraint(

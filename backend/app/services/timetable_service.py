@@ -53,9 +53,10 @@ class TimetableService:
         org_sections = [
             Section(id=str(sec.id), name=sec.name, size=sec.size) for sec in db_sections
         ]
+        from app.services.constraints.compiler import ConstraintCompiler
+        compiler = ConstraintCompiler()
         org_constraints = [
-            SolverConstraint(id=str(c.id), constraint_type=c.constraint_type, payload=c.payload, weight=c.weight)
-            for c in db_constraints
+            compiler.compile(c) for c in db_constraints if getattr(c, "enabled", True)
         ]
         
         # Dynamically generate slots based on organization configuration
