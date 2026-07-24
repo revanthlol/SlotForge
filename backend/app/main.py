@@ -28,19 +28,32 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 REQUIRED_SCHEMA_COLUMNS = {
     "organizations": {"id", "name", "created_at", "scheduling_mode", "cycle_length", "periods_per_day"},
-    "subjects": {"id", "organization_id", "name", "weekly_hours", "session_length", "color", "created_at"},
-    "timetable_slots": {
+    "scheduling_workspaces": {"id", "organization_id", "name", "domain_preset", "created_at", "updated_at"},
+    "resources": {"id", "organization_id", "workspace_id", "name", "resource_type", "metadata", "availability", "created_at"},
+    "tasks": {"id", "organization_id", "workspace_id", "name", "task_type", "required_hours", "metadata", "created_at"},
+    "groups": {"id", "organization_id", "workspace_id", "name", "group_type", "size", "metadata", "created_at"},
+    "locations": {"id", "organization_id", "workspace_id", "name", "location_type", "capacity", "metadata", "created_at"},
+    "timeslots": {"id", "organization_id", "workspace_id", "name", "day", "slot_index", "created_at"},
+    "schedule_versions": {"id", "organization_id", "workspace_id", "version_label", "version_number", "status", "scores", "created_at"},
+    "assignments": {
         "id",
         "organization_id",
-        "timetable_version_id",
-        "section_id",
-        "subject_id",
-        "teacher_id",
-        "room_id",
+        "workspace_id",
+        "schedule_version_id",
+        "task_id",
+        "group_id",
+        "timeslot_id",
+        "duration_slots",
+        "metadata",
+        "created_at",
         "day",
         "period",
-        "duration_periods",
+        "teacher_id",
+        "room_id",
     },
+    "constraint_rules": {"id", "organization_id", "workspace_id", "name", "rule_type", "template_key", "parameters", "priority", "penalty", "enabled", "created_at"},
+    "teacher_subject_assignments": {"id", "organization_id", "workspace_id", "teacher_id", "subject_id", "created_at"},
+    "section_subject_teacher_assignments": {"id", "organization_id", "workspace_id", "section_id", "subject_id", "teacher_id", "created_at"},
 }
 
 
