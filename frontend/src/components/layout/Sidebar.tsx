@@ -22,6 +22,7 @@ const primaryLinks: SidebarLink[] = [
   { label: 'Heatmap', path: '/heatmap', icon: 'ssid_chart' },
   { label: 'Canvas View', path: '/canvas', icon: 'hub' },
   { label: 'Solver Engine', path: '/solver', icon: 'precision_manufacturing' },
+  { label: 'Constraints', path: '/constraints', icon: 'rule_settings' },
   { label: 'Version History', path: '/versions', icon: 'history' },
   { label: 'Settings', path: '/settings', icon: 'settings' },
 ];

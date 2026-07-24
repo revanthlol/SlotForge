@@ -20,6 +20,7 @@ SlotForge is a multi-tenant institutional timetable and schedule optimization pl
 - Backend: FastAPI + SQLAlchemy + Alembic + PostgreSQL/Supabase auth.
 - Solver: Google OR-Tools CP-SAT under `backend/app/solver/`.
 - Constraint Playground: Template registry (12 templates), solver function mappings, `ConstraintCompiler`, workspace constraint CRUD endpoints, and rule impact preview API implemented.
+- Constraint Playground UI: `/constraints` route with active-rule enable/disable, template gallery, parameter modal, impact preview, edit, and delete flows.
 - Frontend: React 19 + TypeScript + Vite + Tailwind CSS v4.
 - Frontend API auth: Supabase JWT is attached by `frontend/src/lib/api.ts`.
 - Mutating API routes require the organization-admin role.
@@ -41,6 +42,7 @@ SlotForge is a multi-tenant institutional timetable and schedule optimization pl
 - The production demo account `demo@slotforge.local` is linked to the Loyola Academy organization as `org_admin`; authenticated `/auth/me` was verified after repair.
 - Resource pages only keep the impact drawer visible for loading, errors, or real conflicts; successful no-conflict analysis no longer leaves a fixed panel over the page.
 - Constraint payloads are intentionally flexible JSON. A new constraint UI should provide the exact payload fields required by the solver before presenting the rule as fully guided.
+- All generic preset adapters now compile active playground rules through `ConstraintCompiler`; hard rules no longer inherit a soft penalty as their solver weight.
 - The Canvas is a generated relationship view, not a drag-and-drop editor.
 - The frontend build emits a large-chunk warning; this is not currently a build failure.
 - Oxlint currently reports existing Fast Refresh warnings in context files.

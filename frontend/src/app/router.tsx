@@ -21,6 +21,7 @@ import OnboardingPage from '../features/onboarding/pages/OnboardingPage';
 import FacultyListPage from '../features/faculty/FacultyListPage';
 import PublicSharePage from '../features/faculty/PublicSharePage';
 import HeatmapPage from '../features/heatmap/HeatmapPage';
+import ConstraintPlaygroundPage from '../features/constraints/ConstraintPlaygroundPage';
 
 function LoadingRouteState() {
   return (
@@ -104,6 +105,7 @@ export default function AppRouter() {
         <Route path="/heatmap" element={<HeatmapPage />} />
         <Route path="/canvas" element={<CanvasViewPage />} />
         <Route path="/solver" element={<SolverEnginePage />} />
+        <Route path="/constraints" element={<ConstraintPlaygroundPage />} />
         <Route path="/versions" element={<VersionHistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/profile" element={<ProfilePage />} />

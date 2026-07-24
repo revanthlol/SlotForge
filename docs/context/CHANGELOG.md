@@ -2,6 +2,9 @@
 
 ## 2026-07-24
 
+- Completed the Codex portion of Phase 8: added the Constraint Playground UI at `/constraints`, sidebar navigation, template configuration, rule preview, enable/disable, edit, and delete flows.
+- Fixed a backend Phase 8 gap where academic, event, exam, and staff-roster adapters bypassed `ConstraintCompiler` and passed raw penalties as solver weights. All active preset rules now use compiler mappings, preserving hard/soft semantics and template defaults.
+- Verification: backend `48 passed`; frontend build passed; frontend lint passed with the repository's existing Fast Refresh warnings and the normal large-chunk warning.
 - Audited and synchronized the handoff context against the local repository and Oracle VPS: repository checkout `e67ff26`, latest backend-affecting commit `38af1b0`, service active, and both health endpoints passing.
 - Repaired the production demo account by creating its missing local profile and organization membership, then verified Supabase login and authenticated `/auth/me` returned 200.
 - Fixed the resource-page impact drawer appearing at the right edge after successful no-conflict saves.

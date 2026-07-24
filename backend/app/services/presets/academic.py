@@ -1,6 +1,6 @@
 import uuid
 from sqlalchemy.orm import Session
-from app.solver.models import ProblemInstance, Teacher, Room, Subject, Section, Constraint as SolverConstraint, TimeSlot
+from app.solver.models import ProblemInstance, Teacher, Room, Subject, Section, TimeSlot
 from app.models.resource import Resource
 from app.models.task import Task
 from app.models.group import Group
@@ -8,6 +8,7 @@ from app.models.location import Location
 from app.models.timeslot import TimeSlot as DbTimeSlot
 from app.models.constraint_rule import ConstraintRule
 from app.services.presets.base import BasePreset, BaseSolverAdapter
+from app.services.constraints.compiler import ConstraintCompiler
 
 class AcademicSolverAdapter(BaseSolverAdapter):
     time_unit_label = "Period"
@@ -37,10 +38,7 @@ class AcademicSolverAdapter(BaseSolverAdapter):
         org_sections = [
             Section(id=str(sec.id), name=sec.name, size=sec.size if sec.size else 0) for sec in db_groups
         ]
-        org_constraints = [
-            SolverConstraint(id=str(c.id), constraint_type=c.template_key, payload=c.parameters, weight=c.penalty)
-            for c in db_rules
-        ]
+        org_constraints = [ConstraintCompiler().compile(c) for c in db_rules]
         org_slots = [
             TimeSlot(id=str(slot.id), day=slot.day, period=slot.slot_index) for slot in db_timeslots
         ]

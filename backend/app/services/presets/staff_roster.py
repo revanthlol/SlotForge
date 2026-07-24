@@ -1,6 +1,6 @@
 import uuid
 from sqlalchemy.orm import Session
-from app.solver.models import ProblemInstance, Teacher, Room, Subject, Section, Constraint as SolverConstraint, TimeSlot
+from app.solver.models import ProblemInstance, Teacher, Room, Subject, Section, TimeSlot
 from app.models.resource import Resource
 from app.models.task import Task
 from app.models.group import Group
@@ -8,6 +8,7 @@ from app.models.location import Location
 from app.models.timeslot import TimeSlot as DbTimeSlot
 from app.models.constraint_rule import ConstraintRule
 from app.services.presets.base import BasePreset, BaseSolverAdapter
+from app.services.constraints.compiler import ConstraintCompiler
 
 class StaffRosterAdapter(BaseSolverAdapter):
     time_unit_label = "Shift"
@@ -64,6 +65,7 @@ class StaffRosterAdapter(BaseSolverAdapter):
         ]
 
         # 7. Map constraints, duplicating group-related ones to each virtual section
+        compiler = ConstraintCompiler()
         org_constraints = []
         for c in db_rules:
             # Check if constraint is section-specific
@@ -73,23 +75,12 @@ class StaffRosterAdapter(BaseSolverAdapter):
                 for v_sec_id in parent_to_virtuals[section_id]:
                     new_params = dict(c.parameters)
                     new_params["section_id"] = v_sec_id
-                    org_constraints.append(
-                        SolverConstraint(
-                            id=f"{c.id}_{v_sec_id}",
-                            constraint_type=c.template_key,
-                            payload=new_params,
-                            weight=c.penalty
-                        )
-                    )
+                    compiled = compiler.compile(c)
+                    compiled.id = f"{c.id}_{v_sec_id}"
+                    compiled.payload = new_params
+                    org_constraints.append(compiled)
             else:
-                org_constraints.append(
-                    SolverConstraint(
-                        id=str(c.id),
-                        constraint_type=c.template_key,
-                        payload=c.parameters,
-                        weight=c.penalty
-                    )
-                )
+                org_constraints.append(compiler.compile(c))
 
         return ProblemInstance(
             teachers=org_teachers,
