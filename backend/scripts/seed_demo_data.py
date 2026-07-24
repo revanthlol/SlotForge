@@ -167,7 +167,15 @@ def _ensure_supabase_auth_user(db: Session, *, email: str, password: str) -> uui
 
     existing_user_id = _get_auth_user_id_by_email(db, email)
     if existing_user_id:
-        _update_auth_user(existing_user_id, attributes)
+        # A Supabase admin password update can fail independently of the
+        # user lookup (for example when the project rotates JWT signing
+        # keys). The Auth user ID is still authoritative and must be used
+        # for the local profile; falling back to a synthetic ID creates a
+        # profile that can never satisfy /auth/me for the real user.
+        try:
+            _update_auth_user(existing_user_id, attributes)
+        except Exception:
+            pass
         return existing_user_id
 
     try:
@@ -185,7 +193,13 @@ def _ensure_supabase_auth_user(db: Session, *, email: str, password: str) -> uui
     if not user_id:
         raise RuntimeError("Supabase demo user was created but its user id could not be resolved")
 
-    _update_auth_user(user_id, attributes)
+    try:
+        _update_auth_user(user_id, attributes)
+    except Exception:
+        # Keep the real Supabase ID even if optional credential
+        # synchronization fails. The caller can still seed the matching
+        # application profile and report the auth-sync warning separately.
+        pass
     return user_id
 
 

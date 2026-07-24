@@ -1,7 +1,10 @@
 # Context Changelog
 
-## 2026-07-24
+## 2026-07-25
 
+- Diagnosed the recurring production login failure: Supabase Auth users existed but `profiles` was empty, so authenticated `/auth/me` returned 404. Fixed demo seeding to retain the real Auth user ID when password-sync administration fails, and added regression coverage.
+
+## 2026-07-24
 - Deployed `ca0df8a` to the Oracle VPS by fast-forward; service restart and post-deploy verification passed. VPS remains on Alembic head `fc1b2d3e4f50` with preserved untracked helpers `deploy.sh` and `diagnose.sh`.
 - Completed the Codex portion of Phase 8: added the Constraint Playground UI at `/constraints`, sidebar navigation, template configuration, rule preview, enable/disable, edit, and delete flows.
 - Fixed a backend Phase 8 gap where academic, event, exam, and staff-roster adapters bypassed `ConstraintCompiler` and passed raw penalties as solver weights. All active preset rules now use compiler mappings, preserving hard/soft semantics and template defaults.

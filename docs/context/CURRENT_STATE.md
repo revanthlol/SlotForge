@@ -11,6 +11,7 @@ Last updated: 2026-07-24
 - VPS `/health/db`: `200`, status `ok`, Alembic revision `fc1b2d3e4f50`.
 - Known preserved VPS untracked helpers: `deploy.sh`, `diagnose.sh`.
 - Latest deployment verification: service restarted after `ca0df8a`; `/health` and `/health/db` returned 200, templates endpoint returned successfully, and no new error-level service logs were present.
+- Auth repair: demo seeding now preserves the real Supabase Auth user ID when optional admin password synchronization fails, preventing `/auth/me` 404s caused by synthetic fallback profiles.
 
 ## Product
 
