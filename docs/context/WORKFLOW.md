@@ -45,3 +45,5 @@ Before stopping, update `CURRENT_STATE.md` and add a dated `CHANGELOG.md` entry.
 - verification commands and results;
 - known limitations or follow-up work;
 - any migration, environment, or deployment action still required.
+
+For deployment or VPS diagnosis, invoke the reusable `slotforge-oracle-deploy` skill. It owns the SSH, fast-forward, restart, health-check, migration-check, and rollback-only smoke-test procedure.

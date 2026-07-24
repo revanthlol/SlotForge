@@ -8,6 +8,8 @@ Read these files in order before making changes:
 3. [`WORKFLOW.md`](./WORKFLOW.md) — how to investigate, change, test, and document work.
 4. [`CHANGELOG.md`](./CHANGELOG.md) — concise history of context-relevant changes.
 
+For the repeatable local-to-Oracle deployment and diagnosis routine, use the `slotforge-oracle-deploy` skill. It uses the `server` SSH alias and the `/home/ubuntu/slotforge` checkout.
+
 ## Maintenance rule
 
 Every code or configuration change must update this context pack in the same change set:
