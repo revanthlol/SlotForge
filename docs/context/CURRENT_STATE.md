@@ -26,7 +26,7 @@ SlotForge is a multi-tenant institutional timetable and schedule optimization pl
 ## Known limitations and risks
 
 - Assignment replacement is still a full-list `PUT` operation. If multiple users edit the same teacher at the same time, the last completed write wins.
-- Assignment-derived constraint inserts now populate `workspace_id` through the propagated `ConstraintRule` listener; verify this path on the deployed API after backend restarts.
+- Assignment-derived constraint inserts now populate `workspace_id`, `name`, and `rule_type` through the compatibility path; verify this flow on the deployed API after backend restarts.
 - Constraint payloads are intentionally flexible JSON. A new constraint UI should provide the exact payload fields required by the solver before presenting the rule as fully guided.
 - The Canvas is a generated relationship view, not a drag-and-drop editor.
 - The frontend build emits a large-chunk warning; this is not currently a build failure.

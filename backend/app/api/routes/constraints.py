@@ -18,6 +18,8 @@ def create_constraint(
 ):
     constraint = ConstraintModel(
         organization_id=current_user.organization_id,
+        name=payload.constraint_type.replace("_", " ").title(),
+        rule_type="hard" if payload.weight is None else "soft",
         constraint_type=payload.constraint_type,
         payload=payload.payload,
         weight=payload.weight
@@ -194,4 +196,3 @@ def delete_constraint(
         diff={"old_values": old_values}
     )
     return
-
