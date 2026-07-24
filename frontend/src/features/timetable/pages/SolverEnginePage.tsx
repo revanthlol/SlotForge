@@ -8,6 +8,8 @@ import {
 } from '../../../hooks/useApi';
 import api from '../../../lib/api';
 import PageHeader from '../../../components/ui/PageHeader';
+import Modal from '../../../components/ui/Modal';
+import { getApiErrorMessage } from '../../../lib/errors';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import { Link } from 'react-router-dom';
 import { useWorkspaces } from '../../../lib/api/hooks/useWorkspaces';
@@ -49,6 +51,12 @@ export default function SolverEnginePage() {
 
   const [savingWeights, setSavingWeights] = useState<Record<string, boolean>>({});
   const [sliderWeights, setSliderWeights] = useState<Record<string, number>>({});
+  const [constraintModalOpen, setConstraintModalOpen] = useState(false);
+  const [newConstraintType, setNewConstraintType] = useState('teacher_gap_minimization');
+  const [newConstraintWeight, setNewConstraintWeight] = useState('5');
+  const [newConstraintPayload, setNewConstraintPayload] = useState('{}');
+  const [constraintSaving, setConstraintSaving] = useState(false);
+  const [constraintError, setConstraintError] = useState<string | null>(null);
 
   // Separate hard vs soft constraints
   // Hard constraints have no weight (null or undefined)
@@ -65,6 +73,7 @@ export default function SolverEnginePage() {
       consecutive_classes: 'Consecutive Class Limiters',
       lunch_break: 'Mandatory Mid-day Lunch Break',
       subject_required_room: 'Required Room Type Matchers',
+      subject_requires_room_type: 'Required Room Type Matchers',
     };
     return labels[type] || type.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase());
   };
@@ -79,6 +88,33 @@ export default function SolverEnginePage() {
 
   const handleSliderChange = (id: string, val: number) => {
     setSliderWeights((prev) => ({ ...prev, [id]: val }));
+  };
+
+  const handleCreateConstraint = async () => {
+    if (!organizationId) return;
+    setConstraintSaving(true);
+    setConstraintError(null);
+    try {
+      let payload: Record<string, unknown>;
+      try {
+        payload = JSON.parse(newConstraintPayload || '{}');
+      } catch {
+        throw new Error('Constraint details must be valid JSON.');
+      }
+      if (!payload || Array.isArray(payload)) throw new Error('Constraint details must be a JSON object.');
+      await api.post('/constraints/', {
+        organization_id: organizationId,
+        constraint_type: newConstraintType,
+        payload,
+        weight: newConstraintWeight === '' ? null : Number(newConstraintWeight),
+      });
+      setConstraintModalOpen(false);
+      refetchConstraints();
+    } catch (err) {
+      setConstraintError(getApiErrorMessage(err, 'Could not add constraint'));
+    } finally {
+      setConstraintSaving(false);
+    }
   };
 
   // Save soft constraint weight
@@ -136,11 +172,17 @@ export default function SolverEnginePage() {
         <div className="col-span-12 lg:col-span-7 space-y-6">
           {/* Hard Constraints Card */}
           <div className="bg-paper-raised border-2 border-rule rounded-xl p-inset-standard">
-            <div className="flex items-center gap-3 mb-4">
-              <span className="material-symbols-outlined text-primary" style={{ fontSize: 22 }}>
-                gavel
-              </span>
-              <h3 className="text-headline-sm text-on-surface">Hard Constraints (Absolute)</h3>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-primary" style={{ fontSize: 22 }}>
+                  gavel
+                </span>
+                <h3 className="text-headline-sm text-on-surface">Hard Constraints (Absolute)</h3>
+              </div>
+              <button onClick={() => { setConstraintError(null); setConstraintModalOpen(true); }} className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-accent-soft">
+                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
+                Add rule
+              </button>
             </div>
             <p className="text-body-sm text-on-surface-variant mb-4">
               These rules are mathematically absolute. The solver will reject any schedule that violates even one of these conditions.
@@ -434,6 +476,40 @@ export default function SolverEnginePage() {
           />
         </div>
       </div>
+
+      <Modal
+        open={constraintModalOpen}
+        onClose={() => { if (!constraintSaving) setConstraintModalOpen(false); }}
+        title="Add solver constraint"
+        actions={<>
+          <button onClick={() => setConstraintModalOpen(false)} disabled={constraintSaving} className="rounded-lg border border-rule px-4 py-2 text-sm text-on-surface-variant">Cancel</button>
+          <button onClick={handleCreateConstraint} disabled={constraintSaving} data-modal-primary="true" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-50">{constraintSaving ? 'Adding...' : 'Add constraint'}</button>
+        </>}
+      >
+        {constraintError && <div className="mb-4 rounded-lg border border-error/30 bg-error-container/30 px-3 py-2 text-sm text-error" role="alert">{constraintError}</div>}
+        <div className="space-y-4">
+          <div>
+            <label className="mb-2 block text-label-caps text-on-surface-variant" style={{ fontSize: 10 }}>Rule type</label>
+            <select value={newConstraintType} onChange={(event) => setNewConstraintType(event.target.value)} className="academic-input w-full">
+              <option value="teacher_gap_minimization">Teacher gap minimization</option>
+              <option value="daily_load_balancing">Daily load balancing</option>
+              <option value="teacher_preferred_slot">Teacher preferred slot</option>
+              <option value="teacher_unavailable">Teacher unavailable</option>
+              <option value="preferred_room">Preferred room</option>
+              <option value="subject_requires_room_type">Subject requires room type</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-2 block text-label-caps text-on-surface-variant" style={{ fontSize: 10 }}>Priority weight · leave blank for hard</label>
+            <input type="number" min="0" max="10" value={newConstraintWeight} onChange={(event) => setNewConstraintWeight(event.target.value)} className="academic-input w-full" placeholder="5" />
+          </div>
+          <div>
+            <label className="mb-2 block text-label-caps text-on-surface-variant" style={{ fontSize: 10 }}>Rule details (JSON)</label>
+            <textarea value={newConstraintPayload} onChange={(event) => setNewConstraintPayload(event.target.value)} className="academic-input min-h-24 w-full font-mono text-sm" spellCheck={false} />
+            <p className="mt-1 text-xs text-mono-grey">Use IDs and slot details here when the selected rule needs them.</p>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

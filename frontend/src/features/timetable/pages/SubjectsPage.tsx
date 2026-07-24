@@ -27,6 +27,7 @@ export default function SubjectsPage() {
   const [formSessionLength, setFormSessionLength] = useState(1);
   const [formColor, setFormColor] = useState(SUBJECT_PALETTE[0]);
   const [saving, setSaving] = useState(false);
+  const [assignmentError, setAssignmentError] = useState<string | null>(null);
   const [teacherModalSubject, setTeacherModalSubject] = useState<Subject | null>(null);
   const [selectedTeacherIds, setSelectedTeacherIds] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<Subject | null>(null);
@@ -124,6 +125,7 @@ export default function SubjectsPage() {
 
   const openTeacherModal = (subject: Subject) => {
     setTeacherModalSubject(subject);
+    setAssignmentError(null);
     setSelectedTeacherIds((teacherSubjects || [])
       .filter(row => row.subject_id === subject.id)
       .map(row => row.teacher_id));
@@ -140,6 +142,7 @@ export default function SubjectsPage() {
   const saveSubjectTeachers = async () => {
     if (!teacherModalSubject) return;
     setSaving(true);
+    setAssignmentError(null);
     try {
       const validTeacherIds = new Set((teachers || []).map(teacher => teacher.id));
       const currentTeacherIds = new Set((teacherSubjects || [])
@@ -149,7 +152,9 @@ export default function SubjectsPage() {
       const nextTeacherIds = new Set(selectedTeacherIds.filter(teacherId => validTeacherIds.has(teacherId)));
       const touchedTeacherIds = Array.from(new Set([...currentTeacherIds, ...nextTeacherIds]));
 
-      await Promise.all(touchedTeacherIds.map(async teacherId => {
+      // This endpoint replaces a teacher's complete subject list. Ordered
+      // writes prevent concurrent replacements from losing selections.
+      for (const teacherId of touchedTeacherIds) {
         const existingSubjects = (teacherSubjects || [])
           .filter(row => row.teacher_id === teacherId && row.subject_id !== teacherModalSubject.id)
           .map(row => row.subject_id);
@@ -157,12 +162,12 @@ export default function SubjectsPage() {
           ? [...existingSubjects, teacherModalSubject.id]
           : existingSubjects;
         await api.put(`/assignments/teacher-subjects/${teacherId}`, { subject_ids: subjectIds });
-      }));
+      }
 
       setTeacherModalSubject(null);
       refetchTeacherSubjects();
     } catch (err) {
-      console.error(err);
+      setAssignmentError(getApiErrorMessage(err, `Could not save ${config.teacherTitle.toLowerCase()} assignments`));
     } finally {
       setSaving(false);
     }
@@ -374,7 +379,9 @@ export default function SubjectsPage() {
         onConfirm={handleDelete}
       />
 
-      <Modal open={!!teacherModalSubject} onClose={() => setTeacherModalSubject(null)} title={`${config.teacherTitle} for ${teacherModalSubject?.name || ''}`}
+      <Modal open={!!teacherModalSubject} onClose={() => {
+        if (!saving) setTeacherModalSubject(null);
+      }} title={`${config.teacherTitle} for ${teacherModalSubject?.name || ''}`}
         maxWidth="max-w-xl"
         actions={
           <>
@@ -385,6 +392,12 @@ export default function SubjectsPage() {
           </>
         }
       >
+        {assignmentError && (
+          <div className="mb-4 flex items-start gap-2 rounded-lg border border-error/30 bg-error-container/30 px-3 py-2 text-sm text-error" role="alert">
+            <span className="material-symbols-outlined shrink-0" style={{ fontSize: 18 }}>error</span>
+            <span>{assignmentError}</span>
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {(teachers || []).map(teacher => {
             const selected = selectedTeacherIds.includes(teacher.id);

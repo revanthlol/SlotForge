@@ -30,10 +30,10 @@ type CanvasNode = {
 };
 
 const columnMeta: Record<NodeType, { label: string; icon: string; x: number; color: string }> = {
-  section: { label: 'Sections', icon: 'groups', x: 7, color: '#0f5a46' },
-  subject: { label: 'Subjects', icon: 'menu_book', x: 35, color: '#2563eb' },
-  teacher: { label: 'Teachers', icon: 'school', x: 63, color: '#0284c7' },
-  room: { label: 'Rooms', icon: 'meeting_room', x: 91, color: '#c45113' },
+  section: { label: 'Sections', icon: 'groups', x: 13, color: '#0f5a46' },
+  subject: { label: 'Subjects', icon: 'menu_book', x: 37.5, color: '#2563eb' },
+  teacher: { label: 'Teachers', icon: 'school', x: 62.5, color: '#0284c7' },
+  room: { label: 'Rooms', icon: 'meeting_room', x: 87, color: '#c45113' },
 };
 
 function nodeKey(type: NodeType, id: string) {
@@ -76,13 +76,13 @@ export default function CanvasViewPage() {
 
   const assignments = useMemo(() => timetable?.assignments || [], [timetable?.assignments]);
   const maxNodeCount = Math.max(sections.length, subjects.length, teachers.length, rooms.length, 1);
-  const graphHeight = Math.max(620, 130 + maxNodeCount * 78);
+  const graphHeight = Math.max(650, 138 + maxNodeCount * 92);
 
   const nodes = useMemo(() => {
     const buildNodes = <T extends Section | Subject | Teacher | Room>(
       items: T[],
       toNode: (item: T, y: number) => CanvasNode,
-    ) => items.map((item, index) => toNode(item, 108 + index * 78));
+    ) => items.map((item, index) => toNode(item, 116 + index * 92));
 
     return [
       ...buildNodes(sections, (section, y) => ({
@@ -313,6 +313,11 @@ export default function CanvasViewPage() {
 
           <div className="relative overflow-auto bg-paper">
             <div className="relative min-w-[1180px]" style={{ height: graphHeight }}>
+              <div className="pointer-events-none absolute inset-0 z-0 grid grid-cols-4">
+                {(Object.keys(columnMeta) as NodeType[]).map((type) => (
+                  <div key={type} className="border-r border-dashed border-rule/70 last:border-r-0" />
+                ))}
+              </div>
               <div className="absolute left-0 right-0 top-0 z-10 grid grid-cols-4 border-b border-rule bg-paper-raised/95 backdrop-blur">
                 {(Object.keys(columnMeta) as NodeType[]).map(type => (
                   <div key={type} className="border-r border-rule px-5 py-3 text-center last:border-r-0">
@@ -337,8 +342,8 @@ export default function CanvasViewPage() {
                     if (!from || !to) return null;
                     const active = !selectedNode || (relatedKeys.has(edge.from) && relatedKeys.has(edge.to));
                     const color = subject ? getSubjectColor(subject) : columnMeta.subject.color;
-                    const fromX = from.x + 9.5;
-                    const toX = to.x - 9.5;
+                    const fromX = from.x + 10.5;
+                    const toX = to.x - 10.5;
 
                     return (
                       <path

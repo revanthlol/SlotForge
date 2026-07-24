@@ -28,6 +28,7 @@ export default function TeachersPage() {
   const [editingTeacher, setEditingTeacher] = useState<Teacher | null>(null);
   const [formName, setFormName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [assignmentError, setAssignmentError] = useState<string | null>(null);
   const [subjectModalTeacher, setSubjectModalTeacher] = useState<Teacher | null>(null);
   const [selectedSubjectIds, setSelectedSubjectIds] = useState<string[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<Teacher | null>(null);
@@ -119,6 +120,7 @@ export default function TeachersPage() {
 
   const openSubjectModal = (teacher: Teacher) => {
     setSubjectModalTeacher(teacher);
+    setAssignmentError(null);
     setSelectedSubjectIds((teacherSubjects || [])
       .filter(row => row.teacher_id === teacher.id)
       .map(row => row.subject_id));
@@ -127,6 +129,7 @@ export default function TeachersPage() {
   const saveTeacherSubjects = async () => {
     if (!subjectModalTeacher) return;
     setSaving(true);
+    setAssignmentError(null);
     try {
       const previousSubjectIds = (teacherSubjects || [])
         .filter(row => row.teacher_id === subjectModalTeacher.id)
@@ -145,7 +148,7 @@ export default function TeachersPage() {
         });
       }
     } catch (err) {
-      console.error(err);
+      setAssignmentError(getApiErrorMessage(err, `Could not save ${config.subjectTitle.toLowerCase()} assignments`));
     } finally {
       setSaving(false);
     }
@@ -340,7 +343,9 @@ export default function TeachersPage() {
 
       <Modal
         open={!!subjectModalTeacher}
-        onClose={() => setSubjectModalTeacher(null)}
+        onClose={() => {
+          if (!saving) setSubjectModalTeacher(null);
+        }}
         title={`${config.subjectTitle} for ${subjectModalTeacher?.name || ''}`}
         maxWidth="max-w-xl"
         actions={
@@ -352,6 +357,12 @@ export default function TeachersPage() {
           </>
         }
       >
+        {assignmentError && (
+          <div className="mb-4 flex items-start gap-2 rounded-lg border border-error/30 bg-error-container/30 px-3 py-2 text-sm text-error" role="alert">
+            <span className="material-symbols-outlined shrink-0" style={{ fontSize: 18 }}>error</span>
+            <span>{assignmentError}</span>
+          </div>
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {(subjects || []).map(subject => {
             const selected = selectedSubjectIds.includes(subject.id);

@@ -8,6 +8,8 @@ SlotForge is an institutional scheduling and timetable optimization platform. It
 
 SlotForge currently contains the Phase 7 heatmap and explainability implementation. A stabilization audit is in progress across the backend API, solver, frontend, and integrations.
 
+For continuing development or LLM handoff, start with the [SlotForge Context Pack](docs/context/README.md). It contains the current state, architecture map, workflow rules, and context changelog.
+
 ### Completed Phases & Features
 
 #### Standalone Solver (Phase 1)
