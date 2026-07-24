@@ -4,9 +4,11 @@ Last updated: 2026-07-24
 
 ## Verification snapshot
 
-- Local `dev` HEAD: `5588443` (feat: Phase 8 constraint playground compiler and workspace endpoints).
-- Oracle VPS repository checkout: pending deployment of `5588443`.
+- Local `dev` HEAD: `7204b72` (fix: allow public retrieval of constraint templates metadata).
+- Oracle VPS repository checkout: `7204b72`.
 - VPS service: `slotforge-api.service` active.
+- VPS `/health`: `200`, status `ok`.
+- VPS `/health/db`: `200`, status `ok`, Alembic revision `fc1b2d3e4f50`.
 - Known preserved VPS untracked helpers: `deploy.sh`, `diagnose.sh`.
 
 ## Product
