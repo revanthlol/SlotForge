@@ -2,6 +2,15 @@
 
 Last updated: 2026-07-24
 
+## Verification snapshot
+
+- Local `dev` HEAD: `ebd8f15` (resource-page impact drawer fix).
+- Oracle VPS backend checkout: `38af1b0` (latest backend-affecting commit); the later local commits are frontend/context-only.
+- VPS service: `slotforge-api.service` active.
+- VPS `/health`: `200`, status `ok`.
+- VPS `/health/db`: `200`, status `ok`, Alembic revision `fc1b2d3e4f50`.
+- Known preserved VPS untracked helpers: `deploy.sh`, `diagnose.sh`.
+
 ## Product
 
 SlotForge is a multi-tenant institutional timetable and schedule optimization platform. The academic preset is the primary active experience. It manages teachers, rooms, subjects, sections, teacher/subject qualifications, section teaching maps, solver constraints, generated timetable versions, exports, faculty sharing, heatmaps, and a relationship Canvas.
