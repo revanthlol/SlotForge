@@ -19,6 +19,7 @@ export default function TeachersPage() {
   const { data: workspaces } = useWorkspaces();
   const workspace = workspaces?.[0];
   const impact = useImpactAnalysis(workspace?.id || null);
+  const showImpactPanel = Boolean(impact.loading || impact.error || (impact.data && !impact.data.feasible));
   const { data: teachers, loading, refetch } = useTeachers(organizationId);
   const { data: subjects } = useSubjects(organizationId);
   const { data: teacherSubjects, refetch: refetchTeacherSubjects } = useTeacherSubjectAssignments(organizationId);
@@ -382,7 +383,7 @@ export default function TeachersPage() {
       </Modal>
 
       <ConflictPanel
-        open={Boolean(impact.data || impact.loading || impact.error)}
+        open={showImpactPanel}
         report={impact.data}
         loading={impact.loading}
         error={impact.error}

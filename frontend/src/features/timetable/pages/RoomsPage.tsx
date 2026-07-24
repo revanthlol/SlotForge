@@ -20,6 +20,7 @@ export default function RoomsPage() {
   const workspace = workspaces?.[0];
   const activePreset = workspace?.domain_preset || 'academic';
   const impact = useImpactAnalysis(workspace?.id || null);
+  const showImpactPanel = Boolean(impact.loading || impact.error || (impact.data && !impact.data.feasible));
 
   const { data: rooms, loading, refetch } = useRooms(organizationId);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -363,7 +364,7 @@ export default function RoomsPage() {
       />
 
       <ConflictPanel
-        open={Boolean(impact.data || impact.loading || impact.error)}
+        open={showImpactPanel}
         report={impact.data}
         loading={impact.loading}
         error={impact.error}
