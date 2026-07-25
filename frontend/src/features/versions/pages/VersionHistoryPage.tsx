@@ -29,6 +29,7 @@ export default function VersionHistoryPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [branchSource, setBranchSource] = useState<ScheduleRun | null>(null);
   const [branchName, setBranchName] = useState('Draft');
+  const [branchMode, setBranchMode] = useState<'branch' | 'rollback'>('branch');
   const [action, setAction] = useState<{ kind: 'publish' | 'archive'; run: ScheduleRun } | null>(null);
   const [working, setWorking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -57,11 +58,11 @@ export default function VersionHistoryPage() {
     if (selected && other.id !== selected.id) setParams({ a: other.id, b: selected.id });
   };
 
-  const createBranch = async (rollback: boolean) => {
+  const createBranch = async () => {
     if (!workspaceId || !branchSource) return;
     setWorking(true); setMessage(null);
     try {
-      const path = rollback ? 'rollback' : 'branch';
+      const path = branchMode === 'rollback' ? 'rollback' : 'branch';
       const response = await api.post<LifecycleResponse>(`/api/v1/workspaces/${workspaceId}/schedule-runs/${branchSource.id}/${path}`, { branch_name: branchName });
       await refetch();
       setSelectedId(response.data.run_id);
@@ -92,8 +93,8 @@ export default function VersionHistoryPage() {
         subtitle="Branch, compare, publish, archive, and roll back timetable drafts without losing history."
         actions={
           <div className="flex gap-2">
-            <button type="button" disabled={!selected} onClick={() => { if (selected) { setBranchName('Draft'); setBranchSource(selected); } }} className="rounded-lg border-2 border-rule px-4 py-2 text-sm font-semibold text-on-surface disabled:opacity-50">Branch draft</button>
-            <button type="button" disabled={!selected} onClick={() => { if (selected) { setBranchName('Rollback draft'); setBranchSource(selected); } }} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-50">Rollback</button>
+            <button type="button" disabled={!selected} onClick={() => { if (selected) { setBranchMode('branch'); setBranchName('Draft'); setBranchSource(selected); } }} className="rounded-lg border-2 border-rule px-4 py-2 text-sm font-semibold text-on-surface disabled:opacity-50">Branch draft</button>
+            <button type="button" disabled={!selected} onClick={() => { if (selected) { setBranchMode('rollback'); setBranchName('Rollback draft'); setBranchSource(selected); } }} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-50">Rollback</button>
           </div>
         }
       />
@@ -113,7 +114,7 @@ export default function VersionHistoryPage() {
                   {run.branch_name && <p className="mt-2 text-xs font-medium text-primary">{run.branch_name}</p>}
                   {run.parent_version_id && <p className="mt-1 text-[11px] text-on-surface-variant">↳ branched from history</p>}
                 </button>
-                <div className="mt-3 flex gap-3 border-t border-rule pt-2"><button type="button" disabled={!selected || selected.id === run.id} onClick={() => compareWith(run)} className="text-xs font-semibold text-primary disabled:opacity-40">Compare</button><button type="button" onClick={() => { setBranchName('Draft'); setBranchSource(run); }} className="text-xs font-semibold text-primary">Branch</button>{run.version_status === 'draft' && <button type="button" onClick={() => setAction({ kind: 'publish', run })} className="text-xs font-semibold text-primary">Publish</button>}</div>
+                <div className="mt-3 flex gap-3 border-t border-rule pt-2"><button type="button" disabled={!selected || selected.id === run.id} onClick={() => compareWith(run)} className="text-xs font-semibold text-primary disabled:opacity-40">Compare</button><button type="button" onClick={() => { setBranchMode('branch'); setBranchName('Draft'); setBranchSource(run); }} className="text-xs font-semibold text-primary">Branch</button>{run.version_status === 'draft' && <button type="button" onClick={() => setAction({ kind: 'publish', run })} className="text-xs font-semibold text-primary">Publish</button>}</div>
               </div>
             ))}
           </div>
@@ -125,7 +126,7 @@ export default function VersionHistoryPage() {
           {diff && <DiffPanel diff={diff} onClose={() => { setDiff(null); setParams({}); }} />}
         </section>
       </div>
-      <Modal open={Boolean(branchSource)} onClose={() => !working && setBranchSource(null)} title={`Create draft from ${branchSource ? versionLabel(branchSource) : ''}`} actions={<><button type="button" onClick={() => setBranchSource(null)} disabled={working} className="rounded-lg border border-rule px-4 py-2 text-sm text-on-surface-variant">Cancel</button><button type="button" onClick={() => createBranch(branchName.toLowerCase().startsWith('rollback'))} disabled={working || !branchName.trim()} data-modal-primary="true" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary">{working ? 'Creating…' : 'Create draft'}</button></>}><p className="text-sm text-on-surface-variant">All assignments are copied into a new draft. The source version remains unchanged.</p><label className="mt-4 block text-sm font-semibold text-on-surface">Draft label<input value={branchName} onChange={(event) => setBranchName(event.target.value)} className="mt-2 w-full rounded-lg border-2 border-rule bg-paper px-3 py-2 text-sm" /></label></Modal>
+      <Modal open={Boolean(branchSource)} onClose={() => !working && setBranchSource(null)} title={`${branchMode === 'rollback' ? 'Create rollback draft from' : 'Create draft from'} ${branchSource ? versionLabel(branchSource) : ''}`} actions={<><button type="button" onClick={() => setBranchSource(null)} disabled={working} className="rounded-lg border border-rule px-4 py-2 text-sm text-on-surface-variant">Cancel</button><button type="button" onClick={createBranch} disabled={working || !branchName.trim()} data-modal-primary="true" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary">{working ? 'Creating…' : 'Create draft'}</button></>}><p className="text-sm text-on-surface-variant">All assignments are copied into a new draft. The source version remains unchanged.</p><label className="mt-4 block text-sm font-semibold text-on-surface">Draft label<input value={branchName} onChange={(event) => setBranchName(event.target.value)} className="mt-2 w-full rounded-lg border-2 border-rule bg-paper px-3 py-2 text-sm" /></label></Modal>
       <ConfirmModal open={Boolean(action)} title={`${action?.kind === 'publish' ? 'Publish' : 'Archive'} version?`} message={action?.kind === 'publish' ? 'The current published version will be archived and this version will become active.' : 'This draft will be archived and kept in history.'} confirmLabel={action?.kind === 'publish' ? 'Publish version' : 'Archive version'} loading={working} onCancel={() => setAction(null)} onConfirm={runAction} />
     </div>
   );
