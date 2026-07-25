@@ -72,8 +72,9 @@
   --color-outline-variant: #c0c8c4;
 
   /* ─ Typography: Font Families ─ */
-  --font-display: 'Fraunces', Georgia, serif;
-  --font-body: 'Roboto Flex', 'Google Sans', 'Product Sans', system-ui, -apple-system, sans-serif;
+  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-body: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
 
   /* ─ Spacing ─ */

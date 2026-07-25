@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion } from 'motion/react';
 import { useAuth } from '../../../contexts/AuthContext';
 import {
   useConstraints,
@@ -308,13 +309,18 @@ export default function SolverEnginePage() {
 
             <div className="mt-6 pt-4 border-t border-white/10 space-y-4">
               {generating ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
                     <div className="h-full bg-inverse-primary progress-bar-track rounded-full" />
                   </div>
-                  <p className="text-[11px] text-inverse-on-surface/50 font-mono text-center animate-pulse">
+                  <motion.div
+                    animate={{ opacity: [0.4, 1, 0.4] }}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="solver-pulse flex items-center justify-center gap-2 text-xs text-inverse-primary font-mono"
+                  >
+                    <span className="material-symbols-outlined animate-spin" style={{ fontSize: 16 }}>sync</span>
                     Crunching permutations & constraints...
-                  </p>
+                  </motion.div>
                 </div>
               ) : (
                 <button

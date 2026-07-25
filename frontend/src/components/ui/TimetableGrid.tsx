@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { motion } from 'motion/react';
 import type { ScheduledSlot, Teacher, Room, Subject, Section, Organization } from '../../hooks/useApi';
 import api from '../../lib/api';
 import ConfirmModal from './ConfirmModal';
@@ -20,7 +21,7 @@ interface TimetableGridProps {
 
 type ViewType = 'section' | 'teacher' | 'room';
 type GridOrientation = 'hours-x' | 'days-x';
-type DisplayMode = 'board' | 'list';
+type DisplayMode = 'board' | 'day' | 'list';
 
 const roman = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
 
@@ -57,6 +58,7 @@ export default function TimetableGrid({
   const [viewType, setViewType] = useState<ViewType>('section');
   const [orientation, setOrientation] = useState<GridOrientation>('hours-x');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('board');
+  const [selectedDayTab, setSelectedDayTab] = useState<string>('Mon');
   const [selectedId, setSelectedId] = useState<string>('');
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [pendingSlotId, setPendingSlotId] = useState<string | null>(null);
@@ -225,10 +227,12 @@ export default function TimetableGrid({
     const isPending = pendingSlotId === slot.id;
 
     return (
-      <div
+      <motion.div
         key={slot.id}
+        whileHover={{ scale: 1.015, y: -2 }}
+        transition={{ duration: 0.1 }}
         draggable={editable && !isPending}
-        onDragStart={(event) => {
+        onDragStart={(event: any) => {
           if (!editable || isPending) return;
           event.dataTransfer.effectAllowed = 'move';
           event.dataTransfer.setData('text/plain', slot.id);
@@ -236,7 +240,7 @@ export default function TimetableGrid({
         }}
         onDragEnd={() => setDraggingId(null)}
         className={`group h-full rounded-lg border p-3.5 text-on-surface transition-all ${
-          editable && !isPending ? 'cursor-grab active:cursor-grabbing hover:-translate-y-0.5 hover:shadow-md' : ''
+          editable && !isPending ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : ''
         } ${draggingId === slot.id ? 'opacity-45 ring-2 ring-primary' : ''}`}
         style={timetableCardStyle(subjectColor)}
       >
@@ -288,7 +292,7 @@ export default function TimetableGrid({
             </button>
           </div>
         )}
-      </div>
+      </motion.div>
     );
   };
 
@@ -470,6 +474,54 @@ export default function TimetableGrid({
     </div>
   );
 
+  const renderDayView = () => {
+    const activeDay = dayValues.includes(selectedDayTab) ? selectedDayTab : dayValues[0] || 'Mon';
+    const daySlots = Array.from({ length: periodsPerDay }).map((_, periodIdx) => {
+      const period = periodIdx + 1;
+      const slot = slotByStart.get(`${activeDay}:${period}`);
+      return { period, slot };
+    });
+
+    return (
+      <div className="space-y-4 rounded-xl border-2 border-rule bg-paper-raised p-5 shadow-sm">
+        <div className="flex overflow-x-auto gap-2 border-b border-rule pb-3">
+          {dayValues.map((day, idx) => (
+            <button
+              key={day}
+              type="button"
+              onClick={() => setSelectedDayTab(day)}
+              className={`px-4 py-2 text-xs font-semibold rounded-lg shrink-0 transition-all ${
+                activeDay === day ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              {dayLabels[idx]}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-3">
+          {daySlots.map(({ period, slot }) => (
+            <div key={period} className="flex gap-4 items-start">
+              <div className="w-16 shrink-0 pt-3 text-right">
+                <span className="text-xs font-bold text-on-surface font-mono">P{period}</span>
+                <p className="text-[10px] text-mono-grey">Hour {period}</p>
+              </div>
+              <div className="flex-1 min-h-[96px]">
+                {slot ? (
+                  renderSlot(slot)
+                ) : (
+                  <div className="flex h-full min-h-[90px] items-center justify-center rounded-lg border border-dashed border-rule p-4 text-xs italic text-mono-grey/60">
+                    Empty slot
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4 p-inset-compact bg-paper-raised border-2 border-rule rounded-xl">
@@ -516,7 +568,7 @@ export default function TimetableGrid({
 
           <span className="text-label-caps text-mono-grey" style={{ fontSize: 10 }}>View:</span>
           <div className="flex bg-surface-container p-0.5 rounded-lg border border-rule">
-            {(['board', 'list'] as const).map((mode) => (
+            {(['board', 'day', 'list'] as const).map((mode) => (
               <button
                 key={mode}
                 type="button"
@@ -525,7 +577,7 @@ export default function TimetableGrid({
                   displayMode === mode ? 'bg-paper-raised text-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
                 }`}
               >
-                {mode === 'board' ? 'Board' : 'All Classes'}
+                {mode === 'board' ? 'Board' : mode === 'day' ? 'Day View' : 'All Classes'}
               </button>
             ))}
           </div>
@@ -576,7 +628,9 @@ export default function TimetableGrid({
         </div>
       )}
 
-      {displayMode === 'list' ? (
+      {displayMode === 'day' ? (
+        renderDayView()
+      ) : displayMode === 'list' ? (
         renderAllClasses()
       ) : (
         <div className="bg-paper-raised border-2 border-rule rounded-xl overflow-x-auto shadow-sm">

@@ -2,6 +2,12 @@
 
 ## 2026-07-25
 
+- Completed Phase 12 UI Polish: implemented smooth route transitions using Framer Motion (`AnimatePresence` + `motion.div`), sliding active indicator in `Sidebar.tsx` (`layoutId="sidebar-active-indicator"`), list stagger entry animations on card grids and lists, modal slide/fade transitions, pulsing solver indicator in `SolverEnginePage.tsx`, and hover micro-animations on cards and timetable cells.
+- Standardized typography and tabular numerals: loaded Inter and JetBrains Mono from Google Fonts, applied `tabular-nums` across tables and statistics.
+- Fixed Constraint Playground UI layout: fixed active rule toggle switch buttons with `shrink-0` to eliminate green blob text overlap glitches.
+- Added Mobile Day View mode to `TimetableGrid.tsx` with day selection tabs for responsive single-day view on mobile.
+- Verification: frontend `oxlint` 0 errors, `npm run build` completed successfully, backend unit/integration suite `52 passed`.
+
 - Fixed the Heatmap right-edge leak by removing the closed impact drawer from the DOM and rendering the open drawer through a document-level portal, outside route animations.
 - Added the protected-app mobile gate with desktop-site + landscape recovery instructions, reload action, and Android app coming-soon messaging.
 - Verified backend `52 passed`, frontend build/lint passed with existing warnings only, synchronized Oracle to `53eb412`, and confirmed the connected Vercel deployment completed successfully.

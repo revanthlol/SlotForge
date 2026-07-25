@@ -33,6 +33,8 @@ SlotForge is a multi-tenant institutional timetable and schedule optimization pl
 - Demo Auth recovery is hardened: the known demo account now self-heals the complete application graph, not just its profile, when Supabase Auth survives an interrupted seed/deploy.
 - Protected application routes now show a dedicated mobile-unavailable screen below desktop workspace dimensions; desktop-site mode in landscape remains the explicit phone fallback, and the Android app is marked coming soon.
 
+- Phase 12 UI Polish is implemented: route transitions with `AnimatePresence`, sliding sidebar active indicator, staggered list/grid entry animations, modal entry/exit transitions, solver pulse indicator, typography polish with Inter + JetBrains Mono and tabular numerals, fixed active rule toggle switch buttons, and Mobile Day View timetable mode.
+
 ## Recently fixed / added
 
 - Phase 8 Constraint Playground backend completed: 12 pre-built rule templates added to registry, compiler maps rules to solver CP-SAT constraints, and endpoints added (`GET /api/v1/constraint-templates/`, `GET/POST/PATCH/DELETE /api/v1/workspaces/{id}/constraints`, `POST /api/v1/workspaces/{id}/constraints/preview`).

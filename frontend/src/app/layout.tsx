@@ -1,5 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'motion/react';
 import Sidebar from '../components/layout/Sidebar';
 import TopBar from '../components/layout/TopBar';
 import MobileExperienceGate from '../components/layout/MobileExperienceGate';
@@ -19,6 +20,12 @@ function useMobileGate() {
 
   return blocked;
 }
+
+const pageVariants = {
+  initial: { opacity: 0, y: 8 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.2, ease: 'easeOut' as const } },
+  exit: { opacity: 0, y: -8, transition: { duration: 0.15 } },
+};
 
 export default function AppLayout() {
   const location = useLocation();
@@ -42,11 +49,14 @@ export default function AppLayout() {
       >
         <TopBar />
         <main className="app-main min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-margin-page">
-          <div key={location.pathname} className="route-transition">
-            <Outlet />
-          </div>
+          <AnimatePresence mode="wait">
+            <motion.div key={location.pathname} {...pageVariants} className="h-full w-full">
+              <Outlet />
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>
   );
 }
+

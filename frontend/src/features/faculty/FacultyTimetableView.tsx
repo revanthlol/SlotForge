@@ -1,3 +1,4 @@
+import { motion } from 'motion/react';
 import type { FacultyAssignment, Organization } from '../../hooks/useApi';
 import {
   fallbackSubjectColor,
@@ -157,8 +158,10 @@ export default function FacultyTimetableView({
 
               return (
                 <div key={slot.id} className="min-h-24 border-b border-r border-rule p-2" style={style}>
-                  <div
-                    className="flex h-full flex-col justify-between rounded-lg border p-3 text-on-surface"
+                  <motion.div
+                    whileHover={{ scale: 1.015, y: -2 }}
+                    transition={{ duration: 0.1 }}
+                    className="flex h-full flex-col justify-between rounded-lg border p-3 text-on-surface transition-shadow hover:shadow-md"
                     style={timetableCardStyle(subjectColor)}
                   >
                     <div>
@@ -179,7 +182,7 @@ export default function FacultyTimetableView({
                       <div className="truncate">{slot.section_name || 'Unassigned section'}</div>
                       <div className="truncate">{slot.room_name || 'Unassigned room'}</div>
                     </div>
-                  </div>
+                  </motion.div>
                 </div>
               );
             })

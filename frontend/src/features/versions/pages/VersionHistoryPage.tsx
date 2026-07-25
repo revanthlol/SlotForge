@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { useWorkspaces } from '../../../lib/api/hooks/useWorkspaces';
 import { useWorkspaceRunAssignments, useWorkspaceScheduleRuns, type ScheduleRun } from '../../../hooks/useApi';
 import api from '../../../lib/api';
@@ -17,6 +18,14 @@ const dateLabel = (value: string) => new Date(value).toLocaleString([], { dateSt
 const scoreLabel = (run: ScheduleRun) => {
   const value = run.solver_score?.overall_score ?? run.solver_score?.score ?? run.solver_score?.preference_score;
   return typeof value === 'number' ? Math.round(value) : null;
+};
+
+const containerVariants = {
+  animate: { transition: { staggerChildren: 0.05 } },
+};
+const itemVariants = {
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.2 } },
 };
 
 export default function VersionHistoryPage() {
@@ -93,32 +102,33 @@ export default function VersionHistoryPage() {
         subtitle="Branch, compare, publish, archive, and roll back timetable drafts without losing history."
         actions={
           <div className="flex gap-2">
-            <button type="button" disabled={!selected} onClick={() => { if (selected) { setBranchMode('branch'); setBranchName('Draft'); setBranchSource(selected); } }} className="rounded-lg border-2 border-rule px-4 py-2 text-sm font-semibold text-on-surface disabled:opacity-50">Branch draft</button>
-            <button type="button" disabled={!selected} onClick={() => { if (selected) { setBranchMode('rollback'); setBranchName('Rollback draft'); setBranchSource(selected); } }} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-50">Rollback</button>
+            <button type="button" disabled={!selected} onClick={() => { if (selected) { setBranchMode('branch'); setBranchName('Draft'); setBranchSource(selected); } }} className="rounded-lg border-2 border-rule px-4 py-2 text-sm font-semibold text-on-surface hover:bg-surface-container transition-colors disabled:opacity-50">Branch draft</button>
+            <button type="button" disabled={!selected} onClick={() => { if (selected) { setBranchMode('rollback'); setBranchName('Rollback draft'); setBranchSource(selected); } }} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary hover:bg-primary-container transition-colors disabled:opacity-50">Rollback</button>
           </div>
         }
       />
       {message && <div className="rounded-lg border border-error/30 bg-error-container/30 px-4 py-3 text-sm text-error">{message}</div>}
       <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <section className="rounded-xl border-2 border-rule bg-paper-raised p-5">
-          <div className="mb-4 flex items-center justify-between"><div><h2 className="text-headline-sm text-on-surface">Timeline</h2><p className="mt-1 text-xs text-on-surface-variant">{orderedRuns.length} schedule versions</p></div><span className="material-symbols-outlined text-primary">account_tree</span></div>
+        <section className="rounded-xl border-2 border-rule bg-paper-raised p-5 shadow-sm">
+          <div className="mb-4 flex items-center justify-between"><div><h2 className="text-headline-sm font-bold text-on-surface">Timeline</h2><p className="mt-1 text-xs text-on-surface-variant tabular-nums">{orderedRuns.length} schedule versions</p></div><span className="material-symbols-outlined text-primary">account_tree</span></div>
           {loading && <p className="text-sm text-on-surface-variant">Loading versions…</p>}
           {error && <p className="text-sm text-error">Could not load version history.</p>}
           {!loading && !error && orderedRuns.length === 0 && <p className="rounded-lg bg-surface-container-low p-4 text-sm text-on-surface-variant">Generate a timetable or create a branch to begin versioning.</p>}
-          <div className="space-y-2">
+          <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-2.5">
             {orderedRuns.map((run) => (
-              <div key={run.id} className={`rounded-lg border-2 p-3 ${selected?.id === run.id ? 'border-primary bg-accent-soft/30' : 'border-rule'}`}>
+              <motion.div variants={itemVariants} whileHover={{ y: -1 }} key={run.id} className={`rounded-xl border-2 p-3.5 transition-all ${selected?.id === run.id ? 'border-primary bg-accent-soft/30 shadow-sm' : 'border-rule bg-paper hover:border-primary/40'}`}>
                 <button type="button" onClick={() => setSelectedId(run.id)} className="w-full text-left">
-                  <div className="flex items-center justify-between gap-2"><span className="font-semibold text-on-surface">{versionLabel(run)}</span><StatusBadge status={run.version_status || run.status} /></div>
-                  <p className="mt-1 text-xs text-on-surface-variant">{dateLabel(run.created_at)}{scoreLabel(run) !== null ? ` · Score ${scoreLabel(run)}` : ''}</p>
-                  {run.branch_name && <p className="mt-2 text-xs font-medium text-primary">{run.branch_name}</p>}
+                  <div className="flex items-center justify-between gap-2"><span className="font-semibold text-on-surface tabular-nums">{versionLabel(run)}</span><StatusBadge status={run.version_status || run.status} /></div>
+                  <p className="mt-1 text-xs text-on-surface-variant tabular-nums">{dateLabel(run.created_at)}{scoreLabel(run) !== null ? ` · Score ${scoreLabel(run)}` : ''}</p>
+                  {run.branch_name && <p className="mt-2 text-xs font-semibold text-primary">{run.branch_name}</p>}
                   {run.parent_version_id && <p className="mt-1 text-[11px] text-on-surface-variant">↳ branched from history</p>}
                 </button>
-                <div className="mt-3 flex gap-3 border-t border-rule pt-2"><button type="button" disabled={!selected || selected.id === run.id} onClick={() => compareWith(run)} className="text-xs font-semibold text-primary disabled:opacity-40">Compare</button><button type="button" onClick={() => { setBranchMode('branch'); setBranchName('Draft'); setBranchSource(run); }} className="text-xs font-semibold text-primary">Branch</button>{run.version_status === 'draft' && <button type="button" onClick={() => setAction({ kind: 'publish', run })} className="text-xs font-semibold text-primary">Publish</button>}</div>
-              </div>
+                <div className="mt-3 flex gap-3 border-t border-rule pt-2"><button type="button" disabled={!selected || selected.id === run.id} onClick={() => compareWith(run)} className="text-xs font-semibold text-primary hover:underline disabled:opacity-40">Compare</button><button type="button" onClick={() => { setBranchMode('branch'); setBranchName('Draft'); setBranchSource(run); }} className="text-xs font-semibold text-primary hover:underline">Branch</button>{run.version_status === 'draft' && <button type="button" onClick={() => setAction({ kind: 'publish', run })} className="text-xs font-semibold text-primary hover:underline">Publish</button>}</div>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </section>
+
         <section className="space-y-6">
           {selected && <section className="rounded-xl border-2 border-rule bg-paper-raised p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-label-caps text-mono-grey" style={{ fontSize: 10 }}>Selected version</p><h2 className="mt-1 text-headline-sm text-on-surface">{versionLabel(selected)}</h2><p className="mt-1 text-sm text-on-surface-variant">{selected.branch_name || 'Generated solver version'} · {dateLabel(selected.created_at)}</p></div><div className="flex gap-2">{selected.version_status === 'draft' && <><button type="button" onClick={() => setAction({ kind: 'publish', run: selected })} className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary">Publish</button><button type="button" onClick={() => setAction({ kind: 'archive', run: selected })} className="rounded-lg border border-rule px-3 py-2 text-xs font-semibold text-on-surface-variant">Archive</button></>}</div></div></section>}
           {selected && <section className="rounded-xl border-2 border-rule bg-paper-raised p-5"><div className="mb-4 flex items-center justify-between"><div><h3 className="text-headline-sm text-on-surface">Assignments</h3><p className="mt-1 text-xs text-on-surface-variant">Read-only snapshot for this version.</p></div><span className="rounded-full bg-surface-container px-3 py-1 text-xs font-semibold text-on-surface-variant">{assignments.length} slots</span></div>{assignmentsLoading ? <p className="text-sm text-on-surface-variant">Loading snapshot…</p> : assignments.length === 0 ? <p className="text-sm text-on-surface-variant">No assignments in this version.</p> : <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{assignments.map((assignment: any) => <div key={assignment.id} className="rounded-lg border border-rule bg-surface-container-low p-3 text-xs"><p className="font-semibold text-on-surface">{assignment.day} · P{assignment.period}</p><p className="mt-1 text-on-surface-variant">Subject {assignment.subject_id?.slice(0, 8)} · Section {assignment.section_id?.slice(0, 8)}</p><p className="mt-1 text-on-surface-variant">Teacher {assignment.teacher_id?.slice(0, 8)} · Room {assignment.room_id?.slice(0, 8)}</p></div>)}</div>}</section>}

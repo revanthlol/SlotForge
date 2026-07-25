@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { motion } from 'motion/react';
 import { useAuth } from '../../../contexts/AuthContext';
 import { ShortcutHint, useShortcutAction } from '../../../contexts/ShortcutContext';
 import { useTeachers, useSubjects, useTeacherSubjectAssignments, type Teacher } from '../../../hooks/useApi';
@@ -214,12 +215,18 @@ export default function TeachersPage() {
             <p className="text-data-table text-mono-grey mt-1">Add your first {config.teacherLabel.toLowerCase()} to get started</p>
           </div>
         ) : (
-          <div className="divide-y divide-rule">
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1, transition: { staggerChildren: 0.04 } }}
+            className="divide-y divide-rule"
+          >
             {filtered.map((t, idx) => {
               const assignedSubjects = getTeacherSubjects(t.id);
               return (
-                <div
+                <motion.div
                   key={t.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
                   className="grid grid-cols-12 px-6 py-3 items-center hover:bg-surface-bright transition-colors group"
                 >
                   <div className="col-span-1 text-data-table text-mono-grey">{idx + 1}</div>
@@ -276,10 +283,10 @@ export default function TeachersPage() {
                       <span className="material-symbols-outlined text-error" style={{ fontSize: 18 }}>delete</span>
                     </button>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </div>
+          </motion.div>
         )}
 
         {/* Footer */}

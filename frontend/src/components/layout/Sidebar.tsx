@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
+import { motion } from 'motion/react';
 import { useTheme } from '../../contexts/ThemeContext';
 
 interface SidebarLink {
@@ -38,23 +39,35 @@ function SidebarNavLink({ item, expanded, inset = false }: { item: SidebarLink; 
       to={item.path}
       title={expanded ? undefined : item.label}
       className={({ isActive }) => [
-        'sidebar-nav-item group flex items-center rounded-lg text-sm font-semibold transition-colors duration-150',
+        'sidebar-nav-item group relative flex items-center rounded-lg text-sm font-semibold transition-colors duration-150',
         expanded ? 'gap-3 px-3 py-2.5' : 'justify-center px-2 py-2.5',
         inset && expanded ? 'ml-3' : '',
-        isActive ? 'is-active text-primary' : 'text-on-surface-variant hover:text-on-surface',
+        isActive ? 'text-primary font-bold' : 'text-on-surface-variant hover:text-on-surface',
       ].filter(Boolean).join(' ')}
     >
-      <span className="material-symbols-outlined shrink-0" style={{ fontSize: 20 }}>
-        {item.icon}
-      </span>
-      {expanded && (
-        <span className="min-w-0 flex-1 truncate">
-          {item.label}
-        </span>
+      {({ isActive }) => (
+        <>
+          {isActive && (
+            <motion.div
+              layoutId="sidebar-active-indicator"
+              className="absolute inset-0 rounded-lg bg-accent-soft border border-primary/20"
+              transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+            />
+          )}
+          <span className="material-symbols-outlined relative z-10 shrink-0" style={{ fontSize: 20 }}>
+            {item.icon}
+          </span>
+          {expanded && (
+            <span className="relative z-10 min-w-0 flex-1 truncate">
+              {item.label}
+            </span>
+          )}
+        </>
       )}
     </NavLink>
   );
 }
+
 
 export default function Sidebar({ expanded, onToggle }: SidebarProps) {
   const location = useLocation();
