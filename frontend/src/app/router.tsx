@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { ShortcutProvider } from '../contexts/ShortcutContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useOnboardingProgress } from '../features/onboarding/hooks/useOnboardingProgress';
 import AppLayout from './layout';
 
 import LandingPage from '../features/auth/pages/LandingPage';
@@ -53,12 +54,18 @@ function LoadingRouteState() {
 function ProtectedRoute({ children }: { children: React.JSX.Element }) {
   const { organizationId, loading } = useAuth();
   const location = useLocation();
+  const { progress, loading: onboardingLoading } = useOnboardingProgress(organizationId);
 
-  if (loading) return <LoadingRouteState />;
+  if (loading || (organizationId && onboardingLoading)) return <LoadingRouteState />;
 
   if (!organizationId) {
     const redirect = encodeURIComponent(`${location.pathname}${location.search}`);
     return <Navigate to={`/login?redirect=${redirect}`} replace />;
+  }
+
+  const isCompletedOrSkipped = progress.skipped || progress.completed_steps.includes('generate');
+  if (!isCompletedOrSkipped && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
   }
 
   return children;
@@ -66,9 +73,13 @@ function ProtectedRoute({ children }: { children: React.JSX.Element }) {
 
 function PublicAuthRoute({ children }: { children: React.JSX.Element }) {
   const { organizationId, loading } = useAuth();
+  const { progress, loading: onboardingLoading } = useOnboardingProgress(organizationId);
 
-  if (loading) return <LoadingRouteState />;
-  if (organizationId) return <Navigate to="/dashboard" replace />;
+  if (loading || (organizationId && onboardingLoading)) return <LoadingRouteState />;
+  if (organizationId) {
+    const isCompletedOrSkipped = progress.skipped || progress.completed_steps.includes('generate');
+    return <Navigate to={isCompletedOrSkipped ? '/dashboard' : '/onboarding'} replace />;
+  }
 
   return children;
 }

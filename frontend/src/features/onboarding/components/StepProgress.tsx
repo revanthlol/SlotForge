@@ -17,54 +17,57 @@ export default function StepProgress({
   onSelectStep: (index: number) => void;
 }) {
   return (
-    <aside className="h-full overflow-y-auto border-r-2 border-rule bg-paper-raised px-5 py-6">
-      <div className="mb-7">
-        <p className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>Setup wizard</p>
-        <h2 className="mt-2 text-headline-sm text-on-surface">Launch plan</h2>
-      </div>
-
-      <ol className="space-y-1">
+    <nav aria-label="Onboarding Progress" className="w-full">
+      <ol className="flex flex-wrap items-center gap-2">
         {steps.map((step, index) => {
           const complete = completedSteps.includes(step.key);
           const active = index === currentStep;
           const available = index <= currentStep || complete;
 
           return (
-            <li key={step.key}>
+            <li key={step.key} className="flex-1 min-w-[140px]">
               <button
                 type="button"
                 disabled={!available}
                 onClick={() => onSelectStep(index)}
-                className={`group flex w-full items-start gap-3 rounded-lg px-3 py-2.5 text-left transition-colors ${
+                className={`group flex w-full items-center gap-3 rounded-xl border-2 p-3 text-left transition-all ${
                   active
-                    ? 'bg-accent-soft text-primary'
+                    ? 'border-primary bg-accent-soft/40 shadow-sm'
                     : complete
-                      ? 'text-on-surface hover:bg-accent-soft/50'
-                      : 'text-mono-grey hover:bg-surface-container'
-                } disabled:cursor-not-allowed disabled:hover:bg-transparent`}
+                    ? 'border-primary/40 bg-paper-raised hover:border-primary'
+                    : 'border-rule bg-surface-container-low opacity-60'
+                } disabled:cursor-not-allowed`}
               >
-                <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${
-                  complete
-                    ? 'border-primary bg-primary text-on-primary'
-                    : active
-                      ? 'border-primary text-primary'
-                      : 'border-rule text-mono-grey'
-                }`}>
-                  <span className="material-symbols-outlined" style={{ fontSize: 17 }}>
-                    {complete ? 'check' : step.icon}
-                  </span>
+                <span
+                  className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border-2 font-bold text-xs transition-colors ${
+                    complete
+                      ? 'border-primary bg-primary text-on-primary'
+                      : active
+                      ? 'border-primary bg-paper text-primary'
+                      : 'border-rule bg-paper-raised text-on-surface-variant'
+                  }`}
+                >
+                  {complete ? (
+                    <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                      check
+                    </span>
+                  ) : (
+                    index + 1
+                  )}
                 </span>
-                <span className="min-w-0">
-                  <span className="block text-[11px] font-bold uppercase tracking-wider opacity-70">
-                    Step {index + 1}
+                <div className="min-w-0">
+                  <span className="block truncate text-xs font-bold text-on-surface">
+                    {step.label}
                   </span>
-                  <span className="block text-sm font-semibold leading-tight">{step.label}</span>
-                </span>
+                  <span className="block truncate text-[10px] text-on-surface-variant">
+                    Step {index + 1} of {steps.length}
+                  </span>
+                </div>
               </button>
             </li>
           );
         })}
       </ol>
-    </aside>
+    </nav>
   );
 }

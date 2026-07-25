@@ -1,50 +1,50 @@
 @theme {
   /* ─ Colors: Paper & Ink ─ */
-  --color-paper: #f7f5f0;
+  --color-paper: #f8faf9;
   --color-paper-raised: #ffffff;
-  --color-grid-line: rgba(27, 31, 35, 0.08);
-  --color-rule: rgba(27, 31, 35, 0.14);
-  --color-accent-soft: rgba(20, 116, 91, 0.16);
-  --color-signal-soft: rgba(255, 122, 45, 0.16);
-  --color-mono-grey: #6b6f73;
+  --color-grid-line: rgba(27, 31, 35, 0.07);
+  --color-rule: rgba(27, 31, 35, 0.12);
+  --color-accent-soft: rgba(13, 138, 102, 0.12);
+  --color-signal-soft: rgba(234, 88, 12, 0.14);
+  --color-mono-grey: #64748b;
 
   /* ─ Colors: Surfaces ─ */
-  --color-surface: #f7f9ff;
-  --color-surface-dim: #d7dae0;
-  --color-surface-bright: #f7f9ff;
+  --color-surface: #f5f8f7;
+  --color-surface-dim: #d5dedb;
+  --color-surface-bright: #f5f8f7;
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #f1f4f9;
-  --color-surface-container: #ebeef3;
-  --color-surface-container-high: #e5e8ee;
-  --color-surface-container-highest: #e0e3e8;
-  --color-surface-variant: #e0e3e8;
-  --color-surface-tint: #14745b;
+  --color-surface-container-low: #edf3f0;
+  --color-surface-container: #e3ece8;
+  --color-surface-container-high: #d9e5e0;
+  --color-surface-container-highest: #d0ded8;
+  --color-surface-variant: #d0ded8;
+  --color-surface-tint: #0d7a5b;
 
   /* ─ Colors: On-surfaces ─ */
-  --color-on-surface: #181c20;
-  --color-on-surface-variant: #404945;
-  --color-on-background: #181c20;
-  --color-background: #f7f9ff;
+  --color-on-surface: #131d1a;
+  --color-on-surface-variant: #3d4a46;
+  --color-on-background: #131d1a;
+  --color-background: #f5f8f7;
 
   /* ─ Colors: Inverse ─ */
-  --color-inverse-surface: #2d3135;
-  --color-inverse-on-surface: #eef1f6;
-  --color-inverse-primary: #7fe0bd;
+  --color-inverse-surface: #26332f;
+  --color-inverse-on-surface: #eef5f2;
+  --color-inverse-primary: #52e0b5;
 
-  /* ─ Colors: Primary (Deep Pine) ─ */
-  --color-primary: #0f5a46;
+  /* ─ Colors: Primary (Vibrant Emerald) ─ */
+  --color-primary: #0d7a5b;
   --color-on-primary: #ffffff;
-  --color-primary-container: #14745b;
-  --color-on-primary-container: #d7fff0;
+  --color-primary-container: #10946f;
+  --color-on-primary-container: #d2fbf0;
   --color-primary-fixed: #baeddb;
   --color-primary-fixed-dim: #9fd1bf;
   --color-on-primary-fixed: #002018;
   --color-on-primary-fixed-variant: #11624e;
 
-  /* ─ Colors: Secondary (Burnt Orange) ─ */
-  --color-secondary: #c45113;
+  /* ─ Colors: Secondary (Vibrant Orange) ─ */
+  --color-secondary: #d95714;
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #ff8a3d;
+  --color-secondary-container: #f97316;
   --color-on-secondary-container: #531b00;
   --color-secondary-fixed: #ffdbcc;
   --color-secondary-fixed-dim: #ffb693;

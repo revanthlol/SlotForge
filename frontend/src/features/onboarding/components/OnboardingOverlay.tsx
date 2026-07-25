@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -150,14 +149,6 @@ export default function OnboardingOverlay() {
       workspaceName: `${organization?.name || 'Academic'} workspace`,
     },
   });
-
-  useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, []);
 
   useEffect(() => {
     if (!progressState.loading) setCurrentStep(progressState.progress.current_step || 0);
@@ -449,7 +440,7 @@ export default function OnboardingOverlay() {
     return (
       <section className="max-w-3xl">
         <StepHeader eyebrow="Step 11" title={preset === 'facility' ? 'Go to the booking dashboard.' : 'Generate the first schedule.'} subtitle="This creates the first usable output from the setup you just assembled." />
-            <div className="mt-8 rounded-xl border-2 border-rule bg-paper-raised p-6">
+        <div className="mt-8 rounded-xl border-2 border-rule bg-paper-raised p-6">
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="rounded-lg bg-surface-container p-4"><p className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>Preset</p><p className="mt-1 font-black text-on-surface">{presetOptions.find((item) => item.key === preset)?.name}</p></div>
             <div className="rounded-lg bg-surface-container p-4"><p className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>Warnings</p><p className="mt-1 font-black text-on-surface">{preflightWarnings.filter((warning) => warning.severity !== 'info').length}</p></div>
@@ -471,84 +462,83 @@ export default function OnboardingOverlay() {
   };
 
   if (organizationLoading || progressState.loading) {
-    return createPortal(<OnboardingSkeleton />, document.body);
+    return <OnboardingSkeleton />;
   }
 
-  const completedCount = progressState.progress.completed_steps.length;
-
-  const overlay = (
-    <div className="fixed inset-0 z-[200] bg-paper">
-      <div className="grid h-full lg:grid-cols-[320px_minmax(0,1fr)]">
-        <StepProgress
-          steps={steps}
-          currentStep={currentStep}
-          completedSteps={progressState.progress.completed_steps}
-          onSelectStep={(index) => setCurrentStep(index)}
-        />
-
-        <main className="relative min-h-0 overflow-y-auto">
-          <div className="sticky top-0 z-10 flex items-center justify-between border-b-2 border-rule bg-paper/95 px-6 py-4 backdrop-blur">
-            <div className="min-w-0">
-              <p className="truncate text-sm font-semibold text-on-surface">
-                {organization?.name || 'SlotForge'} / {form.watch('workspaceName') || 'Workspace'}
-              </p>
-              <div className="mt-2 h-1.5 w-56 overflow-hidden rounded-full bg-surface-container">
-                <div className="h-full rounded-full bg-primary transition-all duration-300" style={{ width: `${Math.round((completedCount / steps.length) * 100)}%` }} />
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              {progressState.saving && <SubtleLoading label="Saving" />}
-              {!progressState.backendAvailable && <span className="hidden text-xs font-semibold text-mono-grey sm:inline">Saved locally</span>}
-              {currentStep >= 2 && (
-                <button type="button" onClick={skipOnboarding} className="rounded-lg px-3 py-2 text-sm font-semibold text-on-surface-variant hover:bg-surface-container hover:text-on-surface">
-                  Skip onboarding
-                </button>
-              )}
-            </div>
+  return (
+    <div className="min-h-full max-w-5xl mx-auto space-y-6 pb-12">
+      <header className="rounded-2xl border-2 border-rule bg-paper-raised p-6 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <span className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>Guided Setup Wizard</span>
+            <h1 className="text-headline-md text-on-surface font-bold mt-1">
+              {organization?.name || 'SlotForge'} / {form.watch('workspaceName') || 'Workspace'}
+            </h1>
           </div>
-
-          <div className="mx-auto max-w-6xl px-6 py-8 lg:px-10 lg:py-10">
-            <StepTransition stepKey={steps[currentStep].key}>
-              {renderStep()}
-            </StepTransition>
-
-            {stepError && <div className="mt-6 rounded-lg border border-error/30 bg-error-container px-4 py-3 text-sm font-semibold text-on-error-container">{stepError}</div>}
-
-            <div className="mt-10 flex items-center justify-between border-t border-rule pt-5">
-              <button
-                type="button"
-                onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-                disabled={currentStep === 0}
-                className="inline-flex items-center gap-2 rounded-lg border border-rule px-4 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-40"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_back</span>
-                Back
-              </button>
-              {currentStep < steps.length - 1 ? (
-                <button
-                  type="button"
-                  onClick={continueStep}
-                  className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-container"
-                >
-                  Continue
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_forward</span>
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => navigate('/dashboard')}
-                  className="inline-flex items-center gap-2 rounded-lg border border-rule px-5 py-2.5 text-sm font-semibold text-on-surface transition-colors hover:bg-surface-container"
-                >
-                  Go to dashboard
-                  <span className="material-symbols-outlined" style={{ fontSize: 18 }}>dashboard</span>
-                </button>
-              )}
-            </div>
+          <div className="flex items-center gap-3">
+            {progressState.saving && <SubtleLoading label="Saving progress…" />}
+            <button
+              type="button"
+              onClick={skipOnboarding}
+              className="rounded-xl border border-rule px-4 py-2 text-xs font-semibold text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors"
+            >
+              Skip onboarding
+            </button>
           </div>
-        </main>
-      </div>
+        </div>
+        <div className="mt-6">
+          <StepProgress
+            steps={steps}
+            currentStep={currentStep}
+            completedSteps={progressState.progress.completed_steps}
+            onSelectStep={(index) => setCurrentStep(index)}
+          />
+        </div>
+      </header>
+
+      <main className="rounded-2xl border-2 border-rule bg-paper-raised p-8 shadow-sm">
+        <StepTransition stepKey={steps[currentStep].key}>
+          {renderStep()}
+        </StepTransition>
+
+        {stepError && (
+          <div className="mt-6 rounded-xl border border-error/30 bg-error-container px-4 py-3 text-sm font-semibold text-on-error-container">
+            {stepError}
+          </div>
+        )}
+
+        <footer className="mt-10 flex items-center justify-between border-t border-rule pt-6">
+          <button
+            type="button"
+            onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+            disabled={currentStep === 0}
+            className="inline-flex items-center gap-2 rounded-xl border border-rule px-5 py-2.5 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface-container disabled:opacity-40"
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_back</span>
+            Back
+          </button>
+
+          {currentStep < steps.length - 1 ? (
+            <button
+              type="button"
+              onClick={continueStep}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition-all hover:bg-primary-container hover:shadow-md"
+            >
+              Continue
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>arrow_forward</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard')}
+              className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition-all hover:bg-primary-container hover:shadow-md"
+            >
+              Go to dashboard
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>dashboard</span>
+            </button>
+          )}
+        </footer>
+      </main>
     </div>
   );
-
-  return createPortal(overlay, document.body);
 }
