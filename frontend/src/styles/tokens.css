@@ -153,8 +153,17 @@
   }
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .app-shell {
-  animation: appShellIn var(--motion-slow) var(--motion-spring) both;
+  animation: fadeIn 0.15s ease-out both;
 }
 
 .app-main {
@@ -162,28 +171,7 @@
 }
 
 .route-transition {
-  animation: routeIn var(--motion-slow) var(--motion-spring) both;
-  transform-origin: 50% 0;
-}
-
-.page-header-animate {
-  animation: headerIn var(--motion-slow) var(--motion-spring) both;
-}
-
-.route-transition > :not(.page-header-animate),
-.route-transition .bg-paper-raised.border-2,
-.route-transition table {
-  animation: panelIn var(--motion-slow) var(--motion-spring) both;
-}
-
-.route-transition > :nth-child(2),
-.route-transition .bg-paper-raised.border-2:nth-of-type(2) {
-  animation-delay: 45ms;
-}
-
-.route-transition > :nth-child(3),
-.route-transition .bg-paper-raised.border-2:nth-of-type(3) {
-  animation-delay: 90ms;
+  animation: fadeIn 0.15s ease-out both;
 }
 
 .sidebar-shell {

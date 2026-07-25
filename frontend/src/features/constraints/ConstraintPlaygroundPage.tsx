@@ -62,14 +62,6 @@ export default function ConstraintPlaygroundPage() {
   if (loadingWorkspace || loadingTemplates) return <div className="p-8 text-sm text-on-surface-variant">Loading constraint playground…</div>;
   if (!workspaceId) return <div className="rounded-xl border-2 border-rule bg-paper-raised p-8 text-on-surface-variant">Create a workspace before configuring rules.</div>;
 
-  const containerVariants = {
-    animate: { transition: { staggerChildren: 0.05 } },
-  };
-  const itemVariants = {
-    initial: { opacity: 0, y: 12 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.2 } },
-  };
-
   return (
     <div>
       <PageHeader
@@ -92,11 +84,10 @@ export default function ConstraintPlaygroundPage() {
         ) : rules.length === 0 ? (
           <p className="rounded-lg bg-surface-container-low p-4 text-sm text-on-surface-variant">No rules yet. Add one from the template gallery below.</p>
         ) : (
-          <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-3">
+          <div className="space-y-3">
             {[...hardRules, ...softRules].map((rule) => (
-              <motion.div
+              <div
                 key={rule.id}
-                variants={itemVariants}
                 className="flex flex-wrap items-center gap-4 rounded-xl border border-rule bg-paper px-4 py-3.5 transition-all hover:border-primary/40 hover:shadow-sm"
               >
                 <button
@@ -129,9 +120,9 @@ export default function ConstraintPlaygroundPage() {
                 >
                   Remove
                 </button>
-              </motion.div>
+              </div>
             ))}
-          </motion.div>
+          </div>
         )}
       </section>
 
@@ -140,16 +131,13 @@ export default function ConstraintPlaygroundPage() {
           <h2 className="text-headline-sm font-bold text-on-surface">Template gallery</h2>
           <p className="mt-1 text-sm text-on-surface-variant">Start from a built-in rule, then tune its parameters.</p>
         </div>
-        <motion.div variants={containerVariants} initial="initial" animate="animate" className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {templates.map((template) => (
-            <motion.button
+            <button
               key={template.key}
-              variants={itemVariants}
-              whileHover={{ y: -2, scale: 1.01 }}
-              whileTap={{ scale: 0.98 }}
               type="button"
               onClick={() => openCreate(template)}
-              className="text-left rounded-xl border-2 border-rule bg-paper-raised p-5 transition-all hover:border-primary hover:shadow-lg"
+              className="text-left rounded-xl border-2 border-rule bg-paper-raised p-5 transition-all hover:border-primary hover:shadow-lg hover:-translate-y-0.5"
             >
               <div className="mb-3 flex items-start justify-between gap-3">
                 <span className="material-symbols-outlined text-primary">{template.type === 'hard' ? 'lock' : 'tune'}</span>
@@ -159,9 +147,9 @@ export default function ConstraintPlaygroundPage() {
               </div>
               <h3 className="font-semibold text-on-surface">{template.name}</h3>
               <p className="mt-2 text-sm leading-relaxed text-on-surface-variant">{template.description}</p>
-            </motion.button>
+            </button>
           ))}
-        </motion.div>
+        </div>
       </section>
 
       <Modal

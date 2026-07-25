@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { motion } from 'motion/react';
 import { useWorkspaces } from '../../../lib/api/hooks/useWorkspaces';
 import { useWorkspaceRunAssignments, useWorkspaceScheduleRuns, type ScheduleRun } from '../../../hooks/useApi';
 import api from '../../../lib/api';
@@ -18,14 +17,6 @@ const dateLabel = (value: string) => new Date(value).toLocaleString([], { dateSt
 const scoreLabel = (run: ScheduleRun) => {
   const value = run.solver_score?.overall_score ?? run.solver_score?.score ?? run.solver_score?.preference_score;
   return typeof value === 'number' ? Math.round(value) : null;
-};
-
-const containerVariants = {
-  animate: { transition: { staggerChildren: 0.05 } },
-};
-const itemVariants = {
-  initial: { opacity: 0, y: 12 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.2 } },
 };
 
 export default function VersionHistoryPage() {
@@ -114,9 +105,9 @@ export default function VersionHistoryPage() {
           {loading && <p className="text-sm text-on-surface-variant">Loading versions…</p>}
           {error && <p className="text-sm text-error">Could not load version history.</p>}
           {!loading && !error && orderedRuns.length === 0 && <p className="rounded-lg bg-surface-container-low p-4 text-sm text-on-surface-variant">Generate a timetable or create a branch to begin versioning.</p>}
-          <motion.div variants={containerVariants} initial="initial" animate="animate" className="space-y-2.5">
+          <div className="space-y-2.5">
             {orderedRuns.map((run) => (
-              <motion.div variants={itemVariants} whileHover={{ y: -1 }} key={run.id} className={`rounded-xl border-2 p-3.5 transition-all ${selected?.id === run.id ? 'border-primary bg-accent-soft/30 shadow-sm' : 'border-rule bg-paper hover:border-primary/40'}`}>
+              <div key={run.id} className={`rounded-xl border-2 p-3.5 transition-all ${selected?.id === run.id ? 'border-primary bg-accent-soft/30 shadow-sm' : 'border-rule bg-paper hover:border-primary/40'}`}>
                 <button type="button" onClick={() => setSelectedId(run.id)} className="w-full text-left">
                   <div className="flex items-center justify-between gap-2"><span className="font-semibold text-on-surface tabular-nums">{versionLabel(run)}</span><StatusBadge status={run.version_status || run.status} /></div>
                   <p className="mt-1 text-xs text-on-surface-variant tabular-nums">{dateLabel(run.created_at)}{scoreLabel(run) !== null ? ` · Score ${scoreLabel(run)}` : ''}</p>
@@ -124,9 +115,9 @@ export default function VersionHistoryPage() {
                   {run.parent_version_id && <p className="mt-1 text-[11px] text-on-surface-variant">↳ branched from history</p>}
                 </button>
                 <div className="mt-3 flex gap-3 border-t border-rule pt-2"><button type="button" disabled={!selected || selected.id === run.id} onClick={() => compareWith(run)} className="text-xs font-semibold text-primary hover:underline disabled:opacity-40">Compare</button><button type="button" onClick={() => { setBranchMode('branch'); setBranchName('Draft'); setBranchSource(run); }} className="text-xs font-semibold text-primary hover:underline">Branch</button>{run.version_status === 'draft' && <button type="button" onClick={() => setAction({ kind: 'publish', run })} className="text-xs font-semibold text-primary hover:underline">Publish</button>}</div>
-              </motion.div>
+              </div>
             ))}
-          </motion.div>
+          </div>
         </section>
 
         <section className="space-y-6">
