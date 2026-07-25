@@ -3,7 +3,7 @@
 ## 2026-07-25
 
 - Completed Phase 12 UI Polish: implemented smooth route transitions using Framer Motion (`AnimatePresence` + `motion.div`), sliding active indicator in `Sidebar.tsx` (`layoutId="sidebar-active-indicator"`), list stagger entry animations on card grids and lists, modal slide/fade transitions, pulsing solver indicator in `SolverEnginePage.tsx`, and hover micro-animations on cards and timetable cells.
-- Standardized typography and tabular numerals: loaded Inter and JetBrains Mono from Google Fonts, applied `tabular-nums` across tables and statistics.
+- Standardized typography and tabular numerals: preserved Fraunces (display/headings) and Roboto Flex (body) font stack, applied `tabular-nums` across tables and statistics.
 - Fixed Constraint Playground UI layout: fixed active rule toggle switch buttons with `shrink-0` to eliminate green blob text overlap glitches.
 - Added Mobile Day View mode to `TimetableGrid.tsx` with day selection tabs for responsive single-day view on mobile.
 - Verification: frontend `oxlint` 0 errors, `npm run build` completed successfully, backend unit/integration suite `52 passed`.
