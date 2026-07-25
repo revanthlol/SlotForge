@@ -2,6 +2,9 @@
 
 ## 2026-07-25
 
+- Fixed the Heatmap right-edge leak by removing the closed impact drawer from the DOM and rendering the open drawer through a document-level portal, outside route animations.
+- Added the protected-app mobile gate with desktop-site + landscape recovery instructions, reload action, and Android app coming-soon messaging.
+- Verified backend `52 passed`, frontend build/lint passed with existing warnings only, synchronized Oracle to `53eb412`, and confirmed the connected Vercel deployment completed successfully.
 - Implemented Phase 11 Canvas Map: added the authenticated workspace canvas API with resource, constraint, conflict, and version graph views, including typed nodes/edges and live pressure metadata.
 - Replaced the decorative fixed-column Canvas with a React Flow control-room interface: view switcher, workspace selector, search, focus mode, node inspector, pan/zoom controls, minimap, relationship labels, and conflict pressure styling.
 - Deployed `796cdaf` to Oracle, verified `/health` and `/health/db`, revalidated Supabase login plus `/auth/me`, and smoke-tested all four Canvas views against live workspace data.

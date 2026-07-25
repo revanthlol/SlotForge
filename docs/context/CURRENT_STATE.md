@@ -4,14 +4,15 @@ Last updated: 2026-07-25
 
 ## Verification snapshot
 
-- Local `dev` HEAD: `cf1b9d2` (fix: restore demo workspace with auth profile).
-- Oracle VPS repository checkout: `cf1b9d2`.
+- Local `dev` HEAD: `53eb412` (fix: prevent mobile layout overflow).
+- Oracle VPS repository checkout: `53eb412`.
 - VPS service: `slotforge-api.service` active.
 - VPS `/health`: `200`, status `ok`.
 - VPS `/health/db`: `200`, status `ok`, Alembic revision `8a1c2d3e4f50`.
 - Known preserved VPS untracked helpers: `deploy.sh`, `diagnose.sh`.
 - Latest deployment verification: service restarted after `cf1b9d2`; `/health`, `/health/db`, Supabase login, and authenticated `/auth/me` returned successfully. After a simulated missing-demo-graph state, the first authenticated request restored the idempotent demo graph using the real Supabase Auth UUID; a second API restart still returned 200 for auth, workspace access, and Canvas. No new error-level service logs remained.
 - Auth repair: demo seeding now preserves the real Supabase Auth user ID when optional admin password synchronization fails, preventing `/auth/me` 404s caused by synthetic fallback profiles.
+- Frontend deployment: Vercel reported `success` for `53eb412` with deployment completed.
 
 ## Product
 
@@ -30,6 +31,7 @@ SlotForge is a multi-tenant institutional timetable and schedule optimization pl
 - Phase 9 Version Control is implemented: version metadata/migration, branch/rollback copy service, compare diff engine, publish/archive lifecycle, workspace schedule-run endpoints, and `/versions` history UI.
 - Phase 11 Canvas Map is implemented: the workspace `/canvas` endpoint exposes resource, constraint, conflict, and version graphs; the frontend renders them with React Flow, search, focus mode, minimap, pan/zoom controls, and a node inspector.
 - Demo Auth recovery is hardened: the known demo account now self-heals the complete application graph, not just its profile, when Supabase Auth survives an interrupted seed/deploy.
+- Protected application routes now show a dedicated mobile-unavailable screen below desktop workspace dimensions; desktop-site mode in landscape remains the explicit phone fallback, and the Android app is marked coming soon.
 
 ## Recently fixed / added
 
@@ -37,6 +39,8 @@ SlotForge is a multi-tenant institutional timetable and schedule optimization pl
 - Phase 9 Version Control completed: branch creates a child draft with copied assignments, compare reports moved/changed assignments and affected resources, publish archives the prior published version, archive preserves history, and rollback creates a non-published draft.
 - Phase 9 verification: focused backend tests `5 passed`; frontend build and lint passed; Oracle migration reached `8a1c2d3e4f50`; authenticated production lifecycle smoke tests passed.
 - Phase 11 verification: backend unit suite `26 passed`; frontend build and lint passed; authenticated production Canvas smoke test returned resource `17 nodes/26 edges`, constraint `42/60`, conflict `17/26`, and version `1/0`.
+- Heatmap overflow fix: the impact drawer now unmounts while closed and portals to `document.body` while open, preventing transformed route containers from leaking the drawer along the right edge.
+- Latest verification: complete backend suite `52 passed`; frontend production build passed; Oxlint completed with only the three existing Fast Refresh warnings.
 - Teacher/subject assignment Save writes are ordered on the subject-side dialog so full-list replacement requests cannot race and overwrite each other.
 - Teacher and subject assignment dialogs now show API failures instead of silently logging them.
 - Assignment dialogs cannot be dismissed while a save is in progress.
