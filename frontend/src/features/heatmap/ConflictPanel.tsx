@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom';
 import type { ImpactAnalysisReport } from './types';
 
 export default function ConflictPanel({
@@ -13,12 +14,12 @@ export default function ConflictPanel({
   error: string | null;
   onClose: () => void;
 }) {
-  return (
+  if (!open) return null;
+
+  return createPortal(
     <aside
-      className={`fixed inset-y-0 right-0 z-[70] w-full max-w-md border-l-2 border-rule bg-paper-raised shadow-2xl transition-transform duration-200 ${
-        open ? 'translate-x-0' : 'translate-x-full'
-      }`}
-      aria-hidden={!open}
+      className="fixed inset-y-0 right-0 z-[70] w-full max-w-md border-l-2 border-rule bg-paper-raised shadow-2xl"
+      aria-label="Impact analysis"
     >
       <div className="flex h-full flex-col">
         <div className="flex items-start justify-between gap-3 border-b border-rule bg-inverse-surface p-5 text-inverse-on-surface">
@@ -82,6 +83,7 @@ export default function ConflictPanel({
           )}
         </div>
       </div>
-    </aside>
+    </aside>,
+    document.body,
   );
 }
