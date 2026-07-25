@@ -4,13 +4,13 @@ Last updated: 2026-07-25
 
 ## Verification snapshot
 
-- Local `dev` HEAD: `20f24f3` (fix: preserve real auth ids during demo seeding).
-- Oracle VPS repository checkout: `20f24f3`.
+- Local `dev` HEAD: `408c4a8` (fix: avoid duplicate location joins when branching).
+- Oracle VPS repository checkout: `408c4a8`.
 - VPS service: `slotforge-api.service` active.
 - VPS `/health`: `200`, status `ok`.
-- VPS `/health/db`: `200`, status `ok`, Alembic revision `fc1b2d3e4f50`.
+- VPS `/health/db`: `200`, status `ok`, Alembic revision `8a1c2d3e4f50`.
 - Known preserved VPS untracked helpers: `deploy.sh`, `diagnose.sh`.
-- Latest deployment verification: service restarted after `20f24f3`; `/health`, `/health/db`, Supabase login, and authenticated `/auth/me` returned successfully, with no new error-level service logs.
+- Latest deployment verification: service restarted after `408c4a8`; `/health`, `/health/db`, Supabase login, and authenticated `/auth/me` returned successfully. Phase 9 branch, compare, archive, rollback, publish, and publish-restore smoke tests passed; no persistent error-level service logs remained.
 - Auth repair: demo seeding now preserves the real Supabase Auth user ID when optional admin password synchronization fails, preventing `/auth/me` 404s caused by synthetic fallback profiles.
 
 ## Product
@@ -27,10 +27,13 @@ SlotForge is a multi-tenant institutional timetable and schedule optimization pl
 - Frontend API auth: Supabase JWT is attached by `frontend/src/lib/api.ts`.
 - Mutating API routes require the organization-admin role.
 - Generated timetables are draft versions until promoted/published.
+- Phase 9 Version Control is implemented: version metadata/migration, branch/rollback copy service, compare diff engine, publish/archive lifecycle, workspace schedule-run endpoints, and `/versions` history UI.
 
 ## Recently fixed / added
 
 - Phase 8 Constraint Playground backend completed: 12 pre-built rule templates added to registry, compiler maps rules to solver CP-SAT constraints, and endpoints added (`GET /api/v1/constraint-templates/`, `GET/POST/PATCH/DELETE /api/v1/workspaces/{id}/constraints`, `POST /api/v1/workspaces/{id}/constraints/preview`).
+- Phase 9 Version Control completed: branch creates a child draft with copied assignments, compare reports moved/changed assignments and affected resources, publish archives the prior published version, archive preserves history, and rollback creates a non-published draft.
+- Phase 9 verification: focused backend tests `5 passed`; frontend build and lint passed; Oracle migration reached `8a1c2d3e4f50`; authenticated production lifecycle smoke tests passed.
 - Teacher/subject assignment Save writes are ordered on the subject-side dialog so full-list replacement requests cannot race and overwrite each other.
 - Teacher and subject assignment dialogs now show API failures instead of silently logging them.
 - Assignment dialogs cannot be dismissed while a save is in progress.
@@ -48,6 +51,7 @@ SlotForge is a multi-tenant institutional timetable and schedule optimization pl
 - The Canvas is a generated relationship view, not a drag-and-drop editor.
 - The frontend build emits a large-chunk warning; this is not currently a build failure.
 - Oxlint currently reports existing Fast Refresh warnings in context files.
+- Pyrefly may report `ortools.sat.python` as missing when VS Code is using the system Python (`/usr/lib/python3.14`) instead of `backend/.venv`; the backend virtual environment contains the runtime dependency.
 
 ## Current priority order
 

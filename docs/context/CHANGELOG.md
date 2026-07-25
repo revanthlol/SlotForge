@@ -2,6 +2,9 @@
 
 ## 2026-07-25
 
+- Implemented and deployed Phase 9 Version Control: schedule-version lifecycle metadata/migration, branch and rollback drafts, assignment/resource diffing, publish/archive transitions, workspace APIs, and the version history UI.
+- Fixed Phase 9 branch copying so assignment-location metadata updates the automatically-created room join instead of duplicating its primary key.
+- Added focused diff-engine coverage (`5 passed` with the Phase 8 unit tests), verified frontend build/lint, migrated Oracle to `8a1c2d3e4f50`, and passed authenticated production smoke tests for branch, compare, archive, rollback, publish, and publish restoration.
 - Diagnosed the recurring production login failure: Supabase Auth users existed but `profiles` was empty, so authenticated `/auth/me` returned 404. Fixed demo seeding to retain the real Auth user ID when password-sync administration fails, and added regression coverage.
 - Deployed `20f24f3` to Oracle, reseeded the matching production profile, and verified Supabase login plus authenticated `/auth/me` returned HTTP 200.
 
