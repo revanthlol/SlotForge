@@ -2,6 +2,12 @@
 
 ## 2026-07-25
 
+- Configured light mode as default across the application (`data-theme="light"` on `html` and default fallback in `ThemeContext.tsx`).
+- Enhanced color vibrancy in `tokens.css`: upgraded primary emerald green to `#0d7a5b`, secondary orange to `#d95714`, and updated surface tints for a fresh modern look.
+- Made Onboarding mandatory for new users: `ProtectedRoute` and `PublicAuthRoute` in `router.tsx` automatically redirect accounts with uncompleted/unskipped setups to `/onboarding`.
+- Streamlined Onboarding UX: removed intrusive portal overlay and body scroll-lock, redesigned wizard navigation into a clean 5-step progress pill bar.
+- Verification: frontend `oxlint` 0 errors, `npm run build` completed in 1.49s, backend pytest `52 passed`. Committed commit `af7c0b7` and pushed to `origin/dev`.
+
 - Completed Phase 12 UI Polish: implemented smooth route transitions using Framer Motion (`AnimatePresence` + `motion.div`), sliding active indicator in `Sidebar.tsx` (`layoutId="sidebar-active-indicator"`), list stagger entry animations on card grids and lists, modal slide/fade transitions, pulsing solver indicator in `SolverEnginePage.tsx`, and hover micro-animations on cards and timetable cells.
 - Standardized typography and tabular numerals: preserved Fraunces (display/headings) and Roboto Flex (body) font stack, applied `tabular-nums` across tables and statistics.
 - Fixed Constraint Playground UI layout: fixed active rule toggle switch buttons with `shrink-0` to eliminate green blob text overlap glitches.
