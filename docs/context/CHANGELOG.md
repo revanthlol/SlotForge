@@ -5,6 +5,7 @@
 - Implemented Phase 11 Canvas Map: added the authenticated workspace canvas API with resource, constraint, conflict, and version graph views, including typed nodes/edges and live pressure metadata.
 - Replaced the decorative fixed-column Canvas with a React Flow control-room interface: view switcher, workspace selector, search, focus mode, node inspector, pan/zoom controls, minimap, relationship labels, and conflict pressure styling.
 - Deployed `796cdaf` to Oracle, verified `/health` and `/health/db`, revalidated Supabase login plus `/auth/me`, and smoke-tested all four Canvas views against live workspace data.
+- Reproduced and fixed the deeper recurring Auth failure: the Supabase Auth user could outlive the entire local demo graph. The known demo account now invokes the idempotent seed with the real Auth UUID when needed; added regression coverage and verified recovery across an API restart.
 - Skipped Phase 10 as requested.
 - Implemented and deployed Phase 9 Version Control: schedule-version lifecycle metadata/migration, branch and rollback drafts, assignment/resource diffing, publish/archive transitions, workspace APIs, and the version history UI.
 - Fixed Phase 9 branch copying so assignment-location metadata updates the automatically-created room join instead of duplicating its primary key.
