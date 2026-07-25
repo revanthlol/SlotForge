@@ -23,10 +23,13 @@ class ScheduleVersion(Base):
     scores: Mapped[dict] = mapped_column(JSONB, default=dict, server_default='{}', nullable=False)
     explanation: Mapped[Optional[dict]] = mapped_column(JSONB, nullable=True)
     parent_version_id: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("schedule_versions.id", ondelete="SET NULL"), nullable=True)
+    branch_name: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     is_manual_override: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)
     version_metadata: Mapped[dict] = mapped_column("metadata", JSONB, default=dict, server_default='{}', nullable=False)
     created_by: Mapped[Optional[uuid.UUID]] = mapped_column(ForeignKey("profiles.id", ondelete="SET NULL"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+    published_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+    archived_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
 
 event.listen(ScheduleVersion, "before_insert", auto_populate_workspace_id_listener, propagate=True)
 

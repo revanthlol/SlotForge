@@ -10,6 +10,7 @@ from app.models.profile import Profile
 from app.models.workspace import SchedulingWorkspace
 from app.models.onboarding_progress import OnboardingProgress
 from app.models.schedule_run import ScheduleRun
+from app.models.schedule_version import ScheduleVersion
 from app.models.assignment import Assignment as SlotModel
 from app.models.resource import Resource
 from app.models.task import Task
@@ -23,6 +24,7 @@ from app.schemas.onboarding import OnboardingProgressResponse, OnboardingProgres
 from app.schemas.faculty_share import FacultyShareLinkCreate, FacultyShareLinkResponse
 from app.schemas.resource import ResourceResponse
 from app.schemas.schedule_run import ScheduleRunResponse
+from app.schemas.versioning import BranchRequest, DiffReport, VersionLifecycleResponse
 from app.schemas.workspace import WorkspaceResponse, WorkspaceUpdate
 from app.services.faculty_share_service import FacultyShareService
 from app.services.timetable_service import TimetableService
@@ -45,6 +47,8 @@ from app.schemas.constraint import (
 )
 from app.services.constraints.registry import CONSTRAINT_TEMPLATES
 from app.services.audit_service import AuditService
+from app.services.phase9_versioning import Phase9VersioningService
+from app.services.diff_engine import ScheduleDiffEngine
 
 router = APIRouter()
 
@@ -305,10 +309,133 @@ def list_schedule_runs(
     db: Session = Depends(get_db),
 ):
     workspace = _get_workspace_or_default(id, current_user, db)
-    return db.query(ScheduleRun).filter(
+    runs = db.query(ScheduleRun).filter(
         ScheduleRun.workspace_id == workspace.id,
         ScheduleRun.organization_id == current_user.organization_id,
     ).order_by(ScheduleRun.created_at.desc()).all()
+    response = []
+    for run in runs:
+        version = db.query(ScheduleVersion).filter(ScheduleVersion.id == run.schedule_version_id).first() if run.schedule_version_id else None
+        response.append({
+            "id": run.id,
+            "organization_id": run.organization_id,
+            "workspace_id": run.workspace_id,
+            "schedule_version_id": run.schedule_version_id,
+            "status": run.status,
+            "solver_score": run.solver_score,
+            "explanation": run.explanation,
+            "duration_seconds": run.duration_seconds,
+            "error_message": run.error_message,
+            "created_at": run.created_at,
+            "version_label": version.version_label if version else None,
+            "version_number": version.version_number if version else None,
+            "version_status": version.status if version else None,
+            "parent_version_id": version.parent_version_id if version else None,
+            "branch_name": version.branch_name if version else None,
+            "published_at": version.published_at if version else None,
+            "archived_at": version.archived_at if version else None,
+        })
+    return response
+
+
+def _phase9_version_response(version: ScheduleVersion, run: ScheduleRun | None = None) -> VersionLifecycleResponse:
+    if run is None:
+        run = ScheduleRun(id=version.id, organization_id=version.organization_id, workspace_id=version.workspace_id, status="success", schedule_version_id=version.id)
+    return VersionLifecycleResponse(
+        id=version.id,
+        run_id=run.id,
+        workspace_id=version.workspace_id,
+        organization_id=version.organization_id,
+        version_label=version.version_label,
+        version_number=version.version_number,
+        status=version.status,
+        scores=version.scores or {},
+        explanation=version.explanation,
+        parent_version_id=version.parent_version_id,
+        branch_name=version.branch_name,
+        is_manual_override=version.is_manual_override,
+        created_by=version.created_by,
+        created_at=version.created_at,
+        published_at=version.published_at,
+        archived_at=version.archived_at,
+    )
+
+
+def _resolve_phase9_version(id: str, source_id: str, current_user: Profile, db: Session) -> ScheduleVersion:
+    workspace = _get_workspace_or_default(id, current_user, db)
+    source_uuid = _parse_uuid(source_id, "schedule_run_id")
+    version = Phase9VersioningService.resolve_version(db, workspace.id, source_uuid)
+    if not version:
+        raise HTTPException(status_code=404, detail="Schedule version not found")
+    return version
+
+
+@router.get("/{id}/schedule-runs/compare", response_model=DiffReport)
+def compare_schedule_runs(
+    id: str,
+    a: str,
+    b: str,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db),
+):
+    version_a = _resolve_phase9_version(id, a, current_user, db)
+    version_b = _resolve_phase9_version(id, b, current_user, db)
+    return ScheduleDiffEngine(db).diff(version_a, version_b)
+
+
+@router.post("/{id}/schedule-runs/{run_id}/branch", response_model=VersionLifecycleResponse, status_code=201)
+def branch_schedule_run(
+    id: str,
+    run_id: str,
+    payload: BranchRequest,
+    current_user: Profile = Depends(require_org_admin),
+    db: Session = Depends(get_db),
+):
+    source = _resolve_phase9_version(id, run_id, current_user, db)
+    version, run = Phase9VersioningService.branch(db, source, current_user.id, payload.branch_name)
+    return _phase9_version_response(version, run)
+
+
+@router.post("/{id}/schedule-runs/{run_id}/publish", response_model=VersionLifecycleResponse)
+def publish_schedule_run(
+    id: str,
+    run_id: str,
+    current_user: Profile = Depends(require_org_admin),
+    db: Session = Depends(get_db),
+):
+    target = _resolve_phase9_version(id, run_id, current_user, db)
+    target = Phase9VersioningService.publish(db, target, current_user.id)
+    run = db.query(ScheduleRun).filter(ScheduleRun.schedule_version_id == target.id).order_by(ScheduleRun.created_at.desc()).first()
+    return _phase9_version_response(target, run)
+
+
+@router.post("/{id}/schedule-runs/{run_id}/archive", response_model=VersionLifecycleResponse)
+def archive_schedule_run(
+    id: str,
+    run_id: str,
+    current_user: Profile = Depends(require_org_admin),
+    db: Session = Depends(get_db),
+):
+    target = _resolve_phase9_version(id, run_id, current_user, db)
+    try:
+        target = Phase9VersioningService.archive(db, target, current_user.id)
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc))
+    run = db.query(ScheduleRun).filter(ScheduleRun.schedule_version_id == target.id).order_by(ScheduleRun.created_at.desc()).first()
+    return _phase9_version_response(target, run)
+
+
+@router.post("/{id}/schedule-runs/{run_id}/rollback", response_model=VersionLifecycleResponse, status_code=201)
+def rollback_schedule_run(
+    id: str,
+    run_id: str,
+    payload: BranchRequest = BranchRequest(branch_name="Rollback draft"),
+    current_user: Profile = Depends(require_org_admin),
+    db: Session = Depends(get_db),
+):
+    source = _resolve_phase9_version(id, run_id, current_user, db)
+    version, run = Phase9VersioningService.branch(db, source, current_user.id, payload.branch_name, rollback=True)
+    return _phase9_version_response(version, run)
 
 @router.get("/{id}/schedule-runs/{run_id}/assignments")
 def get_run_assignments(

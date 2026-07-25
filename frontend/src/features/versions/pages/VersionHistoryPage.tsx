@@ -1,222 +1,140 @@
-import { useState, useEffect } from 'react';
-import { useAuth } from '../../../contexts/AuthContext';
-import {
-  useTimetableVersions,
-  useTimetable,
-  useTeachers,
-  useRooms,
-  useSubjects,
-  useSections,
-  useOrganization,
-  type TimetableVersion,
-} from '../../../hooks/useApi';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { useWorkspaces } from '../../../lib/api/hooks/useWorkspaces';
+import { useWorkspaceRunAssignments, useWorkspaceScheduleRuns, type ScheduleRun } from '../../../hooks/useApi';
 import api from '../../../lib/api';
 import PageHeader from '../../../components/ui/PageHeader';
 import StatusBadge from '../../../components/ui/StatusBadge';
-import TimetableGrid from '../../../components/ui/TimetableGrid';
+import Modal from '../../../components/ui/Modal';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
+
+type LifecycleResponse = { run_id: string };
+type DiffChange = { key: string; changes: string[]; before?: Record<string, unknown>; after?: Record<string, unknown> };
+type DiffReport = { version_a_label: string; version_b_label: string; moved_count: number; changed_count: number; score_delta: number | null; affected_resources: Array<{ name: string; resource_type: string }>; changes: DiffChange[] };
+
+const versionLabel = (run: ScheduleRun) => run.version_label || (run.version_number ? `v${run.version_number}` : `Run ${run.id.slice(0, 8)}`);
+const dateLabel = (value: string) => new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
+const scoreLabel = (run: ScheduleRun) => {
+  const value = run.solver_score?.overall_score ?? run.solver_score?.score ?? run.solver_score?.preference_score;
+  return typeof value === 'number' ? Math.round(value) : null;
+};
 
 export default function VersionHistoryPage() {
-  const { organizationId } = useAuth();
-  const { data: organization } = useOrganization(organizationId);
-  const { data: versions, loading: loadingVersions, refetch: refetchVersions } = useTimetableVersions(organizationId);
+  const { workspaceId: routeWorkspaceId } = useParams();
+  const [params, setParams] = useSearchParams();
+  const { data: workspaces } = useWorkspaces();
+  const workspaceId = routeWorkspaceId || workspaces?.[0]?.id || null;
+  const { data: runs, loading, error, refetch } = useWorkspaceScheduleRuns(workspaceId);
+  const orderedRuns = useMemo(() => [...(runs || [])].sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at)), [runs]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [branchSource, setBranchSource] = useState<ScheduleRun | null>(null);
+  const [branchName, setBranchName] = useState('Draft');
+  const [action, setAction] = useState<{ kind: 'publish' | 'archive'; run: ScheduleRun } | null>(null);
+  const [working, setWorking] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [diff, setDiff] = useState<DiffReport | null>(null);
+  const [diffLoading, setDiffLoading] = useState(false);
+  const selected = orderedRuns.find((run) => run.id === selectedId) || orderedRuns[0] || null;
+  const { data: assignmentsData, loading: assignmentsLoading } = useWorkspaceRunAssignments(workspaceId, selected?.id || null);
+  const assignments = assignmentsData || [];
 
-  const { data: teachersData } = useTeachers(organizationId);
-  const { data: roomsData } = useRooms(organizationId);
-  const { data: subjectsData } = useSubjects(organizationId);
-  const { data: sectionsData } = useSections(organizationId);
-
-  const teachers = teachersData || [];
-  const rooms = roomsData || [];
-  const subjects = subjectsData || [];
-  const sections = sectionsData || [];
-
-  const [selectedVersion, setSelectedVersion] = useState<TimetableVersion | null>(null);
-  const [promoting, setPromoting] = useState(false);
-
-  // Set first version as default selected on load
   useEffect(() => {
-    if (versions && versions.length > 0 && !selectedVersion) {
-      setSelectedVersion(versions[0]);
-    } else if (versions && selectedVersion) {
-      // Keep reference updated if refetched
-      const updated = versions.find((v) => v.id === selectedVersion.id);
-      if (updated) setSelectedVersion(updated);
-    }
-  }, [versions, selectedVersion]);
+    if (!selectedId && orderedRuns[0]) setSelectedId(orderedRuns[0].id);
+  }, [orderedRuns, selectedId]);
 
-  const { data: timetable, loading: loadingTimetable } = useTimetable(selectedVersion?.id || null);
+  useEffect(() => {
+    const a = params.get('a');
+    const b = params.get('b');
+    if (!workspaceId || !a || !b) { setDiff(null); return; }
+    setDiffLoading(true);
+    api.get<DiffReport>(`/api/v1/workspaces/${workspaceId}/schedule-runs/compare`, { params: { a, b } })
+      .then((response) => setDiff(response.data))
+      .catch(() => setMessage('Could not compare those versions.'))
+      .finally(() => setDiffLoading(false));
+  }, [params, workspaceId]);
 
-  const handlePromote = async () => {
-    if (!selectedVersion || !organizationId) return;
-    setPromoting(true);
-    try {
-      // Endpoint to promote version to published status
-      await api.post(`/timetables/${selectedVersion.id}/publish`);
-      refetchVersions();
-      alert(`Version ${selectedVersion.version_number} has been promoted to PUBLISHED!`);
-    } catch (err: any) {
-      console.error(err);
-      alert(err.response?.data?.detail || err.message || 'Failed to promote version');
-    } finally {
-      setPromoting(false);
-    }
+  const compareWith = (other: ScheduleRun) => {
+    if (selected && other.id !== selected.id) setParams({ a: other.id, b: selected.id });
   };
+
+  const createBranch = async (rollback: boolean) => {
+    if (!workspaceId || !branchSource) return;
+    setWorking(true); setMessage(null);
+    try {
+      const path = rollback ? 'rollback' : 'branch';
+      const response = await api.post<LifecycleResponse>(`/api/v1/workspaces/${workspaceId}/schedule-runs/${branchSource.id}/${path}`, { branch_name: branchName });
+      await refetch();
+      setSelectedId(response.data.run_id);
+      setBranchSource(null);
+    } catch (err: any) {
+      setMessage(err.response?.data?.detail || 'Could not create draft.');
+    } finally { setWorking(false); }
+  };
+
+  const runAction = async () => {
+    if (!workspaceId || !action) return;
+    setWorking(true); setMessage(null);
+    try {
+      await api.post(`/api/v1/workspaces/${workspaceId}/schedule-runs/${action.run.id}/${action.kind}`);
+      await refetch(); setAction(null);
+    } catch (err: any) {
+      setMessage(err.response?.data?.detail || `Could not ${action.kind} version.`);
+    } finally { setWorking(false); }
+  };
+
+  if (!workspaceId) return <div className="rounded-xl border-2 border-rule bg-paper-raised p-8 text-sm text-on-surface-variant">Create a workspace before viewing version history.</div>;
 
   return (
     <div className="space-y-6">
       <PageHeader
-        breadcrumb="SOLVER / VERSION HISTORY"
+        breadcrumb="SOLVER / VERSION CONTROL"
         title="Version History"
-        subtitle="Track, compare, and promote weekly timetable schedules and solver outputs"
-      />
-
-      <div className="grid grid-cols-12 gap-6">
-        {/* Left Column: Vertical Timeline */}
-        <div className="col-span-12 md:col-span-4 lg:col-span-3 space-y-4">
-          <div className="bg-paper-raised border-2 border-rule rounded-xl p-inset-compact">
-            <h3 className="text-label-caps text-mono-grey mb-4" style={{ fontSize: 10 }}>
-              Version Timeline
-            </h3>
-
-            {loadingVersions ? (
-              <p className="text-xs text-mono-grey italic">Loading timeline...</p>
-            ) : !versions || versions.length === 0 ? (
-              <div className="text-center py-8">
-                <span className="material-symbols-outlined text-outline-variant" style={{ fontSize: 32 }}>
-                  history
-                </span>
-                <p className="text-xs text-mono-grey mt-2">No versions yet</p>
-              </div>
-            ) : (
-              <div className="relative pl-6 border-l-2 border-rule space-y-6">
-                {versions.map((v) => {
-                  const isSelected = selectedVersion?.id === v.id;
-                  const isPublished = v.status === 'published';
-
-                  return (
-                    <div
-                      key={v.id}
-                      onClick={() => setSelectedVersion(v)}
-                      className={`relative cursor-pointer group transition-all`}
-                    >
-                      {/* Timeline node dot */}
-                      <div
-                        className={`absolute -left-[31px] top-1 w-4.5 h-4.5 rounded-full border-2 transition-all flex items-center justify-center ${
-                          isSelected
-                            ? 'bg-primary border-primary scale-110 shadow-sm'
-                            : isPublished
-                            ? 'bg-paper-raised border-primary'
-                            : 'bg-surface-container border-rule group-hover:border-primary/50'
-                        }`}
-                      >
-                        {isPublished && (
-                          <div className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-paper-raised' : 'bg-primary'}`} />
-                        )}
-                      </div>
-
-                      {/* Content Card */}
-                      <div
-                        className={`p-3 rounded-lg border-2 transition-all ${
-                          isSelected
-                            ? 'bg-accent-soft/30 border-primary text-primary'
-                            : 'bg-paper-raised border-rule hover:bg-surface-bright/35 hover:border-rule/85'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold" style={{ fontFamily: 'var(--font-mono)' }}>
-                            v{v.version_number}
-                          </span>
-                          <StatusBadge status={v.status} />
-                        </div>
-                        <p className="text-[10px] text-mono-grey mt-1">
-                          {new Date(v.created_at).toLocaleDateString()} at{' '}
-                          {new Date(v.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </p>
-                        {v.scores && (
-                          <div className="mt-2 pt-1.5 border-t border-rule/50 flex justify-between text-[9px] text-mono-grey font-mono">
-                            <span>Hard: {v.scores.hard}</span>
-                            <span>Soft: {v.scores.soft || 0}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+        subtitle="Branch, compare, publish, archive, and roll back timetable drafts without losing history."
+        actions={
+          <div className="flex gap-2">
+            <button type="button" disabled={!selected} onClick={() => { if (selected) { setBranchName('Draft'); setBranchSource(selected); } }} className="rounded-lg border-2 border-rule px-4 py-2 text-sm font-semibold text-on-surface disabled:opacity-50">Branch draft</button>
+            <button type="button" disabled={!selected} onClick={() => { if (selected) { setBranchName('Rollback draft'); setBranchSource(selected); } }} className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-50">Rollback</button>
           </div>
-        </div>
-
-        {/* Right Column: Timetable Grid Preview & Promotion Actions */}
-        <div className="col-span-12 md:col-span-8 lg:col-span-9 space-y-4">
-          {selectedVersion ? (
-            <div className="space-y-6">
-              {/* Action Bar */}
-              <div className="bg-paper-raised border-2 border-rule rounded-xl p-inset-compact flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-headline-sm text-on-surface">
-                    Version {selectedVersion.version_number} Details
-                  </h3>
-                  <p className="text-xs text-mono-grey mt-1">
-                    Generated on {new Date(selectedVersion.created_at).toLocaleString()}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {selectedVersion.status !== 'published' && (
-                    <button
-                      onClick={handlePromote}
-                      disabled={promoting}
-                      className="px-4 py-2 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors disabled:opacity-50 flex items-center gap-2"
-                    >
-                      <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                        publish
-                      </span>
-                      {promoting ? 'Promoting...' : 'Promote to Published'}
-                    </button>
-                  )}
-                  <span className="text-xs">
-                    <StatusBadge status={selectedVersion.status} />
-                  </span>
-                </div>
+        }
+      />
+      {message && <div className="rounded-lg border border-error/30 bg-error-container/30 px-4 py-3 text-sm text-error">{message}</div>}
+      <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <section className="rounded-xl border-2 border-rule bg-paper-raised p-5">
+          <div className="mb-4 flex items-center justify-between"><div><h2 className="text-headline-sm text-on-surface">Timeline</h2><p className="mt-1 text-xs text-on-surface-variant">{orderedRuns.length} schedule versions</p></div><span className="material-symbols-outlined text-primary">account_tree</span></div>
+          {loading && <p className="text-sm text-on-surface-variant">Loading versions…</p>}
+          {error && <p className="text-sm text-error">Could not load version history.</p>}
+          {!loading && !error && orderedRuns.length === 0 && <p className="rounded-lg bg-surface-container-low p-4 text-sm text-on-surface-variant">Generate a timetable or create a branch to begin versioning.</p>}
+          <div className="space-y-2">
+            {orderedRuns.map((run) => (
+              <div key={run.id} className={`rounded-lg border-2 p-3 ${selected?.id === run.id ? 'border-primary bg-accent-soft/30' : 'border-rule'}`}>
+                <button type="button" onClick={() => setSelectedId(run.id)} className="w-full text-left">
+                  <div className="flex items-center justify-between gap-2"><span className="font-semibold text-on-surface">{versionLabel(run)}</span><StatusBadge status={run.version_status || run.status} /></div>
+                  <p className="mt-1 text-xs text-on-surface-variant">{dateLabel(run.created_at)}{scoreLabel(run) !== null ? ` · Score ${scoreLabel(run)}` : ''}</p>
+                  {run.branch_name && <p className="mt-2 text-xs font-medium text-primary">{run.branch_name}</p>}
+                  {run.parent_version_id && <p className="mt-1 text-[11px] text-on-surface-variant">↳ branched from history</p>}
+                </button>
+                <div className="mt-3 flex gap-3 border-t border-rule pt-2"><button type="button" disabled={!selected || selected.id === run.id} onClick={() => compareWith(run)} className="text-xs font-semibold text-primary disabled:opacity-40">Compare</button><button type="button" onClick={() => { setBranchName('Draft'); setBranchSource(run); }} className="text-xs font-semibold text-primary">Branch</button>{run.version_status === 'draft' && <button type="button" onClick={() => setAction({ kind: 'publish', run })} className="text-xs font-semibold text-primary">Publish</button>}</div>
               </div>
-
-              {/* Grid or loader */}
-              {loadingTimetable ? (
-                <div className="bg-paper-raised border-2 border-rule rounded-xl p-12 text-center text-body-sm text-mono-grey">
-                  Loading timetable slot assignments...
-                </div>
-              ) : timetable ? (
-                <TimetableGrid
-                  timetableId={timetable.id}
-                  assignments={timetable.assignments}
-                  teachers={teachers}
-                  rooms={rooms}
-                  subjects={subjects}
-                  sections={sections}
-                  organization={organization || null}
-                  editable={false}
-                  onChanged={() => {}}
-                />
-              ) : (
-                <div className="bg-paper-raised border-2 border-rule rounded-xl p-12 text-center text-body-sm text-mono-grey">
-                  Failed to load timetable assignments.
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="bg-paper-raised border-2 border-rule rounded-xl p-12 text-center">
-              <span className="material-symbols-outlined text-outline-variant mb-3" style={{ fontSize: 48 }}>
-                history
-              </span>
-              <h3 className="text-headline-sm text-on-surface">Select a version</h3>
-              <p className="text-body-sm text-on-surface-variant max-w-md mx-auto mt-2">
-                Click on any version node in the left timeline to view its weekly slot assignments, metrics, and options.
-              </p>
-            </div>
-          )}
-        </div>
+            ))}
+          </div>
+        </section>
+        <section className="space-y-6">
+          {selected && <section className="rounded-xl border-2 border-rule bg-paper-raised p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-label-caps text-mono-grey" style={{ fontSize: 10 }}>Selected version</p><h2 className="mt-1 text-headline-sm text-on-surface">{versionLabel(selected)}</h2><p className="mt-1 text-sm text-on-surface-variant">{selected.branch_name || 'Generated solver version'} · {dateLabel(selected.created_at)}</p></div><div className="flex gap-2">{selected.version_status === 'draft' && <><button type="button" onClick={() => setAction({ kind: 'publish', run: selected })} className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary">Publish</button><button type="button" onClick={() => setAction({ kind: 'archive', run: selected })} className="rounded-lg border border-rule px-3 py-2 text-xs font-semibold text-on-surface-variant">Archive</button></>}</div></div></section>}
+          {selected && <section className="rounded-xl border-2 border-rule bg-paper-raised p-5"><div className="mb-4 flex items-center justify-between"><div><h3 className="text-headline-sm text-on-surface">Assignments</h3><p className="mt-1 text-xs text-on-surface-variant">Read-only snapshot for this version.</p></div><span className="rounded-full bg-surface-container px-3 py-1 text-xs font-semibold text-on-surface-variant">{assignments.length} slots</span></div>{assignmentsLoading ? <p className="text-sm text-on-surface-variant">Loading snapshot…</p> : assignments.length === 0 ? <p className="text-sm text-on-surface-variant">No assignments in this version.</p> : <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{assignments.map((assignment: any) => <div key={assignment.id} className="rounded-lg border border-rule bg-surface-container-low p-3 text-xs"><p className="font-semibold text-on-surface">{assignment.day} · P{assignment.period}</p><p className="mt-1 text-on-surface-variant">Subject {assignment.subject_id?.slice(0, 8)} · Section {assignment.section_id?.slice(0, 8)}</p><p className="mt-1 text-on-surface-variant">Teacher {assignment.teacher_id?.slice(0, 8)} · Room {assignment.room_id?.slice(0, 8)}</p></div>)}</div>}</section>}
+          {diffLoading && <div className="rounded-xl border-2 border-rule bg-paper-raised p-5 text-sm text-on-surface-variant">Comparing versions…</div>}
+          {diff && <DiffPanel diff={diff} onClose={() => { setDiff(null); setParams({}); }} />}
+        </section>
       </div>
+      <Modal open={Boolean(branchSource)} onClose={() => !working && setBranchSource(null)} title={`Create draft from ${branchSource ? versionLabel(branchSource) : ''}`} actions={<><button type="button" onClick={() => setBranchSource(null)} disabled={working} className="rounded-lg border border-rule px-4 py-2 text-sm text-on-surface-variant">Cancel</button><button type="button" onClick={() => createBranch(branchName.toLowerCase().startsWith('rollback'))} disabled={working || !branchName.trim()} data-modal-primary="true" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary">{working ? 'Creating…' : 'Create draft'}</button></>}><p className="text-sm text-on-surface-variant">All assignments are copied into a new draft. The source version remains unchanged.</p><label className="mt-4 block text-sm font-semibold text-on-surface">Draft label<input value={branchName} onChange={(event) => setBranchName(event.target.value)} className="mt-2 w-full rounded-lg border-2 border-rule bg-paper px-3 py-2 text-sm" /></label></Modal>
+      <ConfirmModal open={Boolean(action)} title={`${action?.kind === 'publish' ? 'Publish' : 'Archive'} version?`} message={action?.kind === 'publish' ? 'The current published version will be archived and this version will become active.' : 'This draft will be archived and kept in history.'} confirmLabel={action?.kind === 'publish' ? 'Publish version' : 'Archive version'} loading={working} onCancel={() => setAction(null)} onConfirm={runAction} />
     </div>
   );
+}
+
+function DiffPanel({ diff, onClose }: { diff: DiffReport; onClose: () => void }) {
+  return <section className="rounded-xl border-2 border-primary/30 bg-accent-soft/20 p-5"><div className="flex flex-wrap items-start justify-between gap-3"><div><p className="text-label-caps text-primary" style={{ fontSize: 10 }}>Diff view</p><h3 className="mt-1 text-headline-sm text-on-surface">{diff.version_a_label} → {diff.version_b_label}</h3><p className="mt-1 text-sm text-on-surface-variant">{diff.moved_count} moved · {diff.changed_count} changed · {diff.affected_resources.length} resources affected</p></div><button type="button" onClick={onClose} className="text-sm font-semibold text-primary">Close compare</button></div><div className="mt-4 grid gap-3 sm:grid-cols-3"><Metric label="Score delta" value={diff.score_delta === null ? '—' : `${diff.score_delta > 0 ? '+' : ''}${diff.score_delta.toFixed(1)}`} /><Metric label="Assignments changed" value={String(diff.changed_count)} /><Metric label="Affected resources" value={String(diff.affected_resources.length)} /></div><div className="mt-4 space-y-2">{diff.changes.length === 0 ? <p className="rounded-lg bg-paper-raised p-4 text-sm text-on-surface-variant">No assignment changes.</p> : diff.changes.map((change) => <div key={change.key} className="rounded-lg border border-rule bg-paper-raised p-4 text-sm"><p className="font-semibold text-on-surface">{change.key}</p><p className="mt-1 text-xs text-primary">{change.changes.join(' · ')}</p><div className="mt-3 grid gap-2 md:grid-cols-2"><pre className="overflow-auto rounded bg-error-container/30 p-2 text-[11px] text-on-surface">{JSON.stringify(change.before || {}, null, 2)}</pre><pre className="overflow-auto rounded bg-accent-soft p-2 text-[11px] text-on-surface">{JSON.stringify(change.after || {}, null, 2)}</pre></div></div>)}</div></section>;
+}
+
+function Metric({ label, value }: { label: string; value: string }) {
+  return <div className="rounded-lg bg-paper-raised p-3"><p className="text-xs text-on-surface-variant">{label}</p><p className="mt-1 text-xl font-semibold text-on-surface">{value}</p></div>;
 }

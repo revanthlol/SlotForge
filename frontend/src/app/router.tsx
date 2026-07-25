@@ -107,6 +107,7 @@ export default function AppRouter() {
         <Route path="/solver" element={<SolverEnginePage />} />
         <Route path="/constraints" element={<ConstraintPlaygroundPage />} />
         <Route path="/versions" element={<VersionHistoryPage />} />
+        <Route path="/workspace/:workspaceId/versions" element={<VersionHistoryPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>

@@ -172,6 +172,13 @@ export interface ScheduleRun {
   duration_seconds: number | null;
   error_message: string | null;
   created_at: string;
+  version_label?: string | null;
+  version_number?: number | null;
+  version_status?: string | null;
+  parent_version_id?: string | null;
+  branch_name?: string | null;
+  published_at?: string | null;
+  archived_at?: string | null;
 }
 
 export interface FacultyRoomAssignment {

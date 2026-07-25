@@ -34,7 +34,7 @@ REQUIRED_SCHEMA_COLUMNS = {
     "groups": {"id", "organization_id", "workspace_id", "name", "group_type", "size", "metadata", "created_at"},
     "locations": {"id", "organization_id", "workspace_id", "name", "location_type", "capacity", "metadata", "created_at"},
     "timeslots": {"id", "organization_id", "workspace_id", "name", "day", "slot_index", "created_at"},
-    "schedule_versions": {"id", "organization_id", "workspace_id", "version_label", "version_number", "status", "scores", "created_at"},
+    "schedule_versions": {"id", "organization_id", "workspace_id", "version_label", "version_number", "status", "scores", "created_at", "branch_name", "published_at", "archived_at"},
     "assignments": {
         "id",
         "organization_id",
