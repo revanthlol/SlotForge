@@ -45,9 +45,9 @@ export default function AppLayout() {
         <main className="app-main min-h-0 flex-1 overflow-y-auto overflow-x-hidden p-margin-page">
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.15 }}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             className="h-full w-full"
           >
             <Outlet />
