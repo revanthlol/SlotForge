@@ -76,7 +76,14 @@ def _repair_demo_profile(db: Session, user_uuid: uuid.UUID, payload: dict) -> Pr
     """Restore the known demo profile after an interrupted seed/deploy."""
     organization = db.query(Organization).filter(Organization.name == settings.DEMO_SEED_ORG_NAME).first()
     if not organization:
-        return None
+        # A failed seed can remove the entire demo application graph while
+        # Supabase Auth keeps the user. Reuse the idempotent seed with the
+        # verified Auth UUID so workspace data and the profile recover
+        # together, rather than manufacturing a profile without its graph.
+        from scripts.seed_demo_data import seed_demo_data
+
+        seed_demo_data(db, sync_auth=False, echo=False, user_id=user_uuid)
+        return db.query(Profile).filter(Profile.id == user_uuid).first()
     profile = Profile(
         id=user_uuid,
         organization_id=organization.id,

@@ -94,6 +94,7 @@ def seed_demo_data(
     sync_auth: bool = True,
     require_auth: bool = False,
     echo: bool = True,
+    user_id: uuid.UUID | None = None,
 ) -> DemoSeedResult | None:
     owns_session = db is None
     if db is None:
@@ -108,7 +109,7 @@ def seed_demo_data(
 
         auth_synced = False
         auth_message = None
-        user_id = FALLBACK_DEMO_USER_ID
+        user_id = user_id or FALLBACK_DEMO_USER_ID
         if sync_auth:
             try:
                 user_id = _ensure_supabase_auth_user(
