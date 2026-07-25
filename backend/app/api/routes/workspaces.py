@@ -24,6 +24,7 @@ from app.schemas.onboarding import OnboardingProgressResponse, OnboardingProgres
 from app.schemas.faculty_share import FacultyShareLinkCreate, FacultyShareLinkResponse
 from app.schemas.resource import ResourceResponse
 from app.schemas.schedule_run import ScheduleRunResponse
+from app.schemas.canvas import CanvasResponse, CanvasView
 from app.schemas.versioning import BranchRequest, DiffReport, VersionLifecycleResponse
 from app.schemas.workspace import WorkspaceResponse, WorkspaceUpdate
 from app.services.faculty_share_service import FacultyShareService
@@ -49,6 +50,7 @@ from app.services.constraints.registry import CONSTRAINT_TEMPLATES
 from app.services.audit_service import AuditService
 from app.services.phase9_versioning import Phase9VersioningService
 from app.services.diff_engine import ScheduleDiffEngine
+from app.services.canvas_service import CanvasService
 
 router = APIRouter()
 
@@ -168,6 +170,17 @@ def get_onboarding_progress(
     workspace = _get_workspace_or_default(id, current_user, db)
     progress = _get_or_create_progress(workspace, db)
     return _progress_schema(progress)
+
+
+@router.get("/{id}/canvas", response_model=CanvasResponse)
+def get_canvas(
+    id: str,
+    view: CanvasView = Query("resource"),
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db),
+):
+    workspace = _get_workspace_or_default(id, current_user, db)
+    return CanvasService.build(db, workspace.id, view)
 
 
 @router.put("/{id}/onboarding/progress", response_model=OnboardingProgressResponse)
