@@ -60,13 +60,19 @@ class Phase9VersioningService:
             db.flush()
             locations = db.query(AssignmentLocation).filter(AssignmentLocation.assignment_id == source_assignment.id).all()
             for location in locations:
-                db.add(AssignmentLocation(
-                    assignment_id=copied.id,
-                    location_id=location.location_id,
-                    student_count=location.student_count,
-                    sub_group=location.sub_group,
-                    capacity_contribution=location.capacity_contribution,
-                ))
+                # Assignment inserts automatically mirror room_id into this
+                # join table. Reuse that row when the source carries the
+                # same room instead of inserting a duplicate primary key.
+                copied_location = db.get(AssignmentLocation, (copied.id, location.location_id))
+                if copied_location is None:
+                    copied_location = AssignmentLocation(
+                        assignment_id=copied.id,
+                        location_id=location.location_id,
+                    )
+                    db.add(copied_location)
+                copied_location.student_count = location.student_count
+                copied_location.sub_group = location.sub_group
+                copied_location.capacity_contribution = location.capacity_contribution
         run = ScheduleRun(
             organization_id=source.organization_id,
             workspace_id=source.workspace_id,
