@@ -4,16 +4,17 @@ Last updated: 2026-07-26
 
 ## Verification snapshot
 
-- Local `dev` HEAD: `fed3b5a` (replace abstract landing hero preview).
-- Oracle VPS repository checkout: `6cd68c7` (no backend change has required a VPS release since then).
+- Workspace revamp release commit: `9bdf2f2` (`revamp workspace graph and account flows`), pushed to `dev`.
+- Oracle backend release: `9bdf2f2`; only the known untracked `deploy.sh` and `diagnose.sh` helpers remain.
 - VPS service: `slotforge-api.service` active.
 - VPS `/health`: `200`, status `ok`.
-- VPS `/health/db`: `200`, status `ok`, Alembic revision `8a1c2d3e4f50`.
+- VPS `/health/db`: `200`, status `ok`, Alembic revision `c7d4e5f6a7b8`.
 - Known preserved VPS untracked helpers: `deploy.sh`, `diagnose.sh`.
 - Latest deployment verification: service restarted after `cf1b9d2`; `/health`, `/health/db`, Supabase login, and authenticated `/auth/me` returned successfully. After a simulated missing-demo-graph state, the first authenticated request restored the idempotent demo graph using the real Supabase Auth UUID; a second API restart still returned 200 for auth, workspace access, and Canvas. No new error-level service logs remained.
 - Auth repair: demo seeding now preserves the real Supabase Auth user ID when optional admin password synchronization fails, preventing `/auth/me` 404s caused by synthetic fallback profiles.
 - Frontend deployment: Vercel reported `success` for `53eb412` with deployment completed.
-- Latest API deployment: `6cd68c7`; Oracle API restart completed with `/health` and `/health/db` at HTTP 200.
+- Latest API deployment: `9bdf2f2`; Oracle API restart completed with `/health` and `/health/db` at HTTP 200, authenticated `/auth/me` returned 200 with `job_title`, and recent error-level service logs were empty.
+- Frontend deployment: Vercel reported `success` for `9bdf2f2`; `https://slotforge-dev.vercel.app/` returned HTTP 200.
 - Frontend Git deployments: `dev` is connected to Vercel. The dev URL last returned HTTP 200 after `bf5ffb2`; subsequent frontend-only commits are pushed to `dev` and require no Oracle restart.
 
 ## Product

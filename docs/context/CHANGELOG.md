@@ -8,6 +8,7 @@
 - Grouped repeated Constraint Playground and Solver rules, replaced raw version-history UUID fragments with resolved timetable cards, and moved the Settings save panel into a zoom-safe floating layout.
 - Added the nullable `profiles.job_title` migration and authenticated `PATCH /auth/me`; added integration coverage for signup/profile updates and full onboarding persistence.
 - Local verification passed: backend `54 passed`, frontend production build passed, Oxlint completed with the three existing Fast Refresh warnings, and the authenticated browser suite exercised the requested screens and routing at desktop and 125% emulation.
+- Pushed release `9bdf2f2` to `dev`, fast-forwarded Oracle, migrated PostgreSQL to `c7d4e5f6a7b8`, and restarted `slotforge-api.service`. `/health` and `/health/db` returned HTTP 200, authenticated `/auth/me` returned 200 with the new profile field, and the recent error-level journal was empty. Vercel completed successfully and the deployed frontend returned HTTP 200.
 
 - Updated the landing and application-shell baseline through `fed3b5a`: removed global app-route transitions that remounted the sidebar/topbar, pinned the protected topbar, and retained transitions only for page content. The sidebar logo no longer has a hover lift/shadow treatment.
 - Reworked the public landing navigation with the SlotForge Fraunces wordmark, mono utility links, larger actions, auth-aware sign-in/create-institution behavior, and smooth, header-offset section scrolling.
