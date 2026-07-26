@@ -28,7 +28,6 @@ const capabilities = [
 export default function LandingPage() {
   const { user, loading } = useAuth();
   const { theme, toggleTheme } = useTheme();
-  const [openFaq, setOpenFaq] = useState(0);
   const [scrolled, setScrolled] = useState(false);
   const reduceMotion = useReducedMotion();
   const signedIn = Boolean(user);
@@ -102,7 +101,7 @@ export default function LandingPage() {
 
         <section id="workflow" className="stitch-container py-24">
           <div className="max-w-3xl"><p className="stitch-eyebrow">The working rhythm</p><h2 className="stitch-heading mt-4">A schedule should be a decision, not a scramble.</h2><p className="mt-4 max-w-2xl text-sm leading-6 text-on-surface-variant">The workflow stays linear enough to learn quickly and flexible enough for the details that surface once a real institution starts using it.</p></div>
-          <div className="mt-14 grid gap-px overflow-hidden border border-rule bg-rule md:grid-cols-4">{workflow.map(([number, title, body], index) => <motion.article initial={reduceMotion ? false : { opacity: 0, y: 16 }} whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }} viewport={{ once: true, amount: .35 }} transition={{ duration: .42, delay: index * .06 }} whileHover={reduceMotion ? undefined : { y: -4 }} key={number} className="bg-paper-raised p-6"><p className="text-[10px] font-mono tracking-widest text-secondary">{number}</p><h3 className="mt-8 text-lg font-semibold text-on-surface" style={{ fontFamily: 'var(--font-display)' }}>{title}</h3><p className="mt-3 text-sm leading-6 text-on-surface-variant">{body}</p></motion.article>)}</div>
+          <div className="mt-14 grid gap-px overflow-hidden border border-rule bg-rule md:grid-cols-4">{workflow.map(([number, title, body], index) => <motion.article initial={reduceMotion ? false : { opacity: 0, y: 16 }} whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }} viewport={{ once: true, amount: .35 }} transition={{ duration: .42, delay: index * .06 }} whileHover={reduceMotion ? undefined : { y: -4 }} key={number} className="bg-paper-raised p-6"><p className="text-[10px] font-mono tracking-widest text-on-surface-variant">{number}</p><h3 className="mt-8 text-lg font-semibold text-on-surface" style={{ fontFamily: 'var(--font-display)' }}>{title}</h3><p className="mt-3 text-sm leading-6 text-on-surface-variant">{body}</p></motion.article>)}</div>
         </section>
 
         <section id="capabilities" className="border-y border-rule bg-paper-raised py-24">
@@ -120,7 +119,7 @@ export default function LandingPage() {
           <div className="mt-14 grid gap-px border border-white/15 bg-white/15 sm:grid-cols-2 lg:grid-cols-4">{capabilities.map(([icon, title, body]) => <div key={title} className="bg-[#0d2924] p-7 text-center transition-colors hover:bg-white/5"><span className="material-symbols-outlined text-white/75" style={{ fontSize: 26 }}>{icon}</span><h3 className="mt-5 text-sm font-semibold text-white">{title}</h3><p className="mt-3 text-xs leading-5 text-white/50">{body}</p></div>)}</div>
         </div></section>
 
-        <section id="faq" className="stitch-faq py-24"><div className="stitch-container max-w-3xl"><div className="text-center"><p className="stitch-eyebrow">Questions, answered</p><h2 className="stitch-heading mt-4">FAQ</h2></div><div className="mt-12 space-y-3">{faqs.map(([question, answer], index) => <div key={question} className="border border-rule bg-paper-raised"><button type="button" className="flex w-full items-center justify-between gap-5 px-6 py-5 text-left text-sm font-semibold text-on-surface" aria-expanded={openFaq === index} onClick={() => setOpenFaq(openFaq === index ? -1 : index)}>{question}<span className={`material-symbols-outlined text-mono-grey transition-transform ${openFaq === index ? 'rotate-45' : ''}`} style={{ fontSize: 20 }}>add</span></button>{openFaq === index && <p className="border-t border-rule px-6 py-5 text-sm leading-6 text-on-surface-variant">{answer}</p>}</div>)}</div></div></section>
+        <LandingFaq />
 
         <section className="stitch-cta"><div className="stitch-container relative z-10 py-24 text-center"><h2 className="stitch-display mx-auto max-w-4xl text-white" style={{ fontSize: 'clamp(2.6rem, 6vw, 5.3rem)' }}>Start with the schedule your institution actually needs.</h2><p className="mx-auto mt-6 max-w-xl text-sm leading-6 text-white/60">Create an institution, add the resources you know, and let SlotForge guide the next decision.</p><Link to={primaryHref} className="mt-9 inline-flex rounded bg-white px-6 py-3 text-sm font-semibold text-[#0d2924] transition-transform hover:-translate-y-0.5">{signedIn ? 'Open workspace' : 'Create your institution'} <span className="ml-2">→</span></Link></div></section>
       </main>
@@ -133,6 +132,12 @@ export default function LandingPage() {
 function SolverMap() {
   const nodes = [['Faculty', 'groups', 'solver-node--faculty'], ['Subjects', 'menu_book', 'solver-node--subjects'], ['Rooms', 'meeting_room', 'solver-node--rooms'], ['Rules', 'rule_settings', 'solver-node--rules'], ['Draft', 'view_week', 'solver-node--draft']];
   return <div className="solver-map"><div className="solver-grid" />{nodes.map(([label, icon, className]) => <div key={label} className={`solver-node ${className}`}><span className="material-symbols-outlined" style={{ fontSize: 19 }}>{icon}</span><span>{label}</span></div>)}<div className="solver-core"><span className="material-symbols-outlined" style={{ fontSize: 28 }}>precision_manufacturing</span><span>Solver<br />Core</span></div><div className="solver-connector solver-connector--one" /><div className="solver-connector solver-connector--two" /><div className="solver-connector solver-connector--three" /><div className="solver-connector solver-connector--four" /><div className="solver-connector solver-connector--five" /><div className="solver-footer"><span className="stitch-status-dot" />0 known conflicts <span>•</span> ready for review</div></div>;
+}
+
+function LandingFaq() {
+  const [openFaq, setOpenFaq] = useState(0);
+
+  return <section id="faq" className="stitch-faq py-24"><div className="stitch-container max-w-3xl"><div className="text-center"><p className="stitch-eyebrow">Questions, answered</p><h2 className="stitch-heading mt-4">FAQ</h2></div><div className="mt-12 space-y-3">{faqs.map(([question, answer], index) => <div key={question} className="border border-rule bg-paper-raised"><button type="button" className="flex w-full items-center justify-between gap-5 px-6 py-5 text-left text-sm font-semibold text-on-surface" aria-expanded={openFaq === index} onClick={() => setOpenFaq((current) => current === index ? -1 : index)}>{question}<span className={`material-symbols-outlined text-mono-grey transition-transform ${openFaq === index ? 'rotate-45' : ''}`} style={{ fontSize: 20 }}>add</span></button>{openFaq === index && <p className="border-t border-rule px-6 py-5 text-sm leading-6 text-on-surface-variant">{answer}</p>}</div>)}</div></div></section>;
 }
 
 function CapabilityCard({ className, icon, title, body, tags, visual, reduceMotion }: { className: string; icon: string; title: string; body: string; tags?: string[]; visual?: boolean; reduceMotion: boolean | null }) {
