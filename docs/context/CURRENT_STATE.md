@@ -4,8 +4,8 @@ Last updated: 2026-07-26
 
 ## Verification snapshot
 
-- Local `dev` HEAD: `dbac2ef` (revamp public landing and app shell).
-- Oracle VPS repository checkout: `dbac2ef`.
+- Local `dev` HEAD: `6cd68c7` (refine landing motion and navigation).
+- Oracle VPS repository checkout: `6cd68c7`.
 - VPS service: `slotforge-api.service` active.
 - VPS `/health`: `200`, status `ok`.
 - VPS `/health/db`: `200`, status `ok`, Alembic revision `8a1c2d3e4f50`.
@@ -14,6 +14,7 @@ Last updated: 2026-07-26
 - Auth repair: demo seeding now preserves the real Supabase Auth user ID when optional admin password synchronization fails, preventing `/auth/me` 404s caused by synthetic fallback profiles.
 - Frontend deployment: Vercel reported `success` for `53eb412` with deployment completed.
 - Latest UI deployment: `dbac2ef` fast-forwarded to Oracle; `slotforge-api.service` restarted cleanly, `/health` and `/health/db` returned HTTP 200 at Alembic head `8a1c2d3e4f50`, and `https://slotforge-dev.vercel.app/` returned HTTP 200 from a fresh Vercel deployment.
+- Latest motion deployment: `6cd68c7` added the floating public navigation, staged landing reveals, route transitions, and animated loading/onboarding loaders. Oracle API restart completed with `/health` and `/health/db` at HTTP 200; the Vercel dev site returned HTTP 200 from a fresh deployment.
 
 ## Product
 

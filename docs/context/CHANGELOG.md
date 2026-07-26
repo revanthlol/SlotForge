@@ -2,6 +2,9 @@
 
 ## 2026-07-26
 
+- Refined the public landing motion and navigation: added the floating, scroll-responsive navigation bar, SlotForge-styled sign-in/create-institution actions, staged hero and content reveals, subtle solver-map animation, global route transitions, and loading/onboarding loading-state entrances with reduced-motion support.
+- Committed and pushed `6cd68c7` (`refine landing motion and navigation`) to `dev`; fast-forwarded Oracle, confirmed Alembic head `8a1c2d3e4f50`, restarted `slotforge-api.service`, and verified `/health` and `/health/db` both returned HTTP 200 without new error-level logs. Vercel dev returned HTTP 200 from a fresh deployment.
+
 - Revamped the public SlotForge landing around the downloaded Stitch reference: editorial hero, scheduling-logic map, product workflow, capability bento grid, academic constraints section, FAQ, CTA, and footer. Public CTAs remain auth-aware.
 - Separated onboarding from the authenticated application shell, added a standalone Newton's-cradle loading screen, restored functional shell utilities, and added onboarding assignment mapping plus real resource deletion.
 - Committed and pushed `dbac2ef` (`revamp public landing and app shell`) to `dev`.
