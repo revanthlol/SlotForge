@@ -1,5 +1,13 @@
 # Context Changelog
 
+## 2026-07-26
+
+- Revamped the public SlotForge landing around the downloaded Stitch reference: editorial hero, scheduling-logic map, product workflow, capability bento grid, academic constraints section, FAQ, CTA, and footer. Public CTAs remain auth-aware.
+- Separated onboarding from the authenticated application shell, added a standalone Newton's-cradle loading screen, restored functional shell utilities, and added onboarding assignment mapping plus real resource deletion.
+- Committed and pushed `dbac2ef` (`revamp public landing and app shell`) to `dev`.
+- Fast-forwarded the Oracle VPS to `dbac2ef`; preserved `deploy.sh` and `diagnose.sh`; no migration was pending (`8a1c2d3e4f50` head). Restarted `slotforge-api.service`; `/health` and `/health/db` both returned HTTP 200 with no new error-level service logs.
+- Verified `https://slotforge-dev.vercel.app/` returned HTTP 200 immediately after the pushed deployment. Frontend build passed; lint completed with the existing three Fast Refresh warnings and the existing large-chunk warning.
+
 ## 2026-07-25
 
 - Configured light mode as default across the application (`data-theme="light"` on `html` and default fallback in `ThemeContext.tsx`).

@@ -1,11 +1,11 @@
 # Current State
 
-Last updated: 2026-07-25
+Last updated: 2026-07-26
 
 ## Verification snapshot
 
-- Local `dev` HEAD: `53eb412` (fix: prevent mobile layout overflow).
-- Oracle VPS repository checkout: `53eb412`.
+- Local `dev` HEAD: `dbac2ef` (revamp public landing and app shell).
+- Oracle VPS repository checkout: `dbac2ef`.
 - VPS service: `slotforge-api.service` active.
 - VPS `/health`: `200`, status `ok`.
 - VPS `/health/db`: `200`, status `ok`, Alembic revision `8a1c2d3e4f50`.
@@ -13,6 +13,7 @@ Last updated: 2026-07-25
 - Latest deployment verification: service restarted after `cf1b9d2`; `/health`, `/health/db`, Supabase login, and authenticated `/auth/me` returned successfully. After a simulated missing-demo-graph state, the first authenticated request restored the idempotent demo graph using the real Supabase Auth UUID; a second API restart still returned 200 for auth, workspace access, and Canvas. No new error-level service logs remained.
 - Auth repair: demo seeding now preserves the real Supabase Auth user ID when optional admin password synchronization fails, preventing `/auth/me` 404s caused by synthetic fallback profiles.
 - Frontend deployment: Vercel reported `success` for `53eb412` with deployment completed.
+- Latest UI deployment: `dbac2ef` fast-forwarded to Oracle; `slotforge-api.service` restarted cleanly, `/health` and `/health/db` returned HTTP 200 at Alembic head `8a1c2d3e4f50`, and `https://slotforge-dev.vercel.app/` returned HTTP 200 from a fresh Vercel deployment.
 
 ## Product
 
@@ -37,6 +38,7 @@ SlotForge is a multi-tenant institutional timetable and schedule optimization pl
 - Site colors enhanced with vibrant emerald primary (`#0d7a5b`), warm orange secondary (`#d95714`), and clean surface tints.
 - Onboarding setup is mandatory for new user accounts: `ProtectedRoute` and `PublicAuthRoute` automatically redirect new users to `/onboarding` upon account creation or sign-in until completed or skipped.
 - Onboarding UX streamlined into a clean responsive wizard with a 5-step progress navigation bar.
+- Public landing and shell polish: the landing now follows the Stitch-derived editorial/operational composition, with a scheduling-logic map, explicit setup-to-publish workflow, capability sections, FAQ, and auth-aware entry points. Protected-route loading uses a dedicated Newton's-cradle screen; onboarding now renders outside the application sidebar/topbar and includes assignment setup.
 
 ## Recently fixed / added
 
