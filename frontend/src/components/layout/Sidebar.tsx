@@ -84,7 +84,7 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
       <div className={`${expanded ? 'px-5' : 'px-2'} shrink-0 border-b border-rule py-4`}>
         <div className={`flex items-center ${expanded ? 'justify-between gap-3' : 'justify-center'}`}>
           <Link to="/dashboard" className={`flex min-w-0 items-center ${expanded ? 'gap-3' : 'justify-center'}`} title={expanded ? undefined : 'SlotForge dashboard'}>
-            <img src={logoSrc} alt="SlotForge Logo" className="brand-mark h-9 w-9 object-contain" />
+            <img src={logoSrc} alt="SlotForge Logo" className="h-9 w-9 object-contain" />
             {expanded && (
               <div className="min-w-0">
                 <h1 className="truncate text-[15px] font-semibold text-on-surface" style={{ fontFamily: 'var(--font-display)' }}>

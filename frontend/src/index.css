@@ -22,6 +22,7 @@
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
   text-rendering: optimizeLegibility;
 }
 
@@ -222,6 +223,7 @@ input[type="range"] {
 
 /* Stitch-inspired public landing: editorial, operational, deliberately quiet. */
 .stitch-landing { background: var(--color-paper); }
+.stitch-landing section[id] { scroll-margin-top: 86px; }
 .stitch-container { width: min(100% - 48px, 1200px); margin-inline: auto; }
 .stitch-header { position: fixed; top: 16px; z-index: 50; width: 100%; pointer-events: none; }
 .stitch-nav-floating { display: flex; height: 58px; align-items: center; justify-content: space-between; gap: 20px; border: 1px solid color-mix(in srgb, var(--color-rule) 75%, transparent); border-radius: 10px; background: color-mix(in srgb, var(--color-paper-raised) 82%, transparent); box-shadow: 0 8px 24px rgba(8, 30, 24, .05); backdrop-filter: blur(18px); pointer-events: auto; transition: height var(--motion-standard) var(--motion-spring), box-shadow var(--motion-standard) var(--motion-ease), background-color var(--motion-standard) var(--motion-ease), border-color var(--motion-standard) var(--motion-ease); }
@@ -315,6 +317,7 @@ input[type="range"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
   .solver-node, .solver-core { animation: none !important; }
   .stitch-nav-floating, .stitch-nav-primary, .stitch-nav-icon { transition: none; }
 }
