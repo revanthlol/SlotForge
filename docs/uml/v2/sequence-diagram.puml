@@ -1,6 +1,5 @@
-@startuml SlotForge-V2-Sequence-Diagram
-title SlotForge — Simple Sequence Diagram
-
+@startuml
+title SlotForge — Generate Timetable Sequence
 skinparam shadowing false
 skinparam linetype ortho
 skinparam ArrowColor #475569
@@ -8,42 +7,30 @@ skinparam ParticipantBorderColor #334155
 skinparam ParticipantBackgroundColor #F8FAFC
 
 actor Admin
+participant "React frontend" as Frontend
+participant "Supabase Auth" as Auth
+participant "FastAPI backend" as Backend
+database "PostgreSQL" as Database
+participant "OR-Tools scheduler" as Scheduler
 
-participant "React Frontend" as Frontend
-participant "FastAPI Backend" as Backend
-participant "Scheduler" as Scheduler
-database PostgreSQL as Database
-
-Admin -> Frontend : Login
-
-Frontend -> Backend : Authenticate
-
-Backend --> Frontend : Session Token
-
-Admin -> Frontend : Generate Timetable
-
-Frontend -> Backend : Generate Request
-
-Backend -> Database : Load Academic Data
-
-Database --> Backend : Teachers,\nSubjects,\nRooms,\nConstraints
-
-Backend -> Scheduler : Generate Timetable()
-
-Scheduler --> Backend : Timetable / Conflicts
-
-Backend -> Database : Save Timetable
-
-Database --> Backend : Success
-
-Backend --> Frontend : Timetable Result
-
-Frontend --> Admin : Display Timetable
-
-note right of Scheduler
-  Applies scheduling rules
-  and validates constraints
-  before returning the result.
-end note
-
+Admin -> Frontend : Sign in
+Frontend -> Auth : Submit credentials
+Auth --> Frontend : Session + access token
+Admin -> Frontend : Generate timetable
+Frontend -> Backend : POST generation request\nBearer access token
+Backend -> Auth : Verify token signature / claims
+Backend -> Database : Check membership and load\nworkspace inputs + constraints
+Database --> Backend : Resources, tasks, groups,\nlocations, timeslots, rules
+Backend -> Scheduler : Build and solve problem
+alt feasible
+  Scheduler --> Backend : Assignments + score
+  Backend -> Database : Save run, version, assignments
+  Backend --> Frontend : Draft timetable
+  Frontend --> Admin : Review conflicts and placements
+else infeasible
+  Scheduler --> Backend : Infeasibility details
+  Backend -> Database : Save failed run
+  Backend --> Frontend : Conflict explanation
+  Frontend --> Admin : Adjust data or rules
+end
 @enduml

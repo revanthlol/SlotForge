@@ -1,32 +1,32 @@
-# React + TypeScript + Vite
+# SlotForge frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+The SlotForge web client is a React 19 + TypeScript + Vite application for academic scheduling setup, solver review, timetable versioning, faculty views, exports, and public project pages.
 
-Currently, two official plugins are available:
+## Local development
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+cp .env.example .env
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Required browser environment variables:
+
+```dotenv
+VITE_API_URL=http://localhost:8000
+VITE_SUPABASE_URL=https://YOUR_PROJECT_REF.supabase.co
+VITE_SUPABASE_ANON_KEY=your_public_client_key
+```
+
+The Supabase client key is public by design, but it must never be replaced with a service-role or secret key. Backend credentials belong only in `backend/.env` or the deployment platform.
+
+## Checks
+
+```bash
+npm run build
+npm run lint
+```
+
+The protected scheduling console is desktop-first. The landing page, project policies, open-source page, contact page, and faculty share pages remain public; login, signup, onboarding, and the console show the mobile experience gate on narrow portrait devices.
+
+See the [project README](../README.md), [contribution guide](../CONTRIBUTING.md), and [testing guide](../docs/TESTING.md).

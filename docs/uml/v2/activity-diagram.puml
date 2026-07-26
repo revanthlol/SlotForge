@@ -1,6 +1,5 @@
-@startuml SlotForge-V2-Activity-Diagram
-title SlotForge — Simple Activity Diagram
-
+@startuml
+title SlotForge — Scheduling Workflow
 skinparam shadowing false
 skinparam linetype ortho
 skinparam ArrowColor #475569
@@ -10,36 +9,26 @@ skinparam activity {
 }
 
 start
-
-:Login;
-
-:Open Workspace;
-
-:Manage Teachers,
-Subjects, Sections,
-Rooms, Time Slots,
-and Constraints;
-
-:Generate Timetable;
-
-if (Valid Schedule?) then (Yes)
-
-:Save Timetable Version;
-
-:Display Timetable;
-
-:Export PDF /
-Excel / Calendar;
-
-stop
-
+:Sign in on desktop;
+:Open Academic workspace;
+:Add teachers, subjects, sections,\nrooms, time slots, and assignments;
+:Configure constraints;
+:Run preflight check;
+if (Inputs ready?) then (Yes)
+  :Generate with CP-SAT;
+  if (Feasible draft?) then (Yes)
+    :Inspect Canvas, pressure,\nand placement explanations;
+    :Compare or edit draft;
+    :Publish timetable version;
+    :Share faculty views\nand export files;
+    stop
+  else (No)
+    :Review conflict explanation;
+    :Adjust data or constraints;
+    -> Run preflight check;
+  endif
 else (No)
-
-:Show Conflict
-Explanation;
-
-stop
-
+  :Resolve missing or invalid inputs;
+  -> Run preflight check;
 endif
-
 @enduml

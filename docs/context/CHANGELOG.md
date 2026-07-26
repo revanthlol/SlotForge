@@ -2,6 +2,15 @@
 
 ## 2026-07-26
 
+- Reworked Canvas into a full-bleed, theme-aware scheduling instrument that uses the application light palette in light mode while preserving dark-theme compatibility and all graph interactions.
+- Replaced the landing timetable card with a desktop solver-trace animation and static mobile result; updated the product thesis, launch chooser, navigation, open-source proof, GitHub links, and footer.
+- Added shared auth navigation, gated login/signup/onboarding on mobile, and retained public access to the landing, policy, open-source, contact, and faculty share routes.
+- Locked staff roster, event, exam, and facility presets as coming soon in Settings and onboarding; Academic remains the supported workflow, with recovery for legacy preview workspaces.
+- Added MIT licensing, contributor/conduct/security guides, issue templates, public project/legal/contact pages, a current docs index, and a schema-only PostgreSQL export covering the 20 application tables.
+- Removed completed phase plans, chat logs, duplicate HTML exports, and UML v1; preserved valuable research under `docs/archive/research` and retained/corrected UML v2 for faculty presentations.
+- Verification: frontend production build passed; Oxlint completed with the three existing context-only Fast Refresh warnings; backend suite passed `54 passed`; all six PlantUML v2 sources validated and rendered; the schema-only dump restored with 21 public tables and 52 foreign keys; 16 current Markdown files passed the relative-link check.
+- Authenticated browser verification passed the light full-bleed Canvas, selection inspector, dark-theme compatibility, all four disabled coming-soon preset cards, launch chooser, public policy/contact routes, desktop and 390px landing layouts, mobile static trace, mobile auth gate, and zero horizontal overflow. The Vite session showed no application error overlay; React Flow emitted its known HMR node-types warning during local hot reload.
+
 - Revamped the authenticated workspace experience: `/` is now the signed-in dashboard while `/landing` remains public; added auth loading transitions, a signup work-role field, and a profile editor that keeps professional role separate from security access.
 - Fixed recurring onboarding by aligning the backend with all 12 frontend steps (including assignments) and making route guards wait for workspace-specific server progress before redirecting.
 - Rebuilt Canvas as an Obsidian-style relationship constellation with typed nodes, focus/fade selection, labeled direct edges, searchable views, neighbor traversal, and a detailed inspector.

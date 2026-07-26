@@ -1,5 +1,5 @@
-@startuml SlotForge-V2-Class-Diagram
-title SlotForge — Simple Class Diagram
+@startuml
+title SlotForge — Academic Scheduling Model
 skinparam shadowing false
 skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
@@ -8,117 +8,100 @@ skinparam ArrowColor #475569
 skinparam ClassBackgroundColor #F8FAFC
 skinparam ClassBorderColor #334155
 
-class User {
+class Profile {
+  +id: UUID
+  +fullName: String
+  +jobTitle: String
+}
+class Organization {
   +id: UUID
   +name: String
+  +schedulingMode: String
+}
+class Membership {
   +role: String
 }
-
 class Workspace {
   +id: UUID
   +name: String
-  +academicYear: String
+  +domainPreset: String
 }
-
-class Teacher {
-  +id: UUID
+class Teacher <<Resource>> {
   +name: String
-  +availability: String
+  +availability: JSON
+  +maxHours: Integer
 }
-
-class Subject {
-  +id: UUID
+class Subject <<Task>> {
   +name: String
   +weeklyHours: Integer
 }
-
-class Section {
-  +id: UUID
+class Section <<Group>> {
   +name: String
   +studentCount: Integer
 }
-
-class Room {
-  +id: UUID
+class Room <<Location>> {
   +name: String
   +capacity: Integer
-}
-
-class TimeSlot {
-  +id: UUID
-  +day: String
-  +period: Integer
-}
-
-class Constraint {
-  +id: UUID
-  +name: String
   +type: String
-  +priority: Integer
+}
+class TimeSlot {
+  +day: String
+  +slotIndex: Integer
+}
+class ConstraintRule {
+  +name: String
+  +ruleType: String
+  +priority: String
   +enabled: Boolean
 }
-
 class ScheduleRun {
-  +id: UUID
   +status: String
-  +startedAt: DateTime
-  +durationSeconds: Decimal
+  +result: JSON
 }
-
 class TimetableVersion {
-  +id: UUID
   +label: String
   +versionNumber: Integer
   +status: String
-  +createdAt: DateTime
 }
-
-class TimetableEntry {
-  +id: UUID
-  +duration: Integer
+class Assignment {
+  +day: String
+  +period: Integer
+  +durationSlots: Integer
 }
-
 class Scheduler {
-  +generateTimetable(): TimetableVersion
-  +checkConstraints(): Boolean
+  +generate(): ScheduleRun
+  +explainConflicts(): Report
 }
-
 class ExportService {
-  +exportPDF(timetable): File
-  +exportExcel(timetable): File
-  +exportCalendar(timetable): File
+  +exportPDF()
+  +exportExcel()
+  +exportCalendar()
 }
 
-User "1" --> "0..*" Workspace : manages
+Profile "1" -- "0..*" Membership
+Organization "1" -- "1..*" Membership
+Organization "1" o-- "1..*" Workspace
 Workspace "1" o-- "0..*" Teacher
 Workspace "1" o-- "0..*" Subject
 Workspace "1" o-- "0..*" Section
 Workspace "1" o-- "0..*" Room
 Workspace "1" o-- "0..*" TimeSlot
-Workspace "1" o-- "0..*" Constraint
-User "1" --> "0..*" TimetableVersion : creates
-Teacher "1" --> "0..*" TimetableEntry : teaches
-Subject "1" --> "0..*" TimetableEntry : scheduled as
-Section "1" --> "0..*" TimetableEntry : attends
-Room "1" --> "0..*" TimetableEntry : uses
-TimeSlot "1" --> "0..*" TimetableEntry : occurs in
-TimetableVersion "1" *-- "1..*" TimetableEntry
-ScheduleRun "1" --> "0..1" TimetableVersion : produces
-Constraint "0..*" --> "1" Scheduler : guides
+Workspace "1" o-- "0..*" ConstraintRule
+Workspace "1" o-- "0..*" ScheduleRun
+ScheduleRun "1" --> "0..*" TimetableVersion : produces
+TimetableVersion "1" *-- "0..*" Assignment
+Teacher "1" --> "0..*" Assignment : teaches
+Subject "1" --> "0..*" Assignment : scheduled as
+Section "0..1" --> "0..*" Assignment : attends
+Room "1" --> "0..*" Assignment : uses
+TimeSlot "0..1" --> "0..*" Assignment : occurs in
+ConstraintRule "0..*" --> Scheduler : guides
 Scheduler --> ScheduleRun : records
-Scheduler --> TimetableVersion : generates
-Scheduler --> Teacher
-Scheduler --> Subject
-Scheduler --> Section
-Scheduler --> Room
-Scheduler --> TimeSlot
 ExportService --> TimetableVersion : reads
 
-note right of Scheduler
-  The scheduler assigns a subject,
-  teacher, section, room, and time
-  slot while respecting constraints.
-  A run can be feasible, optimal,
-  or infeasible with an explanation.
+note right of Teacher
+  Teacher, Subject, Section, and Room are the
+  academic presentation of generic Resource,
+  Task, Group, and Location records.
 end note
 @enduml

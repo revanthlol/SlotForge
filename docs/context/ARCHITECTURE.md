@@ -35,10 +35,19 @@ React page
 - `frontend/src/features/timetable/pages/SubjectsPage.tsx` — subjects and subject-teacher assignment dialog.
 - `frontend/src/features/timetable/pages/SectionsPage.tsx` — section curriculum and teacher map.
 - `frontend/src/features/timetable/pages/SolverEnginePage.tsx` — constraint display/editing and schedule generation.
-- `frontend/src/features/canvas/pages/CanvasViewPage.tsx` — generated relationship graph.
+- `frontend/src/features/canvas/pages/CanvasViewPage.tsx` — full-bleed, theme-aware generated relationship graph.
+- `frontend/src/features/auth/pages/LandingPage.tsx` — public product landing, solver-trace hero, launch chooser, and open-source messaging.
+- `frontend/src/features/public/PublicPages.tsx` — open-source, privacy, terms, and audience-specific contact routes.
+- `frontend/src/components/layout/MobileRouteGate.tsx` — shared narrow-portrait gate for auth, onboarding, and the protected console.
 - `frontend/src/hooks/useApi.ts` — typed resource hooks and API response types.
 - `frontend/src/components/ui/Modal.tsx` — shared modal and Enter-to-submit behavior.
 
 ## Data naming warning
 
 The current codebase contains both the newer workspace/resource/task model and legacy teacher/room/subject/section terminology. Check the route and model being used before changing schemas or adding foreign keys. Do not assume a frontend label maps directly to a table name.
+
+The public application schema is generated from Alembic into `docs/database/schema.sql`. It contains 20 application tables plus `alembic_version`; Supabase-managed auth tables and all data are excluded.
+
+## Public route boundary
+
+`/`, `/landing`, `/open-source`, `/privacy`, `/terms`, `/contact`, and `/share/faculty/:token` remain public. `/login`, `/signup`, `/onboarding`, and authenticated console routes are blocked by the mobile experience gate on narrow portrait/coarse-pointer devices. The landing page does not mount the animated solver trace on mobile.

@@ -1,0 +1,24 @@
+name: Feature request
+description: Propose a focused improvement to SlotForge.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Scheduling problem
+      description: Describe the real user or institution problem before proposing UI or implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: What should a user be able to accomplish?
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Rules, examples, or trade-offs
+      description: Include example data without private institution information.

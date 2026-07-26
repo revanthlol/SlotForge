@@ -1,14 +1,22 @@
-# SlotForge UML diagrams
+# SlotForge UML v2
 
-Two views are provided:
+[`v2`](v2/) is the current, simplified diagram set for faculty demonstrations and project reviews. It explains the real product without requiring the audience to read every implementation table or API route.
 
-- [`v1/`](./v1/) — detailed technical architecture and the complete database model.
-- [`v2/`](./v2/) — simplified diagrams for explaining the mini project to faculty reviewers.
+- `usecase-diagram` — what administrators and faculty can do
+- `activity-diagram` — the generate/review/publish workflow
+- `sequence-diagram` — authentication and timetable generation
+- `class-diagram` — familiar academic concepts mapped to the generic solver model
+- `er-diagram` — the current core database relationships and real table names
+- `deployment-diagram` — Vercel, Supabase Auth/PostgreSQL, and the Oracle API
 
-The v2 diagrams intentionally focus on the essential workflow: entering academic data, defining constraints, generating a timetable with a solver, and viewing the result.
+The complete 20-table structure is published separately in [`../database/schema.sql`](../database/schema.sql). The ER diagram stays intentionally selective for presentation readability.
 
-Render any file with PlantUML, for example:
+Validate and render:
 
 ```bash
-plantuml docs/uml/v2/class-diagram.puml
+plantuml -checkonly docs/uml/v2/*.puml
+plantuml -tsvg docs/uml/v2/*.puml
+plantuml -tpng docs/uml/v2/*.puml
 ```
+
+UML v1 was removed because it described superseded architecture. Keep v2 aligned with the current product whenever data ownership, deployment, or major workflows change.

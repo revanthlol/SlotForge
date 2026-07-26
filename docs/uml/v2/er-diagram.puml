@@ -1,5 +1,5 @@
-@startuml SlotForge-V2-ER-Diagram
-title SlotForge — Simple Entity-Relationship Diagram
+@startuml
+title SlotForge — Core Entity-Relationship Diagram
 hide methods
 hide stereotypes
 skinparam linetype ortho
@@ -10,120 +10,144 @@ skinparam entity {
 }
 skinparam ArrowColor #475569
 
-entity users {
+entity "profiles" as profiles {
+  * id : uuid <<PK>>
+  --
+  full_name : varchar
+  job_title : varchar
+}
+entity "organizations" as organizations {
   * id : uuid <<PK>>
   --
   name : varchar
+  scheduling_mode : varchar
+}
+entity "organization_memberships" as memberships {
+  * id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  organization_id : uuid <<FK>>
   role : varchar
 }
-
-entity workspaces {
+entity "scheduling_workspaces" as workspaces {
   * id : uuid <<PK>>
   --
-  owner_id : uuid <<FK>>
+  organization_id : uuid <<FK>>
   name : varchar
-  academic_year : varchar
+  domain_preset : varchar
 }
-
-entity teachers {
+entity "resources\n(teachers)" as resources {
   * id : uuid <<PK>>
   --
+  workspace_id : uuid <<FK>>
   name : varchar
-  availability : json
+  resource_type : varchar
+  availability : jsonb
 }
-
-entity subjects {
+entity "tasks\n(subjects)" as tasks {
   * id : uuid <<PK>>
   --
+  workspace_id : uuid <<FK>>
   name : varchar
-  weekly_hours : integer
+  task_type : varchar
+  required_hours : integer
 }
-
-entity sections {
+entity "groups\n(sections)" as groups {
   * id : uuid <<PK>>
   --
+  workspace_id : uuid <<FK>>
   name : varchar
-  student_count : integer
+  group_type : varchar
+  size : integer
 }
-
-entity rooms {
+entity "locations\n(rooms / labs)" as locations {
   * id : uuid <<PK>>
   --
+  workspace_id : uuid <<FK>>
   name : varchar
+  location_type : varchar
   capacity : integer
 }
-
 entity timeslots {
   * id : uuid <<PK>>
   --
+  workspace_id : uuid <<FK>>
   day : varchar
-  period : integer
+  slot_index : integer
 }
-
-entity constraints {
+entity constraint_rules {
   * id : uuid <<PK>>
   --
+  workspace_id : uuid <<FK>>
   name : varchar
-  type : varchar
-  priority : integer
+  rule_type : varchar
+  priority : varchar
   enabled : boolean
 }
-
 entity schedule_runs {
   * id : uuid <<PK>>
   --
   workspace_id : uuid <<FK>>
   status : varchar
-  started_at : timestamp
-  duration_seconds : decimal
+  result : jsonb
 }
-
-entity timetable_versions {
+entity schedule_versions {
   * id : uuid <<PK>>
   --
   workspace_id : uuid <<FK>>
-  created_by : uuid <<FK>>
   schedule_run_id : uuid <<FK>>
-  label : varchar
-  version_number : integer
+  version_label : varchar
   status : varchar
-  created_at : timestamp
+  parent_version_id : uuid <<FK>>
 }
-
-entity timetable_entries {
+entity assignments {
   * id : uuid <<PK>>
   --
-  timetable_version_id : uuid <<FK>>
-  teacher_id : uuid <<FK>>
-  subject_id : uuid <<FK>>
-  section_id : uuid <<FK>>
-  room_id : uuid <<FK>>
+  schedule_version_id : uuid <<FK>>
+  task_id : uuid <<FK>>
+  group_id : uuid <<FK>>
   timeslot_id : uuid <<FK>>
-  duration : integer
+  teacher_id : uuid <<FK>>
+  room_id : uuid <<FK>>
+}
+entity faculty_share_links {
+  * id : uuid <<PK>>
+  --
+  resource_id : uuid <<FK>>
+  schedule_run_id : uuid <<FK>>
+  token : varchar
+  expires_at : timestamp
+  is_active : boolean
 }
 
-users ||--o{ workspaces : owns
-workspaces ||--o{ teachers
-workspaces ||--o{ subjects
-workspaces ||--o{ sections
-workspaces ||--o{ rooms
+profiles ||--o{ memberships
+organizations ||--o{ memberships
+organizations ||--o{ workspaces
+workspaces ||--o{ resources
+workspaces ||--o{ tasks
+workspaces ||--o{ groups
+workspaces ||--o{ locations
 workspaces ||--o{ timeslots
-workspaces ||--o{ constraints
-workspaces ||--o{ schedule_runs : runs
-workspaces ||--o{ timetable_versions : contains
-users ||--o{ timetable_versions : creates
-schedule_runs ||--o{ timetable_versions : produces
-timetable_versions ||--|{ timetable_entries : contains
-teachers ||--o{ timetable_entries : teaches
-subjects ||--o{ timetable_entries : scheduled
-sections ||--o{ timetable_entries : attends
-rooms ||--o{ timetable_entries : uses
-timeslots ||--o{ timetable_entries : occurs_in
-constraints }o..o{ schedule_runs : applied_to
+workspaces ||--o{ constraint_rules
+workspaces ||--o{ schedule_runs
+workspaces ||--o{ schedule_versions
+schedule_runs ||--o{ schedule_versions : produces
+schedule_versions ||--o{ assignments : contains
+schedule_versions |o--o{ schedule_versions : parent
+resources ||--o{ assignments : teacher
+tasks ||--o{ assignments : subject
+groups |o--o{ assignments : section
+locations ||--o{ assignments : room
+timeslots |o--o{ assignments : occurs_in
+resources ||--o{ faculty_share_links
+schedule_runs ||--o{ faculty_share_links
 
-note bottom of constraints
-  Examples: no teacher double-booking,
-  room capacity, teacher availability,
-  and weekly subject hours.
+note bottom of profiles
+  profiles.id corresponds to the user UUID
+  issued by Supabase Auth.
+end note
+note bottom of assignments
+  Academic names are friendly views over the
+  generic scheduling tables used by the solver.
 end note
 @enduml

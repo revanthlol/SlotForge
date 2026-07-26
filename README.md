@@ -1,126 +1,94 @@
-# SlotForge — Scheduling Platform
+# SlotForge
 
-SlotForge is an institutional scheduling and timetable optimization platform. It utilizes Google OR-Tools CP-SAT scheduler engine to generate collision-free, optimal schedules matching academic requirements and constraints.
+**Open-source institutional scheduling that makes constraints visible.**
 
----
+[Live app](https://slotforge-main.vercel.app) · [Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md) · [Report an issue](https://github.com/revanthlol/SlotForge/issues)
 
-## Current Project Status
+SlotForge helps academic teams model faculty, subjects, sections, rooms, time structure, and institutional rules; generate a timetable with Google OR-Tools CP-SAT; inspect conflicts and scheduling pressure; and move a schedule through draft, review, publication, sharing, and export.
 
-SlotForge currently contains the Phase 7 heatmap and explainability implementation. A stabilization audit is in progress across the backend API, solver, frontend, and integrations.
+The complete source, current application schema, and faculty-facing UML diagrams are public under the MIT License. You can audit the scheduling logic, self-host the stack, or contribute improvements.
 
-For continuing development or LLM handoff, start with the [SlotForge Context Pack](docs/context/README.md). It contains the current state, architecture map, workflow rules, and context changelog.
+## What works today
 
-### Completed Phases & Features
+- Academic timetable onboarding and resource management
+- Teacher–subject and section–subject–teacher assignments
+- Constraint templates, impact preview, and explainable conflict analysis
+- CP-SAT generation, preflight checks, heatmaps, and the relationship Canvas
+- Draft, publish, archive, branch, compare, and rollback version workflows
+- Faculty timetable views and revocable public share links
+- PDF, Excel, HTML, iCalendar, DOCX, and Google Docs-oriented exports
+- Supabase Auth, organization membership, and tenant-scoped FastAPI access
 
-#### Standalone Solver (Phase 1)
-- Implemented Google OR-Tools CP-SAT scheduling solver under `backend/app/solver/`.
-- Enforces hard constraints: teacher/room double-booking prevention, weekly subject hour fulfillment, and section capacity.
-- Evaluates soft constraint preferences: teacher gap minimization, daily load balancing, and preferred slot satisfaction.
-- Exposes diagnostic core checks to isolate and detail clashing constraints when a schedule is infeasible.
+Staff roster, event, exam, and facility presets are visible as coming-soon roadmap domains. They are intentionally locked until each has complete persistence, solver, and product coverage.
 
-#### Synchronous API Layer (Phase 2)
-- Exposes scheduling configurations over HTTP using a modular FastAPI REST API structure.
-- Employs strict Pydantic schemas for data validation and requests serialization.
-- Fully documented interactive endpoints accessible via Swagger UI `/docs`.
+## Stack
 
-#### Supabase Integration & Multi-Tenancy (Phase 3)
-- Replaced the temporary in-memory store with PostgreSQL database persistence.
-- Configured SQLAlchemy 2.0 ORM and Alembic migrations.
-- Implemented Supabase JWT verification. Every request is isolated at the database query level by the user's `organization_id`.
-- Handled atomic user profile and organization signups.
+| Layer | Technology |
+| --- | --- |
+| Web application | React 19, TypeScript, Vite, Tailwind CSS, TanStack Query, Motion |
+| API | FastAPI, Pydantic, SQLAlchemy, Alembic |
+| Solver | Google OR-Tools CP-SAT |
+| Data and identity | PostgreSQL and Supabase Auth |
+| Hosting | Vercel frontend and Oracle-hosted API |
 
-#### Versioning, Draft/Publish, and Audit Log (Phase 4)
-- Timetable generations are stored as immutable `draft` versions.
-- **Publish**: Promotes a target draft to `"published"` and demotes any previously active version for that tenant to `"archived"` in a single database transaction.
-- **Rollback (Append-Only Copy)**: Re-publishes an archived version by creating a new timetable version row with an incremented version number, copying over assignments, and setting it to `"published"`. The original archived version is left unmutated.
-- **RBAC**: Restricts all mutating operations (`POST`, `PUT`, `PATCH`, `DELETE`) to the `"org_admin"` role. Users with the `"viewer"` role receive `403 Forbidden` errors.
-- **Audit Logs**: Mutating actions on resources (create, update, delete) are recorded in the `audit_logs` table containing user IDs, table targets, and structured state diffs.
+## Run locally
 
-#### Export Service (Phase 5)
-- Supports exporting timetable versions into **PDF**, **Excel (XLSX)**, and **CSV** formats.
-- Generates layout-styled tables in PDF via `reportlab`, auto-width columns in Excel via `openpyxl`, and clean comma-separated values.
-- Implements a dynamic client import of `supabase` that falls back to writing files in local static storage (`backend/app/static/exports`) if no live project is connected.
+Requirements: Node.js 22+, Python 3.12+, and PostgreSQL 15+.
 
----
+```bash
+git clone https://github.com/revanthlol/SlotForge.git
+cd SlotForge
+```
 
-## Getting Started
+Backend:
 
-### Local Setup
-1. **Initialize Backend Environment**:
-   Ensure you have Python 3.12+ (or 3.14 with compatibility flags) installed.
-   ```bash
-   cd backend
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   ```
-2. **Configure Environment Variables**:
-   Copy `.env.example` to `.env` and fill in the values:
-   ```bash
-   cp .env.example .env
-   ```
-   By default, local development uses a local PostgreSQL connection (e.g. `postgresql+psycopg://postgres:password@127.0.0.1:5432/slotforge`).
-   Start the local PostgreSQL and Redis services before migrating:
-   ```bash
-   docker compose up -d postgres redis
-   ```
-3. **Run Database Migrations**:
-   ```bash
-   alembic upgrade head
-   ```
-   In development, this also runs an idempotent demo seed so the local app has a stable test account and realistic academic data after every upgrade.
-
-   Demo login:
-   - Email: `demo@slotforge.local`
-   - Password: `SlotForgeDemo123!`
-
-   The seed creates a demo organization, teachers, rooms, subjects, sections, constraints, timeslots, and a published sample timetable. Set `DEMO_SEED_ON_ALEMBIC_UPGRADE=false` or `APP_ENV=production` to disable automatic seeding.
-
-   You can also repair the demo data manually:
-   ```bash
-   PYTHONPATH=. python scripts/seed_demo_data.py
-   ```
-4. **Start the API Server**:
-   ```bash
-   PYTHONPATH=. uvicorn app.main:app --reload
-   ```
-   Access Swagger UI at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
-
----
-
-## Testing
-
-We maintain a comprehensive suite of unit, integration, and end-to-end tests. For details, refer to the [TESTING.md](file:///home/rev/Documents/projects/slotforge/TESTING.md) guide.
-
-### Running Automated Pytest Suite
-Run the automated tests covering the solver, REST API, RBAC permissions, tenant isolation, versioning lifecycle, heatmap analysis, and export formats:
 ```bash
 cd backend
-PYTHONPATH=. pytest
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+# Fill the local values in .env, then:
+alembic upgrade head
+uvicorn app.main:app --reload
 ```
 
-### Running the End-to-End Script
-Execute the curl-based integration test script:
+Frontend, in another terminal:
+
 ```bash
-./TESTING.sh
+cd frontend
+npm install
+cp .env.example .env
+# Fill the local values in .env, then:
+npm run dev
 ```
 
----
+Never commit `.env` files, database URLs, Supabase secret keys, or service credentials. The browser may receive only the public Supabase client key configured for the project.
 
-## ⚙️ Remaining External Setup
+## Verify
 
-To transition from local development to production, the following external resources and setups must be configured:
+```bash
+cd frontend && npm run build && npm run lint
+cd ../backend && PYTHONPATH=. .venv/bin/pytest -q
+```
 
-1. **Supabase Storage Buckets**:
-   - Create a **private** bucket named `exports` in the Supabase console. This will store the generated PDF, Excel, and CSV files, enabling signed URLs with a 1-hour expiration time.
-   - Create a **public** bucket named `assets` to store organization logos or profile pictures if needed.
+See [docs/TESTING.md](docs/TESTING.md) for focused and deployment checks.
 
-2. **Supabase Auth Providers**:
-   - In **Authentication -> Providers**, enable Email (or social auth like Google).
-   - In **Authentication -> URL Configuration**, set the Site URL to your local frontend port (e.g., `http://localhost:5173`) and configure production redirect URLs (e.g. Vercel deployment link).
+## Database and architecture
 
-3. **Production Database & Environment Configuration**:
-   - Update `DATABASE_URL` in your production environment (e.g. Oracle Cloud VPS) to point to the Supabase Postgres pooler connection string (Port 6543) rather than the direct connection.
-   - Set up the environment variables (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`) in the VPS hosting configuration.
-   - Set `FRONTEND_ORIGINS` to the exact frontend URLs allowed to call the API, for example `http://localhost:5173,http://127.0.0.1:5173,https://slotforge-dev.vercel.app`.
-   - After deploy, check `/health/db`; it should return `status: ok` and an Alembic revision at the current head.
+- [Database guide](docs/database/README.md) and [schema-only PostgreSQL export](docs/database/schema.sql)
+- [Faculty-facing UML v2 diagrams](docs/uml/README.md)
+- [Architecture and maintainer context](docs/context/README.md)
+- [Supabase setup and security boundaries](docs/SUPABASE_SETUP.md)
+
+The published SQL contains structure only—never production records, secrets, or connection details. Supabase-managed `auth.users` is deliberately outside the export. SlotForge currently enforces tenant access in FastAPI; do not assume the repository declares complete database RLS coverage.
+
+## Contribute
+
+Contributions are welcome across code, accessibility, testing, documentation, constraint modeling, and scheduling research. Read [CONTRIBUTING.md](CONTRIBUTING.md), choose or open an issue, and target pull requests at `dev`.
+
+For security problems, follow [SECURITY.md](SECURITY.md) instead of filing a public issue. Institution users can contact [workofotb@gmail.com](mailto:workofotb@gmail.com).
+
+## License
+
+MIT © 2026 revanthlol. See [LICENSE](LICENSE).

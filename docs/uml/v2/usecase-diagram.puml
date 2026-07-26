@@ -1,8 +1,6 @@
-@startuml SlotForge-V2-UseCase-Diagram
-title SlotForge — Simple Use Case Diagram
-
+@startuml
+title SlotForge — Use Cases
 left to right direction
-
 skinparam shadowing false
 skinparam packageStyle rectangle
 skinparam linetype ortho
@@ -12,51 +10,38 @@ skinparam usecase {
   BorderColor #334155
 }
 
-actor "Admin" as Admin
-actor "Faculty" as Faculty
+actor "Institution Admin" as Admin
+actor "Faculty Member" as Faculty
 
-rectangle "SlotForge System" {
-
-usecase "Login" as UC1
-usecase "Manage Workspace" as UC2
-
-usecase "Manage Teachers" as UC3
-usecase "Manage Subjects" as UC4
-usecase "Manage Sections" as UC5
-usecase "Manage Rooms" as UC6
-usecase "Manage Time Slots" as UC7
-usecase "Manage Constraints" as UC8
-
-usecase "Generate Timetable" as UC9
-usecase "View Timetable" as UC10
-usecase "Publish Timetable" as UC11
-usecase "Rollback Version" as UC12
-usecase "Export Timetable" as UC13
-
+rectangle "SlotForge" {
+  usecase "Sign in" as Login
+  usecase "Set up academic workspace" as Setup
+  usecase "Manage faculty, subjects,\nsections, rooms, and time" as Manage
+  usecase "Assign teaching responsibility" as Assign
+  usecase "Configure constraints" as Rules
+  usecase "Generate timetable" as Generate
+  usecase "Inspect conflicts\nand scheduling pressure" as Inspect
+  usecase "Compare, publish,\narchive, or roll back" as Version
+  usecase "Export timetable" as Export
+  usecase "Create faculty share link" as Share
+  usecase "View personal timetable" as View
 }
 
-Admin --> UC1
-Admin --> UC2
-Admin --> UC3
-Admin --> UC4
-Admin --> UC5
-Admin --> UC6
-Admin --> UC7
-Admin --> UC8
-Admin --> UC9
-Admin --> UC10
-Admin --> UC11
-Admin --> UC12
-Admin --> UC13
+Admin --> Login
+Admin --> Setup
+Admin --> Manage
+Admin --> Assign
+Admin --> Rules
+Admin --> Generate
+Admin --> Inspect
+Admin --> Version
+Admin --> Export
+Admin --> Share
+Faculty --> View
+Share ..> View : enables
 
-Faculty --> UC1
-Faculty --> UC10
-
-note right of UC9
-  Generates a timetable while
-  respecting teacher availability,
-  room capacity, subject hours,
-  and scheduling constraints.
+note right of Generate
+  Academic Timetable is the supported preset.
+  Other domain presets are coming soon.
 end note
-
 @enduml
