@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ShortcutProvider } from '../contexts/ShortcutContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useOnboardingProgress } from '../features/onboarding/hooks/useOnboardingProgress';
@@ -63,8 +64,20 @@ function PublicAuthRoute({ children }: { children: React.JSX.Element }) {
 }
 
 export default function AppRouter() {
+  const location = useLocation();
+  const reduceMotion = useReducedMotion();
+
   return (
-    <Routes>
+    <AnimatePresence mode="wait" initial={false}>
+    <motion.div
+      key={location.pathname}
+      initial={reduceMotion ? false : { opacity: 0, y: 10, filter: 'blur(2px)' }}
+      animate={reduceMotion ? undefined : { opacity: 1, y: 0, filter: 'blur(0px)' }}
+      exit={reduceMotion ? undefined : { opacity: 0, y: -5, filter: 'blur(1px)' }}
+      transition={{ duration: 0.2 }}
+      className="route-frame"
+    >
+    <Routes location={location}>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<PublicAuthRoute><LoginPage /></PublicAuthRoute>} />
       <Route path="/signup" element={<PublicAuthRoute><SignupPage /></PublicAuthRoute>} />
@@ -96,5 +109,7 @@ export default function AppRouter() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </motion.div>
+    </AnimatePresence>
   );
 }

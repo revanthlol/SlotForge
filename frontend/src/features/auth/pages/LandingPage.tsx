@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { motion } from 'motion/react';
+import { useEffect, useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../contexts/ThemeContext';
@@ -29,28 +29,39 @@ export default function LandingPage() {
   const { user, loading } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [openFaq, setOpenFaq] = useState(0);
+  const [scrolled, setScrolled] = useState(false);
+  const reduceMotion = useReducedMotion();
   const signedIn = Boolean(user);
   const primaryHref = signedIn ? '/dashboard' : '/signup';
+
+  useEffect(() => {
+    const update = () => setScrolled(window.scrollY > 22);
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    return () => window.removeEventListener('scroll', update);
+  }, []);
+
+  const enter = (delay = 0) => reduceMotion ? undefined : { initial: { opacity: 0, y: 18 }, animate: { opacity: 1, y: 0 }, transition: { duration: .58, delay } };
 
   return (
     <div className="stitch-landing min-h-screen bg-paper text-on-surface">
       <header className="stitch-header">
-        <nav className="stitch-container flex h-16 items-center justify-between gap-5" aria-label="Public navigation">
+        <nav className={`stitch-container stitch-nav-floating ${scrolled ? 'is-scrolled' : ''}`} aria-label="Public navigation">
           <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="SlotForge home">
             <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="" className="h-7 w-7 object-contain" />
             <span className="text-sm font-bold tracking-tight text-on-surface">SlotForge</span>
           </Link>
-          <div className="hidden items-center gap-7 text-[11px] font-semibold text-on-surface-variant md:flex">
-            <a href="#workflow" className="hover:text-on-surface">Workflow</a>
-            <a href="#capabilities" className="hover:text-on-surface">Capabilities</a>
-            <a href="#faq" className="hover:text-on-surface">FAQ</a>
+          <div className="hidden items-center gap-1 md:flex">
+            <a href="#workflow">Workflow</a>
+            <a href="#capabilities">Capabilities</a>
+            <a href="#faq">FAQ</a>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" onClick={toggleTheme} className="rounded p-2 text-on-surface-variant hover:bg-accent-soft" aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+            <button type="button" onClick={toggleTheme} className="stitch-nav-icon" aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
             </button>
-            {!loading && !signedIn && <Link to="/login" className="hidden px-2 py-2 text-[11px] font-semibold text-on-surface-variant hover:text-on-surface sm:inline">Sign in</Link>}
-            <Link to={primaryHref} className="rounded bg-on-surface px-3.5 py-2 text-[11px] font-semibold text-paper-raised transition-opacity hover:opacity-85">
+            {!loading && !signedIn && <Link to="/login" className="stitch-nav-signin hidden sm:inline-flex">Sign in</Link>}
+            <Link to={primaryHref} className="stitch-nav-primary">
               {signedIn ? 'Open dashboard' : 'Create institution'}
             </Link>
           </div>
@@ -60,21 +71,21 @@ export default function LandingPage() {
       <main>
         <section className="stitch-hero">
           <div className="stitch-container grid items-center gap-12 py-16 lg:grid-cols-[.88fr_1.12fr] lg:py-24">
-            <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .5 }}>
-              <div className="stitch-status"><span className="stitch-status-dot" />Institutional scheduling, made legible</div>
-              <h1 className="stitch-display mt-6">Bring every schedule<br />into focus.</h1>
-              <p className="mt-6 max-w-xl text-base leading-7 text-on-surface-variant">SlotForge gives academic teams one calm place to model their resources, resolve constraints, and publish schedules people can trust.</p>
-              <div className="mt-9 flex flex-wrap gap-3">
+            <div>
+              <motion.div {...enter(0)} className="stitch-status"><span className="stitch-status-dot" />Institutional scheduling, made legible</motion.div>
+              <motion.h1 {...enter(.08)} className="stitch-display mt-6">Bring every schedule<br />into focus.</motion.h1>
+              <motion.p {...enter(.16)} className="mt-6 max-w-xl text-base leading-7 text-on-surface-variant">SlotForge gives academic teams one calm place to model their resources, resolve constraints, and publish schedules people can trust.</motion.p>
+              <motion.div {...enter(.24)} className="mt-9 flex flex-wrap gap-3">
                 <Link to={primaryHref} className="stitch-primary-cta">{signedIn ? 'Open workspace' : 'Start scheduling'} <span aria-hidden="true">→</span></Link>
                 <a href="#workflow" className="stitch-secondary-cta">See the workflow</a>
-              </div>
-              <div className="mt-14 grid max-w-lg grid-cols-3 gap-6 border-t border-rule pt-5">
+              </motion.div>
+              <motion.div {...enter(.32)} className="mt-14 grid max-w-lg grid-cols-3 gap-6 border-t border-rule pt-5">
                 <Stat value="One" label="shared source of truth" />
                 <Stat value="Draft" label="before every publish" />
                 <Stat value="Clear" label="from setup to export" />
-              </div>
-            </motion.div>
-            <motion.div initial={{ opacity: 0, scale: .97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .65, delay: .1 }} className="solver-map-wrap">
+              </motion.div>
+            </div>
+            <motion.div initial={reduceMotion ? false : { opacity: 0, scale: .96, rotate: 1.5 }} animate={reduceMotion ? undefined : { opacity: 1, scale: 1, rotate: 0 }} transition={{ duration: .8, delay: .16, ease: [0.16, 1, .3, 1] }} className="solver-map-wrap">
               <div className="solver-map-kicker"><span className="stitch-status-dot" /> Scheduling logic map</div>
               <SolverMap />
             </motion.div>
@@ -91,16 +102,16 @@ export default function LandingPage() {
 
         <section id="workflow" className="stitch-container py-24">
           <div className="max-w-3xl"><p className="stitch-eyebrow">The working rhythm</p><h2 className="stitch-heading mt-4">A schedule should be a decision, not a scramble.</h2><p className="mt-4 max-w-2xl text-sm leading-6 text-on-surface-variant">The workflow stays linear enough to learn quickly and flexible enough for the details that surface once a real institution starts using it.</p></div>
-          <div className="mt-14 grid gap-px overflow-hidden border border-rule bg-rule md:grid-cols-4">{workflow.map(([number, title, body]) => <motion.article whileHover={{ y: -4 }} key={number} className="bg-paper-raised p-6"><p className="text-[10px] font-mono tracking-widest text-secondary">{number}</p><h3 className="mt-8 text-lg font-semibold text-on-surface" style={{ fontFamily: 'var(--font-display)' }}>{title}</h3><p className="mt-3 text-sm leading-6 text-on-surface-variant">{body}</p></motion.article>)}</div>
+          <div className="mt-14 grid gap-px overflow-hidden border border-rule bg-rule md:grid-cols-4">{workflow.map(([number, title, body], index) => <motion.article initial={reduceMotion ? false : { opacity: 0, y: 16 }} whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }} viewport={{ once: true, amount: .35 }} transition={{ duration: .42, delay: index * .06 }} whileHover={reduceMotion ? undefined : { y: -4 }} key={number} className="bg-paper-raised p-6"><p className="text-[10px] font-mono tracking-widest text-secondary">{number}</p><h3 className="mt-8 text-lg font-semibold text-on-surface" style={{ fontFamily: 'var(--font-display)' }}>{title}</h3><p className="mt-3 text-sm leading-6 text-on-surface-variant">{body}</p></motion.article>)}</div>
         </section>
 
         <section id="capabilities" className="border-y border-rule bg-paper-raised py-24">
           <div className="stitch-container"><div className="max-w-3xl"><p className="stitch-eyebrow">Intelligent foundation</p><h2 className="stitch-heading mt-4">Tools for the parts of scheduling that actually get complicated.</h2></div>
             <div className="mt-14 grid gap-4 md:grid-cols-2">
-              <CapabilityCard className="stitch-feature-card stitch-feature-card--pale" icon="account_tree" title="A clear operational model" body="Resources, assignments, rooms, sections, and time structure live in the same workspace instead of across separate spreadsheets." tags={['Resources', 'Assignments']} />
-              <CapabilityCard className="stitch-feature-card stitch-feature-card--dark" icon="precision_manufacturing" title="A solver you can inspect" body="Generate a workable draft, make targeted adjustments, and use conflict analysis to understand the trade-offs behind a placement." tags={['Generate', 'Explainability']} />
-              <CapabilityCard className="stitch-feature-card" icon="history" title="Version control without the mess" body="Keep draft, published, and archived timetable states distinct so a change never erases the schedule people rely on." />
-              <CapabilityCard className="stitch-feature-card" icon="ios_share" title="Exports that fit the institution" body="Prepare shareable timetables and structured exports for the people and systems that need the final answer." visual />
+              <CapabilityCard reduceMotion={reduceMotion} className="stitch-feature-card stitch-feature-card--pale" icon="account_tree" title="A clear operational model" body="Resources, assignments, rooms, sections, and time structure live in the same workspace instead of across separate spreadsheets." tags={['Resources', 'Assignments']} />
+              <CapabilityCard reduceMotion={reduceMotion} className="stitch-feature-card stitch-feature-card--dark" icon="precision_manufacturing" title="A solver you can inspect" body="Generate a workable draft, make targeted adjustments, and use conflict analysis to understand the trade-offs behind a placement." tags={['Generate', 'Explainability']} />
+              <CapabilityCard reduceMotion={reduceMotion} className="stitch-feature-card" icon="history" title="Version control without the mess" body="Keep draft, published, and archived timetable states distinct so a change never erases the schedule people rely on." />
+              <CapabilityCard reduceMotion={reduceMotion} className="stitch-feature-card" icon="ios_share" title="Exports that fit the institution" body="Prepare shareable timetables and structured exports for the people and systems that need the final answer." visual />
             </div>
           </div>
         </section>
@@ -124,8 +135,8 @@ function SolverMap() {
   return <div className="solver-map"><div className="solver-grid" />{nodes.map(([label, icon, className]) => <div key={label} className={`solver-node ${className}`}><span className="material-symbols-outlined" style={{ fontSize: 19 }}>{icon}</span><span>{label}</span></div>)}<div className="solver-core"><span className="material-symbols-outlined" style={{ fontSize: 28 }}>precision_manufacturing</span><span>Solver<br />Core</span></div><div className="solver-connector solver-connector--one" /><div className="solver-connector solver-connector--two" /><div className="solver-connector solver-connector--three" /><div className="solver-connector solver-connector--four" /><div className="solver-connector solver-connector--five" /><div className="solver-footer"><span className="stitch-status-dot" />0 known conflicts <span>•</span> ready for review</div></div>;
 }
 
-function CapabilityCard({ className, icon, title, body, tags, visual }: { className: string; icon: string; title: string; body: string; tags?: string[]; visual?: boolean }) {
-  return <article className={className}><div><span className="material-symbols-outlined" style={{ fontSize: 25 }}>{icon}</span><h3 className="mt-7 text-2xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{title}</h3><p className="mt-4 max-w-md text-sm leading-6 opacity-70">{body}</p></div>{tags && <div className="mt-7 flex flex-wrap gap-2">{tags.map(tag => <span key={tag} className="stitch-tag">{tag}</span>)}</div>}{visual && <div className="stitch-export-lines" aria-hidden="true"><i /><i /><i /></div>}</article>;
+function CapabilityCard({ className, icon, title, body, tags, visual, reduceMotion }: { className: string; icon: string; title: string; body: string; tags?: string[]; visual?: boolean; reduceMotion: boolean | null }) {
+  return <motion.article initial={reduceMotion ? false : { opacity: 0, y: 18 }} whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }} viewport={{ once: true, amount: .25 }} transition={{ duration: .46 }} whileHover={reduceMotion ? undefined : { y: -4 }} className={className}><div><span className="material-symbols-outlined" style={{ fontSize: 25 }}>{icon}</span><h3 className="mt-7 text-2xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{title}</h3><p className="mt-4 max-w-md text-sm leading-6 opacity-70">{body}</p></div>{tags && <div className="mt-7 flex flex-wrap gap-2">{tags.map(tag => <span key={tag} className="stitch-tag">{tag}</span>)}</div>}{visual && <div className="stitch-export-lines" aria-hidden="true"><i /><i /><i /></div>}</motion.article>;
 }
 
 function Stat({ value, label }: { value: string; label: string }) { return <div><p className="text-base font-bold text-on-surface">{value}</p><p className="mt-1 text-[9px] font-mono uppercase tracking-[.11em] text-mono-grey">{label}</p></div>; }
