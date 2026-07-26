@@ -4,7 +4,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { motion } from 'motion/react';
 import LoadingScreen from '../../../components/ui/LoadingScreen';
-import AuthRouteNav from '../components/AuthRouteNav';
+import { PublicNavbar } from '../../public/PublicChrome';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -34,8 +34,10 @@ export default function LoginPage() {
   if (loading) return <LoadingScreen label="Opening your workspace" />;
 
   return (
-    <motion.div initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .32, ease: [0.16, 1, 0.3, 1] }} className="auth-screen min-h-screen px-4 py-8">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl overflow-hidden rounded-2xl border-2 border-rule bg-paper-raised shadow-2xl lg:grid-cols-[1.05fr_0.95fr]">
+    <>
+      <PublicNavbar action="signup" />
+      <motion.div initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .32, ease: [0.16, 1, 0.3, 1] }} className="auth-screen min-h-screen px-4 pb-8 pt-24">
+      <div className="mx-auto grid min-h-[calc(100vh-8rem)] w-full max-w-6xl overflow-hidden rounded-2xl border-2 border-rule bg-paper-raised shadow-2xl lg:grid-cols-[1.05fr_0.95fr]">
         <section className="relative hidden border-r-2 border-rule bg-surface-container-low p-10 lg:flex lg:flex-col lg:justify-between">
           <Link to="/" className="flex items-center gap-3">
             <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="SlotForge Logo" className="h-12 w-12 object-contain" />
@@ -65,16 +67,6 @@ export default function LoginPage() {
 
         <section className="flex items-center justify-center p-6 sm:p-10">
           <div className="w-full max-w-md">
-            <Link to="/" className="mb-8 flex items-center gap-3 lg:hidden">
-              <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="SlotForge Logo" className="h-11 w-11 object-contain" />
-              <div>
-                <h1 className="text-headline-sm text-on-surface">SlotForge</h1>
-                <p className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>Institutional Scheduling</p>
-              </div>
-            </Link>
-
-          <AuthRouteNav />
-
           <h2 className="text-headline-sm text-on-surface mb-1">Sign in</h2>
           <p className="text-body-sm text-on-surface-variant mb-6">Access your scheduling workspace.</p>
 
@@ -129,6 +121,7 @@ export default function LoginPage() {
           </div>
         </section>
       </div>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }

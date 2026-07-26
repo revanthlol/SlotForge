@@ -1,11 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
-import { useTheme } from '../../../contexts/ThemeContext';
 import { motion } from 'motion/react';
 import LoadingScreen from '../../../components/ui/LoadingScreen';
 import { WORK_ROLE_OPTIONS } from '../../settings/profileRoles';
-import AuthRouteNav from '../components/AuthRouteNav';
+import { PublicNavbar } from '../../public/PublicChrome';
 
 export default function SignupPage() {
   const [orgName, setOrgName] = useState('');
@@ -16,7 +15,6 @@ export default function SignupPage() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
-  const { theme } = useTheme();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -36,20 +34,12 @@ export default function SignupPage() {
   if (loading) return <LoadingScreen label="Preparing your guided setup" />;
 
   return (
-    <motion.div initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .32, ease: [0.16, 1, 0.3, 1] }} className="auth-screen min-h-screen px-4 py-8">
-      <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl overflow-hidden rounded-2xl border-2 border-rule bg-paper-raised shadow-2xl lg:grid-cols-[0.95fr_1.05fr]">
+    <>
+      <PublicNavbar action="signin" />
+      <motion.div initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .32, ease: [0.16, 1, 0.3, 1] }} className="auth-screen min-h-screen px-4 pb-8 pt-24">
+      <div className="mx-auto grid min-h-[calc(100vh-8rem)] w-full max-w-6xl overflow-hidden rounded-2xl border-2 border-rule bg-paper-raised shadow-2xl lg:grid-cols-[0.95fr_1.05fr]">
         <section className="flex items-center justify-center p-6 sm:p-10">
           <div className="w-full max-w-md">
-            <Link to="/" className="mb-8 flex items-center gap-3">
-              <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="SlotForge Logo" className="h-11 w-11 object-contain" />
-              <div>
-                <h1 className="text-headline-sm text-on-surface">SlotForge</h1>
-                <p className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>Institutional Scheduling</p>
-              </div>
-            </Link>
-
-          <AuthRouteNav />
-
           <h2 className="text-headline-sm text-on-surface mb-1">Create institution</h2>
           <p className="text-body-sm text-on-surface-variant mb-6">Start with a guided setup wizard after account creation.</p>
 
@@ -160,6 +150,7 @@ export default function SignupPage() {
           </div>
         </section>
       </div>
-    </motion.div>
+      </motion.div>
+    </>
   );
 }

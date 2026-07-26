@@ -12,10 +12,10 @@ Academic Timetable is the only supported domain preset. Staff roster, event, exa
 
 - The public landing leads with “Build timetables around reality,” an animated desktop solver trace, a static mobile result, a desktop launch chooser, and prominent MIT/GitHub/self-hosting messaging.
 - The landing navbar no longer advertises separate sign-in and create-institution actions. Mobile navigation teases the coming mobile app and links to GitHub.
-- Login and signup share Home / Sign in / Create institution navigation.
+- Login and signup use the same floating public navbar as the landing page, with a contextual account action instead of a separate three-button auth switcher.
 - Login, signup, onboarding, and the authenticated console use the mobile experience gate; public, policy, open-source, contact, and faculty share routes remain accessible.
 - Canvas is light in light mode, dark in dark mode, and fills all available workspace space below the persistent top bar. Search, view tabs, labels, inspector, pan, zoom, minimap, and selection focus remain interactive.
-- Public `/open-source`, `/privacy`, `/terms`, and `/contact` routes are available.
+- Public `/open-source`, `/privacy`, `/terms`, and `/contact` routes share the landing navbar and footer, animate into view, and restore the viewport to the top during route changes. The open-source page reproduces and links the complete MIT License.
 - The repository is MIT licensed and includes contribution, conduct, security, issue-template, database, and current documentation.
 - UML v2 remains the faculty-facing diagram set and reflects the generic data model plus the Vercel / Oracle / Supabase deployment.
 

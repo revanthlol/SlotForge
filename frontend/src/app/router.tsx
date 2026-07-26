@@ -1,3 +1,4 @@
+import { useLayoutEffect } from 'react';
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { ShortcutProvider } from '../contexts/ShortcutContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -33,6 +34,23 @@ function LoadingRouteState() {
 
 const onboardingFinished = (progress: { skipped?: boolean; completed_steps: string[] }) =>
   Boolean(progress.skipped || progress.completed_steps.includes('generate'));
+
+function RouteScrollManager() {
+  const { pathname, search, hash } = useLocation();
+
+  useLayoutEffect(() => {
+    if (hash) {
+      const target = document.getElementById(decodeURIComponent(hash.slice(1)));
+      if (target) {
+        target.scrollIntoView({ block: 'start' });
+        return;
+      }
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [pathname, search, hash]);
+
+  return null;
+}
 
 function ProtectedRoute({ children }: { children: React.JSX.Element }) {
   const { organizationId, loading } = useAuth();
@@ -80,7 +98,9 @@ function HomeRoute() {
 
 export default function AppRouter() {
   return (
-    <Routes>
+    <>
+      <RouteScrollManager />
+      <Routes>
       <Route path="/" element={<HomeRoute />} />
       <Route path="/landing" element={<LandingPage />} />
       <Route path="/login" element={<MobileRouteGate><PublicAuthRoute><LoginPage /></PublicAuthRoute></MobileRouteGate>} />
@@ -116,6 +136,7 @@ export default function AppRouter() {
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+      </Routes>
+    </>
   );
 }

@@ -231,8 +231,10 @@ input[type="range"] {
 .stitch-nav-floating > :first-child { margin-left: 15px; }
 .stitch-nav-floating > :last-child { margin-right: 7px; }
 .stitch-nav-wordmark { color: var(--color-on-surface); font-family: var(--font-display); font-size: 22px; font-weight: 700; letter-spacing: -.035em; line-height: 1; }
-.stitch-nav-floating a[href^="#"] { padding: 9px 12px; color: var(--color-on-surface-variant); font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; transition: color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease); }
-.stitch-nav-floating a[href^="#"]:hover { color: var(--color-on-surface); background: var(--color-accent-soft); }
+.stitch-nav-section-link { padding: 9px 12px; color: var(--color-on-surface-variant); font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; transition: color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease); }
+.stitch-nav-section-link:hover { color: var(--color-on-surface); background: var(--color-accent-soft); }
+.stitch-nav-github { display: inline-flex; min-height: 34px; align-items: center; gap: 7px; border: 1px solid var(--color-rule); padding: 0 10px; color: var(--color-on-surface); font: 700 10px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; transition: border-color var(--motion-fast) var(--motion-ease), background-color var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-spring); }
+.stitch-nav-github:hover { border-color: var(--color-on-surface); background: var(--color-on-surface); color: var(--color-paper-raised); transform: translateY(-1px); }
 .stitch-nav-icon { display: grid; width: 34px; height: 34px; place-items: center; color: var(--color-on-surface-variant); transition: background-color var(--motion-fast) var(--motion-ease), color var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-spring); }
 .stitch-nav-icon:hover { background: var(--color-accent-soft); color: var(--color-primary); transform: rotate(-8deg); }
 .stitch-nav-signin { padding: 9px 10px; color: var(--color-on-surface-variant); font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; transition: color var(--motion-fast) var(--motion-ease); }
@@ -284,6 +286,9 @@ input[type="range"] {
 .stitch-cta::before { top: -180px; right: -150px; background: #74d3a9; }
 .stitch-cta::after { bottom: -220px; left: -160px; background: #0b684f; }
 .stitch-footer { background: #0a211d; color: white; }
+.stitch-footer-link { display: flex; width: fit-content; align-items: center; gap: 6px; color: rgb(255 255 255 / .6); font-size: 12px; transition: color var(--motion-fast) var(--motion-ease), transform var(--motion-fast) var(--motion-spring); }
+.stitch-footer-link:hover { color: white; transform: translateX(2px); }
+.stitch-footer-link > span:last-child:not(:first-child) { color: rgb(255 255 255 / .35); font-family: var(--font-mono); }
 
 .stitch-nav-mobile-github { color: var(--color-on-surface-variant); font: 700 10px var(--font-mono); letter-spacing: .06em; text-transform: uppercase; }
 .stitch-nav-mobile-soon { display: inline-flex; align-items: center; min-height: 30px; border: 1px solid var(--color-rule); padding: 0 8px; color: var(--color-primary); font: 700 8px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
@@ -331,6 +336,10 @@ input[type="range"] {
 .public-copy a:not([class]) { color: var(--color-primary); font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
 .public-copy code { border: 1px solid var(--color-rule); background: var(--color-surface-container-low); padding: 1px 5px; font-family: var(--font-mono); font-size: .86em; }
 .public-note { border-left: 3px solid var(--color-secondary); background: var(--color-signal-soft); padding: 14px 16px; }
+.public-license-text { overflow-x: auto; border: 1px solid var(--color-rule); background: var(--color-surface-container-low); padding: clamp(18px, 4vw, 28px); color: var(--color-on-surface-variant); font: 500 11px/1.75 var(--font-mono); white-space: pre-wrap; }
+.public-page-progress { position: fixed; inset: 0 0 auto; z-index: 80; height: 2px; overflow: hidden; pointer-events: none; }
+.public-page-progress span { display: block; width: 100%; height: 100%; background: var(--color-primary); transform-origin: left; animation: public-page-load 640ms var(--motion-ease) both; }
+@keyframes public-page-load { 0% { opacity: 1; transform: scaleX(0); } 72% { opacity: 1; transform: scaleX(1); } 100% { opacity: 0; transform: scaleX(1); } }
 .canvas-flow .react-flow__controls { overflow: hidden; border: 1px solid var(--color-rule); border-radius: 10px; box-shadow: 0 10px 25px rgba(11, 35, 29, .1); }
 .canvas-flow .react-flow__controls-button { border-bottom-color: var(--color-rule); background: var(--color-paper-raised); fill: var(--color-on-surface); }
 .canvas-flow .react-flow__controls-button:hover { background: var(--color-accent-soft); }
@@ -338,7 +347,7 @@ input[type="range"] {
 
 [data-theme='dark'] .stitch-hero { background: linear-gradient(180deg, #151d1b, var(--color-paper)); }
 @media (min-width: 768px) {
-  .stitch-nav-mobile-github, .stitch-nav-mobile-soon { display: none !important; }
+  .stitch-nav-mobile-github, .stitch-nav-mobile-soon, .stitch-nav-github-mobile { display: none !important; }
 }
 @media (max-width: 767px) {
   .stitch-desktop-launch { display: none !important; }
@@ -372,8 +381,9 @@ input[type="range"] {
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .stitch-nav-floating, .stitch-nav-primary, .stitch-nav-icon { transition: none; }
+  .stitch-nav-floating, .stitch-nav-primary, .stitch-nav-icon, .stitch-nav-github, .stitch-footer-link { transition: none; }
   .solver-trace.is-animated *, .solver-trace.is-animated *::before, .solver-trace.is-animated *::after { animation: none !important; }
+  .public-page-progress { display: none; }
 }
 
 .onboarding-skeleton {

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
-import { useTheme } from '../../../contexts/ThemeContext';
+import { GitHubMark, PublicFooter, PublicNavbar, REPOSITORY_URL } from '../../public/PublicChrome';
 
 const workflow = [
   ['01', 'Model your institution', 'Bring teachers, subjects, sections, rooms, and time structure into one source of truth.'],
@@ -25,23 +25,12 @@ const capabilities = [
   ['rule_settings', 'Conflict prevention', 'Turn institutional rules into explicit scheduling constraints instead of last-minute fixes.'],
 ];
 
-const REPOSITORY_URL = 'https://github.com/revanthlol/SlotForge';
-
 export default function LandingPage() {
-  const { user, loading } = useAuth();
-  const { theme, toggleTheme } = useTheme();
-  const [scrolled, setScrolled] = useState(false);
+  const { user } = useAuth();
   const [launcherOpen, setLauncherOpen] = useState(false);
   const [desktopTrace, setDesktopTrace] = useState(() => window.matchMedia('(min-width: 900px)').matches);
   const reduceMotion = useReducedMotion();
   const signedIn = Boolean(user);
-
-  useEffect(() => {
-    const update = () => setScrolled(window.scrollY > 22);
-    update();
-    window.addEventListener('scroll', update, { passive: true });
-    return () => window.removeEventListener('scroll', update);
-  }, []);
 
   useEffect(() => {
     const media = window.matchMedia('(min-width: 900px)');
@@ -54,28 +43,7 @@ export default function LandingPage() {
 
   return (
     <div className="stitch-landing min-h-screen bg-paper text-on-surface">
-      <header className="stitch-header">
-        <nav className={`stitch-container stitch-nav-floating ${scrolled ? 'is-scrolled' : ''}`} aria-label="Public navigation">
-          <Link to="/" className="stitch-nav-brand flex shrink-0 items-center gap-2.5" aria-label="SlotForge home">
-            <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="" className="h-7 w-7 object-contain" />
-            <span className="stitch-nav-wordmark">SlotForge</span>
-          </Link>
-          <div className="hidden items-center gap-1 md:flex">
-            <a href="#workflow">Workflow</a>
-            <a href="#capabilities">Capabilities</a>
-            <a href="#open-source">Open source</a>
-            <a href={REPOSITORY_URL} target="_blank" rel="noreferrer">GitHub</a>
-          </div>
-          <div className="flex items-center gap-2">
-            <button type="button" onClick={toggleTheme} className="stitch-nav-icon" aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
-            </button>
-            <a href={REPOSITORY_URL} target="_blank" rel="noreferrer" className="stitch-nav-mobile-github md:hidden">GitHub</a>
-            <span className="stitch-nav-mobile-soon md:hidden">Mobile app soon</span>
-            {!loading && signedIn ? <Link to="/" className="stitch-nav-primary stitch-desktop-launch hidden md:inline-flex">Open dashboard</Link> : <button type="button" onClick={() => setLauncherOpen(true)} className="stitch-nav-primary stitch-desktop-launch hidden md:inline-flex">Launch web app</button>}
-          </div>
-        </nav>
-      </header>
+      <PublicNavbar onLaunch={() => setLauncherOpen(true)} />
 
       <main>
         <section className="stitch-hero">
@@ -85,7 +53,7 @@ export default function LandingPage() {
               <motion.p {...enter(.16)} className="mt-6 max-w-xl text-base leading-7 text-on-surface-variant">Model faculty, rooms, courses, and institutional rules in one workspace—then let an inspectable solver turn them into a timetable your team can review.</motion.p>
               <motion.div {...enter(.24)} className="mt-9 flex flex-wrap gap-3">
                 {signedIn ? <Link to="/" className="stitch-primary-cta stitch-desktop-launch">Open workspace <span aria-hidden="true">→</span></Link> : <button type="button" onClick={() => setLauncherOpen(true)} className="stitch-primary-cta stitch-desktop-launch">Launch web app <span aria-hidden="true">→</span></button>}
-                <a href={REPOSITORY_URL} target="_blank" rel="noreferrer" className="stitch-secondary-cta"><span className="material-symbols-outlined" style={{ fontSize: 17 }}>code</span>View on GitHub</a>
+                <a href={REPOSITORY_URL} target="_blank" rel="noreferrer" className="stitch-secondary-cta"><GitHubMark className="h-[17px] w-[17px]" />View on GitHub</a>
               </motion.div>
               <motion.div {...enter(.32)} className="mt-14 grid max-w-lg grid-cols-3 gap-6 border-t border-rule pt-5">
                 <Stat value="MIT" label="licensed" />
@@ -134,7 +102,7 @@ export default function LandingPage() {
         <section className="stitch-cta"><div className="stitch-container relative z-10 py-24 text-center"><h2 className="stitch-display mx-auto max-w-4xl text-white" style={{ fontSize: 'clamp(2.6rem, 6vw, 5.3rem)' }}>Start with the schedule your institution actually needs.</h2><p className="mx-auto mt-6 max-w-xl text-sm leading-6 text-white/60">The web console is available on desktop. A focused mobile experience is coming soon.</p>{signedIn ? <Link to="/" className="stitch-desktop-launch mt-9 inline-flex rounded bg-white px-6 py-3 text-sm font-semibold text-[#0d2924] transition-transform hover:-translate-y-0.5">Open workspace <span className="ml-2">→</span></Link> : <button type="button" onClick={() => setLauncherOpen(true)} className="stitch-desktop-launch mt-9 rounded bg-white px-6 py-3 text-sm font-semibold text-[#0d2924] transition-transform hover:-translate-y-0.5">Launch web app <span className="ml-2">→</span></button>}</div></section>
       </main>
 
-      <footer className="stitch-footer"><div className="stitch-container grid gap-10 py-14 sm:grid-cols-[1.4fr_repeat(3,1fr)]"><div><div className="flex items-center gap-2"><img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="" className="h-7 w-7" /><span className="text-sm font-bold">SlotForge</span></div><p className="mt-4 max-w-56 text-xs leading-5 text-white/45">Open-source institutional scheduling for academic teams.</p></div><FooterGroup title="Product" links={[['Workflow', '#workflow'], ['Capabilities', '#capabilities'], ['FAQ', '#faq']]} /><FooterGroup title="Open source" links={[['GitHub', REPOSITORY_URL], ['Contribute', `${REPOSITORY_URL}/blob/dev/CONTRIBUTING.md`], ['Project guide', '/open-source']]} /><FooterGroup title="Project" links={[['Privacy', '/privacy'], ['Terms', '/terms'], ['Contact', '/contact']]} /></div><div className="stitch-container flex flex-wrap justify-between gap-3 border-t border-white/10 py-5 text-[10px] font-mono uppercase tracking-widest text-white/30"><span>© {new Date().getFullYear()} SlotForge</span><span>MIT licensed · Built in public</span></div></footer>
+      <PublicFooter />
       {launcherOpen && !signedIn && <LaunchChooser onClose={() => setLauncherOpen(false)} />}
     </div>
   );
@@ -176,4 +144,3 @@ function CapabilityCard({ className, icon, title, body, tags, visual, reduceMoti
 }
 
 function Stat({ value, label }: { value: string; label: string }) { return <div><p className="text-base font-bold text-on-surface">{value}</p><p className="mt-1 text-[9px] font-mono uppercase tracking-[.11em] text-mono-grey">{label}</p></div>; }
-function FooterGroup({ title, links }: { title: string; links: [string, string][] }) { return <div><p className="text-[10px] font-mono uppercase tracking-widest text-white/35">{title}</p><div className="mt-4 space-y-2">{links.map(([label, href]) => href.startsWith('/') ? <Link key={label} to={href} className="block text-xs text-white/60 hover:text-white">{label}</Link> : <a key={label} href={href} target={href.startsWith('http') ? '_blank' : undefined} rel={href.startsWith('http') ? 'noreferrer' : undefined} className="block text-xs text-white/60 hover:text-white">{label}</a>)}</div></div>; }

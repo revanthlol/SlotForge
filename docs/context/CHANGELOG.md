@@ -2,6 +2,9 @@
 
 ## 2026-07-26
 
+- Unified the landing, login, signup, open-source, privacy, terms, and contact pages around the same floating public navbar; removed the separate three-button auth switcher and added contextual sign-in/create-institution actions.
+- Gave GitHub a dedicated logo button, added explicit external-link arrows to GitHub and Contribute in the shared footer, and added `/landing` plus route-safe landing section links.
+- Added route scroll restoration, public-page entry motion and a reduced-motion-aware progress treatment. The open-source page now links and displays the complete MIT License.
 - Reworked Canvas into a full-bleed, theme-aware scheduling instrument that uses the application light palette in light mode while preserving dark-theme compatibility and all graph interactions.
 - Replaced the landing timetable card with a desktop solver-trace animation and static mobile result; updated the product thesis, launch chooser, navigation, open-source proof, GitHub links, and footer.
 - Added shared auth navigation, gated login/signup/onboarding on mobile, and retained public access to the landing, policy, open-source, contact, and faculty share routes.
