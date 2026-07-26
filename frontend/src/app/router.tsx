@@ -24,6 +24,8 @@ import PublicSharePage from '../features/faculty/PublicSharePage';
 import HeatmapPage from '../features/heatmap/HeatmapPage';
 import ConstraintPlaygroundPage from '../features/constraints/ConstraintPlaygroundPage';
 import LoadingScreen from '../components/ui/LoadingScreen';
+import MobileRouteGate from '../components/layout/MobileRouteGate';
+import { ContactPage, OpenSourcePage, PrivacyPage, TermsPage } from '../features/public/PublicPages';
 
 function LoadingRouteState() {
   return <LoadingScreen />;
@@ -81,11 +83,15 @@ export default function AppRouter() {
     <Routes>
       <Route path="/" element={<HomeRoute />} />
       <Route path="/landing" element={<LandingPage />} />
-      <Route path="/login" element={<PublicAuthRoute><LoginPage /></PublicAuthRoute>} />
-      <Route path="/signup" element={<PublicAuthRoute><SignupPage /></PublicAuthRoute>} />
+      <Route path="/login" element={<MobileRouteGate><PublicAuthRoute><LoginPage /></PublicAuthRoute></MobileRouteGate>} />
+      <Route path="/signup" element={<MobileRouteGate><PublicAuthRoute><SignupPage /></PublicAuthRoute></MobileRouteGate>} />
       <Route path="/share/faculty/:token" element={<PublicSharePage />} />
+      <Route path="/open-source" element={<OpenSourcePage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/contact" element={<ContactPage />} />
 
-      <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+      <Route path="/onboarding" element={<MobileRouteGate><ProtectedRoute><OnboardingPage /></ProtectedRoute></MobileRouteGate>} />
 
       <Route element={<ProtectedRoute><ShortcutProvider><AppLayout /></ShortcutProvider></ProtectedRoute>}>
         <Route path="/dashboard" element={<Navigate to="/" replace />} />

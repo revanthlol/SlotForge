@@ -1,3 +1,5 @@
+import { Link } from 'react-router-dom';
+
 export default function MobileExperienceGate() {
   return (
     <main className="mobile-gate min-h-[100dvh] overflow-hidden bg-paper px-5 py-6 text-on-surface">
@@ -50,6 +52,10 @@ export default function MobileExperienceGate() {
             <span className="material-symbols-outlined" style={{ fontSize: 19 }}>refresh</span>
             Reload SlotForge
           </button>
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <Link to="/" className="inline-flex h-11 items-center justify-center rounded-xl border border-rule bg-paper-raised text-sm font-bold text-on-surface hover:border-primary/40">Public site</Link>
+            <a href="https://github.com/revanthlol/SlotForge" target="_blank" rel="noreferrer" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-rule bg-paper-raised text-sm font-bold text-on-surface hover:border-primary/40"><span className="material-symbols-outlined" style={{ fontSize: 18 }}>code</span>GitHub</a>
+          </div>
         </section>
 
         <footer className="border-t border-rule bg-accent-soft/40 px-6 py-5 text-center">

@@ -5,6 +5,7 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { motion } from 'motion/react';
 import LoadingScreen from '../../../components/ui/LoadingScreen';
 import { WORK_ROLE_OPTIONS } from '../../settings/profileRoles';
+import AuthRouteNav from '../components/AuthRouteNav';
 
 export default function SignupPage() {
   const [orgName, setOrgName] = useState('');
@@ -46,6 +47,8 @@ export default function SignupPage() {
                 <p className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>Institutional Scheduling</p>
               </div>
             </Link>
+
+          <AuthRouteNav />
 
           <h2 className="text-headline-sm text-on-surface mb-1">Create institution</h2>
           <p className="text-body-sm text-on-surface-variant mb-6">Start with a guided setup wizard after account creation.</p>

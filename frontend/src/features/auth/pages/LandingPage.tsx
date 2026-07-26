@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -25,19 +25,29 @@ const capabilities = [
   ['rule_settings', 'Conflict prevention', 'Turn institutional rules into explicit scheduling constraints instead of last-minute fixes.'],
 ];
 
+const REPOSITORY_URL = 'https://github.com/revanthlol/SlotForge';
+
 export default function LandingPage() {
   const { user, loading } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [scrolled, setScrolled] = useState(false);
+  const [launcherOpen, setLauncherOpen] = useState(false);
+  const [desktopTrace, setDesktopTrace] = useState(() => window.matchMedia('(min-width: 900px)').matches);
   const reduceMotion = useReducedMotion();
   const signedIn = Boolean(user);
-  const primaryHref = signedIn ? '/' : '/signup';
 
   useEffect(() => {
     const update = () => setScrolled(window.scrollY > 22);
     update();
     window.addEventListener('scroll', update, { passive: true });
     return () => window.removeEventListener('scroll', update);
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 900px)');
+    const update = () => setDesktopTrace(media.matches);
+    media.addEventListener('change', update);
+    return () => media.removeEventListener('change', update);
   }, []);
 
   const enter = (delay = 0) => reduceMotion ? undefined : { initial: { opacity: 0, y: 18 }, animate: { opacity: 1, y: 0 }, transition: { duration: .58, delay } };
@@ -53,16 +63,16 @@ export default function LandingPage() {
           <div className="hidden items-center gap-1 md:flex">
             <a href="#workflow">Workflow</a>
             <a href="#capabilities">Capabilities</a>
-            <a href="#faq">FAQ</a>
+            <a href="#open-source">Open source</a>
+            <a href={REPOSITORY_URL} target="_blank" rel="noreferrer">GitHub</a>
           </div>
           <div className="flex items-center gap-2">
             <button type="button" onClick={toggleTheme} className="stitch-nav-icon" aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
               <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
             </button>
-            {!loading && !signedIn && <Link to="/login" className="stitch-nav-signin hidden sm:inline-flex">Sign in</Link>}
-            <Link to={primaryHref} className="stitch-nav-primary">
-              {signedIn ? 'Open dashboard' : 'Create institution'}
-            </Link>
+            <a href={REPOSITORY_URL} target="_blank" rel="noreferrer" className="stitch-nav-mobile-github md:hidden">GitHub</a>
+            <span className="stitch-nav-mobile-soon md:hidden">Mobile app soon</span>
+            {!loading && signedIn ? <Link to="/" className="stitch-nav-primary stitch-desktop-launch hidden md:inline-flex">Open dashboard</Link> : <button type="button" onClick={() => setLauncherOpen(true)} className="stitch-nav-primary stitch-desktop-launch hidden md:inline-flex">Launch web app</button>}
           </div>
         </nav>
       </header>
@@ -71,22 +81,20 @@ export default function LandingPage() {
         <section className="stitch-hero">
           <div className="stitch-container grid items-center gap-12 py-16 lg:grid-cols-[.88fr_1.12fr] lg:py-24">
             <div>
-              <motion.div {...enter(0)} className="stitch-status"><span className="stitch-status-dot" />Institutional scheduling, made legible</motion.div>
-              <motion.h1 {...enter(.08)} className="stitch-display mt-6">Bring every schedule<br />into focus.</motion.h1>
-              <motion.p {...enter(.16)} className="mt-6 max-w-xl text-base leading-7 text-on-surface-variant">SlotForge gives academic teams one calm place to model their resources, resolve constraints, and publish schedules people can trust.</motion.p>
+              <motion.h1 {...enter(.08)} className="stitch-display">Build timetables<br />around reality.</motion.h1>
+              <motion.p {...enter(.16)} className="mt-6 max-w-xl text-base leading-7 text-on-surface-variant">Model faculty, rooms, courses, and institutional rules in one workspace—then let an inspectable solver turn them into a timetable your team can review.</motion.p>
               <motion.div {...enter(.24)} className="mt-9 flex flex-wrap gap-3">
-                <Link to={primaryHref} className="stitch-primary-cta">{signedIn ? 'Open workspace' : 'Start scheduling'} <span aria-hidden="true">→</span></Link>
-                <a href="#workflow" className="stitch-secondary-cta">See the workflow</a>
+                {signedIn ? <Link to="/" className="stitch-primary-cta stitch-desktop-launch">Open workspace <span aria-hidden="true">→</span></Link> : <button type="button" onClick={() => setLauncherOpen(true)} className="stitch-primary-cta stitch-desktop-launch">Launch web app <span aria-hidden="true">→</span></button>}
+                <a href={REPOSITORY_URL} target="_blank" rel="noreferrer" className="stitch-secondary-cta"><span className="material-symbols-outlined" style={{ fontSize: 17 }}>code</span>View on GitHub</a>
               </motion.div>
               <motion.div {...enter(.32)} className="mt-14 grid max-w-lg grid-cols-3 gap-6 border-t border-rule pt-5">
-                <Stat value="One" label="shared source of truth" />
-                <Stat value="Draft" label="before every publish" />
-                <Stat value="Clear" label="from setup to export" />
+                <Stat value="MIT" label="licensed" />
+                <Stat value="Self-host" label="your stack" />
+                <Stat value="OR-Tools" label="solver core" />
               </motion.div>
             </div>
-            <motion.div initial={reduceMotion ? false : { opacity: 0, scale: .97, y: 12 }} animate={reduceMotion ? undefined : { opacity: 1, scale: 1, y: 0 }} transition={{ duration: .7, delay: .16, ease: [0.16, 1, .3, 1] }} className="schedule-preview-wrap">
-              <div className="schedule-preview-kicker"><span className="stitch-status-dot" /> Draft schedule · Week 07</div>
-              <SchedulePreview />
+            <motion.div initial={reduceMotion ? false : { opacity: 0, scale: .97, y: 12 }} animate={reduceMotion ? undefined : { opacity: 1, scale: 1, y: 0 }} transition={{ duration: .7, delay: .16, ease: [0.16, 1, .3, 1] }} className="solver-trace-wrap">
+              <SolverTrace animated={desktopTrace && !reduceMotion} />
             </motion.div>
           </div>
         </section>
@@ -119,30 +127,42 @@ export default function LandingPage() {
           <div className="mt-14 grid gap-px border border-white/15 bg-white/15 sm:grid-cols-2 lg:grid-cols-4">{capabilities.map(([icon, title, body]) => <div key={title} className="bg-[#0d2924] p-7 text-center transition-colors hover:bg-white/5"><span className="material-symbols-outlined text-white/75" style={{ fontSize: 26 }}>{icon}</span><h3 className="mt-5 text-sm font-semibold text-white">{title}</h3><p className="mt-3 text-xs leading-5 text-white/50">{body}</p></div>)}</div>
         </div></section>
 
+        <section id="open-source" className="border-b border-rule bg-paper-raised py-24"><div className="stitch-container grid gap-10 lg:grid-cols-[1fr_.8fr] lg:items-end"><div><p className="stitch-eyebrow">Open source by design</p><h2 className="stitch-heading mt-4">The scheduling engine belongs in the open.</h2><p className="mt-5 max-w-2xl text-sm leading-6 text-on-surface-variant">Read every constraint, audit how drafts are produced, self-host the stack, or contribute the workflow your institution needs next. SlotForge is MIT licensed and built publicly.</p></div><div className="flex flex-wrap gap-3 lg:justify-end"><a href={REPOSITORY_URL} target="_blank" rel="noreferrer" className="stitch-primary-cta">Star or contribute <span aria-hidden="true">↗</span></a><Link to="/open-source" className="stitch-secondary-cta">Open-source guide</Link></div></div></section>
+
         <LandingFaq />
 
-        <section className="stitch-cta"><div className="stitch-container relative z-10 py-24 text-center"><h2 className="stitch-display mx-auto max-w-4xl text-white" style={{ fontSize: 'clamp(2.6rem, 6vw, 5.3rem)' }}>Start with the schedule your institution actually needs.</h2><p className="mx-auto mt-6 max-w-xl text-sm leading-6 text-white/60">Create an institution, add the resources you know, and let SlotForge guide the next decision.</p><Link to={primaryHref} className="mt-9 inline-flex rounded bg-white px-6 py-3 text-sm font-semibold text-[#0d2924] transition-transform hover:-translate-y-0.5">{signedIn ? 'Open workspace' : 'Create your institution'} <span className="ml-2">→</span></Link></div></section>
+        <section className="stitch-cta"><div className="stitch-container relative z-10 py-24 text-center"><h2 className="stitch-display mx-auto max-w-4xl text-white" style={{ fontSize: 'clamp(2.6rem, 6vw, 5.3rem)' }}>Start with the schedule your institution actually needs.</h2><p className="mx-auto mt-6 max-w-xl text-sm leading-6 text-white/60">The web console is available on desktop. A focused mobile experience is coming soon.</p>{signedIn ? <Link to="/" className="stitch-desktop-launch mt-9 inline-flex rounded bg-white px-6 py-3 text-sm font-semibold text-[#0d2924] transition-transform hover:-translate-y-0.5">Open workspace <span className="ml-2">→</span></Link> : <button type="button" onClick={() => setLauncherOpen(true)} className="stitch-desktop-launch mt-9 rounded bg-white px-6 py-3 text-sm font-semibold text-[#0d2924] transition-transform hover:-translate-y-0.5">Launch web app <span className="ml-2">→</span></button>}</div></section>
       </main>
 
-      <footer className="stitch-footer"><div className="stitch-container grid gap-10 py-14 sm:grid-cols-[1.4fr_repeat(3,1fr)]"><div><div className="flex items-center gap-2"><img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="" className="h-7 w-7" /><span className="text-sm font-bold">SlotForge</span></div><p className="mt-4 max-w-56 text-xs leading-5 text-white/45">Precise institutional scheduling for academic teams.</p></div><FooterGroup title="Product" links={['Workflow', 'Solver', 'Versions']} /><FooterGroup title="Resources" links={['FAQ', 'Setup guide', 'Support']} /><FooterGroup title="Institution" links={['Privacy', 'Terms', 'Contact']} /></div><div className="stitch-container border-t border-white/10 py-5 text-[10px] font-mono uppercase tracking-widest text-white/30">© {new Date().getFullYear()} SlotForge</div></footer>
+      <footer className="stitch-footer"><div className="stitch-container grid gap-10 py-14 sm:grid-cols-[1.4fr_repeat(3,1fr)]"><div><div className="flex items-center gap-2"><img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="" className="h-7 w-7" /><span className="text-sm font-bold">SlotForge</span></div><p className="mt-4 max-w-56 text-xs leading-5 text-white/45">Open-source institutional scheduling for academic teams.</p></div><FooterGroup title="Product" links={[['Workflow', '#workflow'], ['Capabilities', '#capabilities'], ['FAQ', '#faq']]} /><FooterGroup title="Open source" links={[['GitHub', REPOSITORY_URL], ['Contribute', `${REPOSITORY_URL}/blob/dev/CONTRIBUTING.md`], ['Project guide', '/open-source']]} /><FooterGroup title="Project" links={[['Privacy', '/privacy'], ['Terms', '/terms'], ['Contact', '/contact']]} /></div><div className="stitch-container flex flex-wrap justify-between gap-3 border-t border-white/10 py-5 text-[10px] font-mono uppercase tracking-widest text-white/30"><span>© {new Date().getFullYear()} SlotForge</span><span>MIT licensed · Built in public</span></div></footer>
+      {launcherOpen && !signedIn && <LaunchChooser onClose={() => setLauncherOpen(false)} />}
     </div>
   );
 }
 
-function SchedulePreview() {
-  return <div className="schedule-preview">
-    <div className="schedule-preview__header">
-      <div><p className="schedule-preview__eyebrow">B.Tech · CSE · Semester 04</p><h2>Weekly draft</h2></div>
-      <span className="schedule-preview__status"><i />Ready to review</span>
+function SolverTrace({ animated }: { animated: boolean }) {
+  const nodes = [['person', 'Prof. Rao', 'Faculty'], ['menu_book', 'Systems', 'Subject'], ['groups', 'CSE–4A', 'Section'], ['science', 'Lab 2', 'Room'], ['rule', 'No clashes', 'Constraint']];
+  return <div className={`solver-trace ${animated ? 'is-animated' : 'is-static'}`} aria-label="A solver trace resolving academic constraints into accepted timetable slots">
+    <div className="solver-trace__bar"><span><i />Solver trace · Academic workspace</span><span>CP-SAT / 05 inputs</span></div>
+    <div className="solver-trace__stage">
+      <div className="solver-trace__inputs">{nodes.map(([icon, label, type], index) => <div key={label} className="solver-trace__node" style={{ '--trace-index': index } as CSSProperties}><span className="material-symbols-outlined">{icon}</span><span><strong>{label}</strong><small>{type}</small></span></div>)}</div>
+      <svg className="solver-trace__lines" viewBox="0 0 600 330" preserveAspectRatio="none" aria-hidden="true"><path d="M140 43 C260 43 255 165 345 165"/><path d="M140 103 C245 103 260 165 345 165"/><path d="M140 163 C245 163 260 165 345 165"/><path d="M140 223 C245 223 260 165 345 165"/><path d="M140 283 C260 283 255 165 345 165"/><path className="solver-trace__accepted-line" d="M365 165 C430 165 430 92 486 92"/></svg>
+      <div className="solver-trace__core"><span className="material-symbols-outlined">precision_manufacturing</span><small>resolve</small></div>
+      <div className="solver-trace__result"><p>Accepted placements</p><div><span>MON · 09:00</span><strong>Systems</strong><small>CSE–4A · Lab 2</small></div><div><span>WED · 11:00</span><strong>Design studio</strong><small>CSE–4A · R-110</small></div><footer><i />0 conflicts</footer></div>
     </div>
-    <div className="schedule-preview__grid" aria-label="Sample timetable preview">
-      <span className="schedule-preview__time">09:00</span><span className="schedule-preview__day">Mon</span><span className="schedule-preview__day">Tue</span><span className="schedule-preview__day">Wed</span>
-      <span className="schedule-preview__time">10:00</span><div className="schedule-block schedule-block--systems">Systems<br /><small>Lab 2</small></div><div className="schedule-block schedule-block--data">Data structures<br /><small>A-203</small></div><div className="schedule-block schedule-block--empty" />
-      <span className="schedule-preview__time">11:00</span><div className="schedule-block schedule-block--empty" /><div className="schedule-block schedule-block--design">Design studio<br /><small>R-110</small></div><div className="schedule-block schedule-block--math">Discrete math<br /><small>A-203</small></div>
-      <span className="schedule-preview__time">12:00</span><div className="schedule-block schedule-block--math">Discrete math<br /><small>A-203</small></div><div className="schedule-block schedule-block--empty" /><div className="schedule-block schedule-block--systems">Systems<br /><small>Lab 2</small></div>
-    </div>
-    <div className="schedule-preview__footer"><span><i />0 unresolved conflicts</span><span>18/18 placements covered</span></div>
   </div>;
+}
+
+function LaunchChooser({ onClose }: { onClose: () => void }) {
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', closeOnEscape);
+    return () => document.removeEventListener('keydown', closeOnEscape);
+  }, [onClose]);
+
+  return <div className="fixed inset-0 z-[100] grid place-items-center bg-[#071713]/65 p-5 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section role="dialog" aria-modal="true" aria-labelledby="launch-title" className="w-full max-w-lg rounded-2xl border-2 border-rule bg-paper-raised p-6 shadow-2xl"><div className="flex items-start justify-between gap-5"><div><p className="stitch-eyebrow">Desktop web app</p><h2 id="launch-title" className="mt-3 text-3xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>Where do you want to begin?</h2></div><button ref={closeButtonRef} type="button" onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg border border-rule text-on-surface-variant hover:bg-accent-soft"><span className="material-symbols-outlined">close</span></button></div><div className="mt-7 grid gap-3 sm:grid-cols-2"><Link to="/login" className="rounded-xl border border-rule bg-paper p-5 hover:border-primary"><span className="material-symbols-outlined text-primary">login</span><strong className="mt-5 block">Sign in</strong><span className="mt-2 block text-xs leading-5 text-on-surface-variant">Return to an existing institution workspace.</span></Link><Link to="/signup" className="rounded-xl border border-primary bg-accent-soft p-5"><span className="material-symbols-outlined text-primary">domain_add</span><strong className="mt-5 block">Create institution</strong><span className="mt-2 block text-xs leading-5 text-on-surface-variant">Start the guided Academic setup.</span></Link></div><p className="mt-5 text-xs text-mono-grey">On a phone? The mobile app is coming soon; the scheduling console currently needs a desktop-sized workspace.</p></section></div>;
 }
 
 function LandingFaq() {
@@ -156,4 +176,4 @@ function CapabilityCard({ className, icon, title, body, tags, visual, reduceMoti
 }
 
 function Stat({ value, label }: { value: string; label: string }) { return <div><p className="text-base font-bold text-on-surface">{value}</p><p className="mt-1 text-[9px] font-mono uppercase tracking-[.11em] text-mono-grey">{label}</p></div>; }
-function FooterGroup({ title, links }: { title: string; links: string[] }) { return <div><p className="text-[10px] font-mono uppercase tracking-widest text-white/35">{title}</p><div className="mt-4 space-y-2">{links.map(link => <a key={link} href="#" className="block text-xs text-white/60 hover:text-white">{link}</a>)}</div></div>; }
+function FooterGroup({ title, links }: { title: string; links: [string, string][] }) { return <div><p className="text-[10px] font-mono uppercase tracking-widest text-white/35">{title}</p><div className="mt-4 space-y-2">{links.map(([label, href]) => href.startsWith('/') ? <Link key={label} to={href} className="block text-xs text-white/60 hover:text-white">{label}</Link> : <a key={label} href={href} target={href.startsWith('http') ? '_blank' : undefined} rel={href.startsWith('http') ? 'noreferrer' : undefined} className="block text-xs text-white/60 hover:text-white">{label}</a>)}</div></div>; }

@@ -355,7 +355,7 @@ export default function OnboardingOverlay() {
     if (currentStep === 2) {
       return (
         <section>
-          <StepHeader eyebrow="Step 3" title="Choose the scheduling domain." subtitle="The next steps adapt to the preset you choose. Academic setup writes into the current timetable data model today." />
+          <StepHeader eyebrow="Step 3" title="Choose the scheduling domain." subtitle="Academic Timetable is ready today. The other domains preview what is coming next and stay locked until their complete workflows ship." />
           <div className="mt-8">
             <PresetPicker value={preset} onChange={(nextPreset) => {
               setPreset(nextPreset);

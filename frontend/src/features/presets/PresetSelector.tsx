@@ -57,21 +57,26 @@ export default function PresetSelector() {
         {presets.map((preset) => {
           const config = PRESET_CONFIGS[preset.key];
           const isActive = activePreset === preset.key;
+          const isAvailable = preset.key === 'academic';
+          const isLegacy = isActive && !isAvailable;
           const isPending = mutation.isPending && mutation.variables === preset.key;
 
           return (
             <button
               key={preset.key}
               onClick={() => {
-                if (!isActive && !mutation.isPending) {
+                if (isAvailable && !isActive && !mutation.isPending) {
                   mutation.mutate(preset.key);
                 }
               }}
-              disabled={mutation.isPending}
-              className={`flex flex-col text-left p-inset-standard rounded-xl border-2 transition-all cursor-pointer relative overflow-hidden ${
+              disabled={mutation.isPending || (!isAvailable && !isLegacy)}
+              aria-disabled={!isAvailable && !isLegacy}
+              className={`flex min-h-56 flex-col text-left p-inset-standard rounded-xl border-2 transition-all relative overflow-hidden ${
                 isActive
                   ? 'border-primary bg-primary/5 shadow-lg shadow-primary/5'
-                  : 'border-rule hover:border-primary/50 bg-paper-raised hover:shadow-md'
+                  : isAvailable
+                    ? 'border-rule cursor-pointer hover:border-primary/50 bg-paper-raised hover:shadow-md'
+                    : 'border-rule bg-surface-container-low opacity-70 cursor-not-allowed'
               }`}
             >
               <div className="flex items-center justify-between mb-3 w-full">
@@ -89,6 +94,7 @@ export default function PresetSelector() {
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-success"></span>
                   </span>
                 )}
+                {!isAvailable && !isActive && <span className="rounded-full border border-rule bg-paper-raised px-2 py-1 text-[8px] font-black uppercase tracking-[.12em] text-mono-grey">Coming soon</span>}
               </div>
               <h4 className="font-semibold text-on-surface mb-1 text-base">{config?.name || preset.key}</h4>
               <p className="text-xs text-on-surface-variant leading-relaxed line-clamp-3">{preset.desc}</p>
@@ -101,6 +107,8 @@ export default function PresetSelector() {
           );
         })}
       </div>
+      {activePreset !== 'academic' && <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-secondary/30 bg-signal-soft p-4"><p className="text-sm text-on-surface-variant">This workspace uses a legacy preview preset. Switch to Academic to use the supported scheduling workflow.</p><button type="button" disabled={mutation.isPending} onClick={() => mutation.mutate('academic')} className="rounded-lg bg-primary px-4 py-2 text-xs font-bold text-on-primary disabled:opacity-50">Use Academic preset</button></div>}
+      <p className="mt-3 text-xs text-on-surface-variant">Academic Timetable is available today. Staff, event, exam, and facility workflows are visible as the public roadmap and cannot modify your workspace yet.</p>
     </div>
   );
 }

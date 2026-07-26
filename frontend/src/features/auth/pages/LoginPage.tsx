@@ -4,6 +4,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 import { motion } from 'motion/react';
 import LoadingScreen from '../../../components/ui/LoadingScreen';
+import AuthRouteNav from '../components/AuthRouteNav';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -71,6 +72,8 @@ export default function LoginPage() {
                 <p className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>Institutional Scheduling</p>
               </div>
             </Link>
+
+          <AuthRouteNav />
 
           <h2 className="text-headline-sm text-on-surface mb-1">Sign in</h2>
           <p className="text-body-sm text-on-surface-variant mb-6">Access your scheduling workspace.</p>
