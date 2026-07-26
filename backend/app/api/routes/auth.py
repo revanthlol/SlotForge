@@ -1,26 +1,109 @@
-import uuid
 import httpx
-from fastapi import APIRouter, HTTPException, Depends
+import uuid
+
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
-from app.core.auth import get_current_user_profile
+from app.core.auth import get_current_user, get_current_user_profile
 from app.core.db import get_db
 from app.models.organization import Organization
+from app.models.organization_membership import OrganizationMembership
 from app.models.profile import Profile
-from app.schemas.auth import AuthMeResponse, SignupOrganizationRequest, SignupOrganizationResponse
+from app.schemas.auth import (
+    AuthMeResponse,
+    CompleteAccountRequest,
+    ProfileUpdateRequest,
+    SignupOrganizationRequest,
+    SignupOrganizationResponse,
+)
 
 router = APIRouter()
 
 
+def _auth_me_response(profile: Profile) -> AuthMeResponse:
+    return AuthMeResponse(
+        user_id=str(profile.id),
+        organization_id=str(profile.organization_id),
+        role=profile.role,
+        full_name=profile.full_name,
+        job_title=profile.job_title,
+    )
+
+
 @router.get("/me", response_model=AuthMeResponse)
 def get_me(current_user: Profile = Depends(get_current_user_profile)):
-    return AuthMeResponse(
-        user_id=str(current_user.id),
-        organization_id=str(current_user.organization_id),
-        role=current_user.role,
-        full_name=current_user.full_name,
+    return _auth_me_response(current_user)
+
+
+@router.patch("/me", response_model=AuthMeResponse)
+def update_me(
+    payload: ProfileUpdateRequest,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db),
+):
+    current_user.full_name = payload.full_name.strip()
+    current_user.job_title = payload.job_title.strip()
+    db.commit()
+    db.refresh(current_user)
+    return _auth_me_response(current_user)
+
+
+@router.post("/complete-account", response_model=AuthMeResponse, status_code=status.HTTP_201_CREATED)
+def complete_account(
+    payload: CompleteAccountRequest,
+    response: Response,
+    token_payload: dict = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Provision application records for a verified Supabase identity.
+
+    OAuth providers create the Supabase Auth user first. This endpoint completes
+    the application-side organization, profile, and membership without trusting
+    user-editable auth metadata for authorization.
+    """
+    try:
+        user_id = uuid.UUID(token_payload.get("sub", ""))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=401, detail="Invalid user ID in token")
+
+    existing_profile = db.query(Profile).filter(Profile.id == user_id).first()
+    if existing_profile:
+        membership = db.query(OrganizationMembership).filter(
+            OrganizationMembership.user_id == existing_profile.id,
+            OrganizationMembership.organization_id == existing_profile.organization_id,
+        ).first()
+        if not membership:
+            db.add(OrganizationMembership(
+                user_id=existing_profile.id,
+                organization_id=existing_profile.organization_id,
+                role=existing_profile.role,
+            ))
+            db.commit()
+        response.status_code = status.HTTP_200_OK
+        return _auth_me_response(existing_profile)
+
+    organization = Organization(name=payload.org_name)
+    db.add(organization)
+    db.flush()
+    profile = Profile(
+        id=user_id,
+        organization_id=organization.id,
+        role="org_admin",
+        full_name=payload.full_name,
+        job_title=payload.job_title,
     )
+    db.add(profile)
+    db.flush()
+    db.add(OrganizationMembership(
+        user_id=profile.id,
+        organization_id=organization.id,
+        role="org_admin",
+    ))
+    db.commit()
+    db.refresh(profile)
+    return _auth_me_response(profile)
+
 
 @router.post("/signup-organization", response_model=SignupOrganizationResponse, status_code=201)
 def signup_organization(payload: SignupOrganizationRequest, db: Session = Depends(get_db)):
@@ -44,7 +127,8 @@ def signup_organization(payload: SignupOrganizationRequest, db: Session = Depend
                 "password": payload.password,
                 "options": {
                     "data": {
-                        "full_name": payload.full_name
+                        "full_name": payload.full_name,
+                        "job_title": payload.job_title,
                     }
                 }
             }
@@ -116,9 +200,16 @@ def signup_organization(payload: SignupOrganizationRequest, db: Session = Depend
             id=uuid.UUID(user_id),
             organization_id=org.id,
             role="org_admin",
-            full_name=payload.full_name
+            full_name=payload.full_name,
+            job_title=payload.job_title,
         )
         db.add(profile)
+        db.flush()
+        db.add(OrganizationMembership(
+            user_id=profile.id,
+            organization_id=org.id,
+            role="org_admin",
+        ))
         db.commit()
     except Exception as e:
         db.rollback()

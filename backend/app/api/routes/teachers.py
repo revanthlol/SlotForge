@@ -3,7 +3,9 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from app.schemas.teacher import Teacher as TeacherSchema, TeacherCreate, TeacherUpdate
-from app.models.teacher import Teacher as TeacherModel
+from app.models.resource import Resource
+from app.models.workspace import SchedulingWorkspace
+from app.services.presets import get_preset_types
 from app.core.db import get_db
 from app.core.auth import get_current_user_profile, require_org_admin
 from app.models.profile import Profile
@@ -11,15 +13,22 @@ from app.services.audit_service import AuditService
 
 router = APIRouter()
 
+def _get_active_resource_type(db: Session, org_id: uuid.UUID) -> str:
+    workspace = db.query(SchedulingWorkspace).filter(SchedulingWorkspace.organization_id == org_id).first()
+    preset_key = workspace.domain_preset if workspace else "academic"
+    return get_preset_types(preset_key)["resource_type"]
+
 @router.post("/", response_model=TeacherSchema, status_code=201)
 def create_teacher(
     payload: TeacherCreate,
     current_user: Profile = Depends(require_org_admin),
     db: Session = Depends(get_db)
 ):
-    teacher = TeacherModel(
+    resource_type = _get_active_resource_type(db, current_user.organization_id)
+    teacher = Resource(
         organization_id=current_user.organization_id,
-        name=payload.name
+        name=payload.name,
+        resource_type=resource_type
     )
     db.add(teacher)
     db.commit()
@@ -35,7 +44,6 @@ def create_teacher(
         diff={"new_values": {"name": teacher.name}}
     )
     
-    # Map model to schema (schema needs organization_id as str)
     return TeacherSchema(
         id=str(teacher.id),
         organization_id=str(teacher.organization_id),
@@ -47,8 +55,10 @@ def list_teachers(
     current_user: Profile = Depends(get_current_user_profile),
     db: Session = Depends(get_db)
 ):
-    teachers = db.query(TeacherModel).filter(
-        TeacherModel.organization_id == current_user.organization_id
+    resource_type = _get_active_resource_type(db, current_user.organization_id)
+    teachers = db.query(Resource).filter(
+        Resource.organization_id == current_user.organization_id,
+        Resource.resource_type == resource_type
     ).all()
     return [
         TeacherSchema(
@@ -69,9 +79,11 @@ def get_teacher(
     except ValueError:
         raise HTTPException(status_code=404, detail="Teacher not found")
         
-    teacher = db.query(TeacherModel).filter(
-        TeacherModel.id == t_uuid,
-        TeacherModel.organization_id == current_user.organization_id
+    resource_type = _get_active_resource_type(db, current_user.organization_id)
+    teacher = db.query(Resource).filter(
+        Resource.id == t_uuid,
+        Resource.organization_id == current_user.organization_id,
+        Resource.resource_type == resource_type
     ).first()
     
     if not teacher:
@@ -95,9 +107,11 @@ def update_teacher(
     except ValueError:
         raise HTTPException(status_code=404, detail="Teacher not found")
         
-    teacher = db.query(TeacherModel).filter(
-        TeacherModel.id == t_uuid,
-        TeacherModel.organization_id == current_user.organization_id
+    resource_type = _get_active_resource_type(db, current_user.organization_id)
+    teacher = db.query(Resource).filter(
+        Resource.id == t_uuid,
+        Resource.organization_id == current_user.organization_id,
+        Resource.resource_type == resource_type
     ).first()
     
     if not teacher:
@@ -136,9 +150,11 @@ def delete_teacher(
     except ValueError:
         raise HTTPException(status_code=404, detail="Teacher not found")
         
-    teacher = db.query(TeacherModel).filter(
-        TeacherModel.id == t_uuid,
-        TeacherModel.organization_id == current_user.organization_id
+    resource_type = _get_active_resource_type(db, current_user.organization_id)
+    teacher = db.query(Resource).filter(
+        Resource.id == t_uuid,
+        Resource.organization_id == current_user.organization_id,
+        Resource.resource_type == resource_type
     ).first()
     
     if not teacher:

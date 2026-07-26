@@ -1,0 +1,47 @@
+@startuml
+title SlotForge — Use Cases
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam ArrowColor #475569
+skinparam usecase {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+}
+
+actor "Institution Admin" as Admin
+actor "Faculty Member" as Faculty
+
+rectangle "SlotForge" {
+  usecase "Sign in" as Login
+  usecase "Set up academic workspace" as Setup
+  usecase "Manage faculty, subjects,\nsections, rooms, and time" as Manage
+  usecase "Assign teaching responsibility" as Assign
+  usecase "Configure constraints" as Rules
+  usecase "Generate timetable" as Generate
+  usecase "Inspect conflicts\nand scheduling pressure" as Inspect
+  usecase "Compare, publish,\narchive, or roll back" as Version
+  usecase "Export timetable" as Export
+  usecase "Create faculty share link" as Share
+  usecase "View personal timetable" as View
+}
+
+Admin --> Login
+Admin --> Setup
+Admin --> Manage
+Admin --> Assign
+Admin --> Rules
+Admin --> Generate
+Admin --> Inspect
+Admin --> Version
+Admin --> Export
+Admin --> Share
+Faculty --> View
+Share ..> View : enables
+
+note right of Generate
+  Academic Timetable is the supported preset.
+  Other domain presets are coming soon.
+end note
+@enduml

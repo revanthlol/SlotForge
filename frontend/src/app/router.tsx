@@ -1,0 +1,159 @@
+import { useLayoutEffect } from 'react';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { ShortcutProvider } from '../contexts/ShortcutContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useOnboardingProgress } from '../features/onboarding/hooks/useOnboardingProgress';
+import AppLayout from './layout';
+
+import LandingPage from '../features/auth/pages/LandingPage';
+import LoginPage from '../features/auth/pages/LoginPage';
+import SignupPage from '../features/auth/pages/SignupPage';
+import CompleteAccountPage from '../features/auth/pages/CompleteAccountPage';
+import OAuthCallbackPage from '../features/auth/pages/OAuthCallbackPage';
+import DashboardPage from '../features/dashboard/pages/DashboardPage';
+import TeachersPage from '../features/timetable/pages/TeachersPage';
+import RoomsPage from '../features/timetable/pages/RoomsPage';
+import SubjectsPage from '../features/timetable/pages/SubjectsPage';
+import SectionsPage from '../features/timetable/pages/SectionsPage';
+import TimetablePage from '../features/timetable/pages/TimetablePage';
+import CanvasViewPage from '../features/canvas/pages/CanvasViewPage';
+import SolverEnginePage from '../features/timetable/pages/SolverEnginePage';
+import VersionHistoryPage from '../features/versions/pages/VersionHistoryPage';
+import SettingsPage from '../features/settings/pages/SettingsPage';
+import ProfilePage from '../features/settings/pages/ProfilePage';
+import OnboardingPage from '../features/onboarding/pages/OnboardingPage';
+import FacultyListPage from '../features/faculty/FacultyListPage';
+import PublicSharePage from '../features/faculty/PublicSharePage';
+import HeatmapPage from '../features/heatmap/HeatmapPage';
+import ConstraintPlaygroundPage from '../features/constraints/ConstraintPlaygroundPage';
+import LoadingScreen from '../components/ui/LoadingScreen';
+import MobileRouteGate from '../components/layout/MobileRouteGate';
+import { ContactPage, OpenSourcePage, PrivacyPage, TermsPage } from '../features/public/PublicPages';
+
+function LoadingRouteState() {
+  return <LoadingScreen />;
+}
+
+const onboardingFinished = (progress: { skipped?: boolean; completed_steps: string[] }) =>
+  Boolean(progress.skipped || progress.completed_steps.includes('generate'));
+
+function RouteScrollManager() {
+  const { pathname, search, hash } = useLocation();
+
+  useLayoutEffect(() => {
+    if (hash) {
+      const target = document.getElementById(decodeURIComponent(hash.slice(1)));
+      if (target) {
+        target.scrollIntoView({ block: 'start' });
+        return;
+      }
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [pathname, search, hash]);
+
+  return null;
+}
+
+function ProtectedRoute({ children }: { children: React.JSX.Element }) {
+  const { user, organizationId, needsAccountSetup, loading } = useAuth();
+  const location = useLocation();
+  const { progress, loading: onboardingLoading, loadedWorkspaceId } = useOnboardingProgress(organizationId);
+
+  if (loading || (organizationId && (onboardingLoading || loadedWorkspaceId !== organizationId))) return <LoadingRouteState />;
+
+  if (!organizationId) {
+    if (user && needsAccountSetup) return <Navigate to="/complete-account" replace />;
+    const redirect = encodeURIComponent(`${location.pathname}${location.search}`);
+    return <Navigate to={`/login?redirect=${redirect}`} replace />;
+  }
+
+  const isCompletedOrSkipped = onboardingFinished(progress);
+  if (!isCompletedOrSkipped && location.pathname !== '/onboarding') {
+    return <Navigate to="/onboarding" replace />;
+  }
+
+  return children;
+}
+
+function PublicAuthRoute({ children }: { children: React.JSX.Element }) {
+  const { user, organizationId, needsAccountSetup, loading } = useAuth();
+  const { progress, loading: onboardingLoading, loadedWorkspaceId } = useOnboardingProgress(organizationId);
+
+  if (loading || (organizationId && (onboardingLoading || loadedWorkspaceId !== organizationId))) return <LoadingRouteState />;
+  if (user && needsAccountSetup) return <Navigate to="/complete-account" replace />;
+  if (organizationId) {
+    const isCompletedOrSkipped = onboardingFinished(progress);
+    return <Navigate to={isCompletedOrSkipped ? '/' : '/onboarding'} replace />;
+  }
+
+  return children;
+}
+
+function AccountSetupRoute({ children }: { children: React.JSX.Element }) {
+  const { user, organizationId, needsAccountSetup, loading } = useAuth();
+
+  if (loading) return <LoadingRouteState />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (organizationId) return <Navigate to="/" replace />;
+  if (!needsAccountSetup) return <LoadingRouteState />;
+  return children;
+}
+
+function HomeRoute() {
+  const { user, organizationId, needsAccountSetup, loading } = useAuth();
+  const { progress, loading: onboardingLoading, loadedWorkspaceId } = useOnboardingProgress(organizationId);
+
+  if (loading || (organizationId && (onboardingLoading || loadedWorkspaceId !== organizationId))) return <LoadingRouteState />;
+  if (user && needsAccountSetup) return <Navigate to="/complete-account" replace />;
+  if (!organizationId) return <LandingPage />;
+  if (!onboardingFinished(progress)) return <Navigate to="/onboarding" replace />;
+
+  return <ShortcutProvider><AppLayout><DashboardPage /></AppLayout></ShortcutProvider>;
+}
+
+export default function AppRouter() {
+  return (
+    <>
+      <RouteScrollManager />
+      <Routes>
+      <Route path="/" element={<HomeRoute />} />
+      <Route path="/landing" element={<LandingPage />} />
+      <Route path="/login" element={<MobileRouteGate><PublicAuthRoute><LoginPage /></PublicAuthRoute></MobileRouteGate>} />
+      <Route path="/signup" element={<MobileRouteGate><PublicAuthRoute><SignupPage /></PublicAuthRoute></MobileRouteGate>} />
+      <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+      <Route path="/complete-account" element={<MobileRouteGate><AccountSetupRoute><CompleteAccountPage /></AccountSetupRoute></MobileRouteGate>} />
+      <Route path="/share/faculty/:token" element={<PublicSharePage />} />
+      <Route path="/open-source" element={<OpenSourcePage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
+      <Route path="/terms" element={<TermsPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+
+      <Route path="/onboarding" element={<MobileRouteGate><ProtectedRoute><OnboardingPage /></ProtectedRoute></MobileRouteGate>} />
+
+      <Route element={<ProtectedRoute><ShortcutProvider><AppLayout /></ShortcutProvider></ProtectedRoute>}>
+        <Route path="/dashboard" element={<Navigate to="/" replace />} />
+        <Route path="/resources">
+          <Route index element={<Navigate to="/resources/teachers" replace />} />
+          <Route path="teachers" element={<TeachersPage />} />
+          <Route path="rooms" element={<RoomsPage />} />
+          <Route path="subjects" element={<SubjectsPage />} />
+          <Route path="sections" element={<SectionsPage />} />
+        </Route>
+        <Route path="/timetable" element={<TimetablePage />} />
+        <Route path="/faculty" element={<FacultyListPage />} />
+        <Route path="/workspace/:workspaceId/faculty" element={<FacultyListPage />} />
+        <Route path="/heatmap" element={<HeatmapPage />} />
+        <Route path="/canvas" element={<CanvasViewPage />} />
+        <Route path="/solver" element={<SolverEnginePage />} />
+        <Route path="/constraints" element={<ConstraintPlaygroundPage />} />
+        <Route path="/versions" element={<VersionHistoryPage />} />
+        <Route path="/workspace/:workspaceId/versions" element={<VersionHistoryPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
+  );
+}

@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { motion } from 'motion/react';
 import type { ScheduledSlot, Teacher, Room, Subject, Section, Organization } from '../../hooks/useApi';
 import api from '../../lib/api';
 import ConfirmModal from './ConfirmModal';
 import Modal from './Modal';
+import { getSubjectColor } from '../../lib/subjectColors';
+import { timetableCardStyle, timetableDividerStyle, timetableLabelStyle, timetablePillStyle } from '../../lib/timetableVisuals';
 
 interface TimetableGridProps {
   timetableId: string;
@@ -18,7 +21,7 @@ interface TimetableGridProps {
 
 type ViewType = 'section' | 'teacher' | 'room';
 type GridOrientation = 'hours-x' | 'days-x';
-type DisplayMode = 'board' | 'list';
+type DisplayMode = 'board' | 'day' | 'list';
 
 const roman = ['', 'I', 'II', 'III', 'IV', 'V', 'VI', 'VII'];
 
@@ -31,14 +34,6 @@ const weekdayLabels: Record<string, string> = {
   Sat: 'Saturday',
   Sun: 'Sunday',
 };
-
-function hashHue(value: string) {
-  let hash = 0;
-  for (let index = 0; index < value.length; index += 1) {
-    hash = value.charCodeAt(index) + ((hash << 5) - hash);
-  }
-  return Math.abs(hash) % 360;
-}
 
 function subjectCode(name?: string) {
   if (!name) return 'SUB';
@@ -63,6 +58,7 @@ export default function TimetableGrid({
   const [viewType, setViewType] = useState<ViewType>('section');
   const [orientation, setOrientation] = useState<GridOrientation>('hours-x');
   const [displayMode, setDisplayMode] = useState<DisplayMode>('board');
+  const [selectedDayTab, setSelectedDayTab] = useState<string>('Mon');
   const [selectedId, setSelectedId] = useState<string>('');
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [pendingSlotId, setPendingSlotId] = useState<string | null>(null);
@@ -226,48 +222,49 @@ export default function TimetableGrid({
 
   const renderSlot = (slot: ScheduledSlot) => {
     const subject = subjectMap.get(slot.subject_id);
-    const hue = hashHue(slot.subject_id);
+    const subjectColor = subject ? getSubjectColor(subject) : '#64748b';
     const duration = Math.min(slot.duration_periods || 1, periodsPerDay - slot.period + 1);
     const isPending = pendingSlotId === slot.id;
 
     return (
-      <div
+      <motion.div
         key={slot.id}
+        whileHover={{ scale: 1.015, y: -2 }}
+        transition={{ duration: 0.1 }}
         draggable={editable && !isPending}
-        onDragStart={(event) => {
+        onDragStart={(event: any) => {
           if (!editable || isPending) return;
           event.dataTransfer.effectAllowed = 'move';
           event.dataTransfer.setData('text/plain', slot.id);
           setDraggingId(slot.id);
         }}
         onDragEnd={() => setDraggingId(null)}
-        className={`group h-full rounded-lg border p-3 shadow-sm transition-all ${
-          editable && !isPending ? 'cursor-grab active:cursor-grabbing hover:-translate-y-0.5 hover:shadow-md' : ''
+        className={`group h-full rounded-lg border p-3.5 text-on-surface transition-all ${
+          editable && !isPending ? 'cursor-grab active:cursor-grabbing hover:shadow-md' : ''
         } ${draggingId === slot.id ? 'opacity-45 ring-2 ring-primary' : ''}`}
-        style={{
-          background: `linear-gradient(135deg, color-mix(in srgb, hsl(${hue} 76% 50%) 46%, var(--color-paper-raised)), color-mix(in srgb, hsl(${hue} 88% 64%) 30%, var(--color-paper-raised)))`,
-          borderColor: `hsl(${hue} 70% 52% / 0.72)`,
-          color: 'var(--color-on-surface)',
-        }}
+        style={timetableCardStyle(subjectColor)}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <div className="truncate text-xs font-black tracking-wide" style={{ fontFamily: 'var(--font-mono)' }}>
+            <div
+              className="inline-flex max-w-full rounded border px-1.5 py-0.5 text-[11px] font-black"
+              style={{ ...timetableLabelStyle(subjectColor), fontFamily: 'var(--font-mono)', letterSpacing: 0 }}
+            >
               {subjectCode(subject?.name)}
             </div>
-            <div className="mt-1 line-clamp-2 text-[11px] font-semibold text-on-surface">
+            <div className="mt-2 line-clamp-2 text-[13px] font-semibold leading-snug text-on-surface">
               {subject?.name || 'Unknown Subject'}
             </div>
           </div>
           <span
-            className="shrink-0 rounded-full border px-1.5 py-0.5 text-[9px] font-black"
-            style={{ borderColor: `hsl(${hue} 58% 48% / 0.42)`, background: 'color-mix(in srgb, white 36%, transparent)' }}
+            className="shrink-0 rounded-full border px-1.5 py-0.5 text-[10px] font-black shadow-sm"
+            style={timetablePillStyle(subjectColor)}
           >
             {duration}h
           </span>
         </div>
 
-        <div className="mt-2 grid gap-1 border-t border-rule/50 pt-2 text-[10px] text-on-surface-variant">
+        <div className="mt-2 grid gap-1 border-t pt-2 text-[11px] text-on-surface-variant" style={timetableDividerStyle(subjectColor)}>
           <span className="truncate">{teacherMap.get(slot.teacher_id) || 'Unknown Teacher'}</span>
           <span className="truncate">{roomMap.get(slot.room_id) || 'Unknown Room'}</span>
           {viewType !== 'section' && <span className="truncate">{sectionMap.get(slot.section_id) || 'Unknown Section'}</span>}
@@ -295,7 +292,7 @@ export default function TimetableGrid({
             </button>
           </div>
         )}
-      </div>
+      </motion.div>
     );
   };
 
@@ -331,8 +328,8 @@ export default function TimetableGrid({
     <div
       className="grid min-w-[1040px]"
       style={{
-        gridTemplateColumns: `142px repeat(${periodsPerDay}, minmax(148px, 1fr))`,
-        gridTemplateRows: `44px repeat(${cycleLength}, minmax(112px, auto))`,
+        gridTemplateColumns: `150px repeat(${periodsPerDay}, minmax(164px, 1fr))`,
+        gridTemplateRows: `48px repeat(${cycleLength}, minmax(124px, auto))`,
       }}
     >
       <div className="sticky left-0 z-20 bg-on-background text-paper-raised border-b border-r border-rule p-3 text-data-table font-semibold">
@@ -383,8 +380,8 @@ export default function TimetableGrid({
     <div
       className="grid min-w-[960px]"
       style={{
-        gridTemplateColumns: `142px repeat(${cycleLength}, minmax(180px, 1fr))`,
-        gridTemplateRows: `44px repeat(${periodsPerDay}, minmax(96px, auto))`,
+        gridTemplateColumns: `150px repeat(${cycleLength}, minmax(190px, 1fr))`,
+        gridTemplateRows: `48px repeat(${periodsPerDay}, minmax(112px, auto))`,
       }}
     >
       <div className="sticky left-0 z-20 bg-on-background text-paper-raised border-b border-r border-rule p-3 text-data-table font-semibold">
@@ -452,21 +449,78 @@ export default function TimetableGrid({
                 No classes scheduled in this version.
               </td>
             </tr>
-          ) : sortedAssignments.map((slot) => (
-            <tr key={slot.id} className="hover:bg-surface-container-low">
-              <td className="px-4 py-3 text-sm font-semibold text-on-surface">{dayLabels[dayValues.indexOf(slot.day)] || slot.day}</td>
-              <td className="px-4 py-3 text-sm text-on-surface">Hour {slot.period}</td>
-              <td className="px-4 py-3 text-sm text-on-surface">{sectionMap.get(slot.section_id) || 'Unknown Section'}</td>
-              <td className="px-4 py-3 text-sm text-on-surface">{subjectMap.get(slot.subject_id)?.name || 'Unknown Subject'}</td>
-              <td className="px-4 py-3 text-sm text-on-surface">{teacherMap.get(slot.teacher_id) || 'Unknown Teacher'}</td>
-              <td className="px-4 py-3 text-sm text-on-surface">{roomMap.get(slot.room_id) || 'Unknown Room'}</td>
-              <td className="px-4 py-3 text-sm text-on-surface">{slot.duration_periods || 1}h</td>
-            </tr>
-          ))}
+          ) : sortedAssignments.map((slot) => {
+            const subject = subjectMap.get(slot.subject_id);
+            const subjectColor = subject ? getSubjectColor(subject) : '#64748b';
+            return (
+              <tr key={slot.id} className="hover:bg-surface-container-low">
+                <td className="px-4 py-3 text-sm font-semibold text-on-surface">{dayLabels[dayValues.indexOf(slot.day)] || slot.day}</td>
+                <td className="px-4 py-3 text-sm text-on-surface">Hour {slot.period}</td>
+                <td className="px-4 py-3 text-sm text-on-surface">{sectionMap.get(slot.section_id) || 'Unknown Section'}</td>
+                <td className="px-4 py-3 text-sm text-on-surface">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-3 w-3 rounded-sm" style={{ background: subjectColor }} />
+                    {subject?.name || 'Unknown Subject'}
+                  </span>
+                </td>
+                <td className="px-4 py-3 text-sm text-on-surface">{teacherMap.get(slot.teacher_id) || 'Unknown Teacher'}</td>
+                <td className="px-4 py-3 text-sm text-on-surface">{roomMap.get(slot.room_id) || 'Unknown Room'}</td>
+                <td className="px-4 py-3 text-sm text-on-surface">{slot.duration_periods || 1}h</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>
   );
+
+  const renderDayView = () => {
+    const activeDay = dayValues.includes(selectedDayTab) ? selectedDayTab : dayValues[0] || 'Mon';
+    const daySlots = Array.from({ length: periodsPerDay }).map((_, periodIdx) => {
+      const period = periodIdx + 1;
+      const slot = slotByStart.get(`${activeDay}:${period}`);
+      return { period, slot };
+    });
+
+    return (
+      <div className="space-y-4 rounded-xl border-2 border-rule bg-paper-raised p-5 shadow-sm">
+        <div className="flex overflow-x-auto gap-2 border-b border-rule pb-3">
+          {dayValues.map((day, idx) => (
+            <button
+              key={day}
+              type="button"
+              onClick={() => setSelectedDayTab(day)}
+              className={`px-4 py-2 text-xs font-semibold rounded-lg shrink-0 transition-all ${
+                activeDay === day ? 'bg-primary text-on-primary shadow-sm' : 'bg-surface-container text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              {dayLabels[idx]}
+            </button>
+          ))}
+        </div>
+
+        <div className="space-y-3">
+          {daySlots.map(({ period, slot }) => (
+            <div key={period} className="flex gap-4 items-start">
+              <div className="w-16 shrink-0 pt-3 text-right">
+                <span className="text-xs font-bold text-on-surface font-mono">P{period}</span>
+                <p className="text-[10px] text-mono-grey">Hour {period}</p>
+              </div>
+              <div className="flex-1 min-h-[96px]">
+                {slot ? (
+                  renderSlot(slot)
+                ) : (
+                  <div className="flex h-full min-h-[90px] items-center justify-center rounded-lg border border-dashed border-rule p-4 text-xs italic text-mono-grey/60">
+                    Empty slot
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-4">
@@ -514,7 +568,7 @@ export default function TimetableGrid({
 
           <span className="text-label-caps text-mono-grey" style={{ fontSize: 10 }}>View:</span>
           <div className="flex bg-surface-container p-0.5 rounded-lg border border-rule">
-            {(['board', 'list'] as const).map((mode) => (
+            {(['board', 'day', 'list'] as const).map((mode) => (
               <button
                 key={mode}
                 type="button"
@@ -523,7 +577,7 @@ export default function TimetableGrid({
                   displayMode === mode ? 'bg-paper-raised text-primary shadow-sm' : 'text-on-surface-variant hover:text-on-surface'
                 }`}
               >
-                {mode === 'board' ? 'Board' : 'All Classes'}
+                {mode === 'board' ? 'Board' : mode === 'day' ? 'Day View' : 'All Classes'}
               </button>
             ))}
           </div>
@@ -574,7 +628,9 @@ export default function TimetableGrid({
         </div>
       )}
 
-      {displayMode === 'list' ? (
+      {displayMode === 'day' ? (
+        renderDayView()
+      ) : displayMode === 'list' ? (
         renderAllClasses()
       ) : (
         <div className="bg-paper-raised border-2 border-rule rounded-xl overflow-x-auto shadow-sm">

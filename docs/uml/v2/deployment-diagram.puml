@@ -1,0 +1,56 @@
+@startuml
+title SlotForge — Deployment Diagram
+skinparam shadowing false
+skinparam linetype ortho
+skinparam ArrowColor #475569
+skinparam node {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+}
+skinparam component {
+  BackgroundColor #EEF2FF
+  BorderColor #4338CA
+}
+skinparam database {
+  BackgroundColor #ECFDF5
+  BorderColor #047857
+}
+
+node "Admin / Faculty Device" as user {
+  artifact "Web browser" as browser
+}
+cloud "Vercel" as vercel {
+  component "React + Vite frontend" as frontend
+}
+cloud "Supabase" as supabase {
+  component "Supabase Auth" as auth
+  database "PostgreSQL" as database
+}
+node "Oracle Cloud VPS" as oracle {
+  component "FastAPI service" as backend
+  component "OR-Tools CP-SAT solver" as solver
+  component "Validation and explanations" as validation
+}
+artifact "Generated downloads\nPDF · XLSX · DOCX · ICS · HTML" as downloads
+
+browser --> frontend : HTTPS
+frontend --> auth : sign in / refresh session
+auth --> frontend : access token
+frontend --> backend : HTTPS API + bearer token
+backend --> auth : verify token via JWKS
+backend --> database : tenant-scoped SQL
+backend --> solver : validated scheduling model
+solver --> validation : candidate / infeasibility
+validation --> backend : result + explanations
+frontend --> downloads : client-side export
+
+note bottom of database
+  Stores organizations, workspaces, generic
+  scheduling inputs, runs, versions, assignments,
+  memberships, and faculty share links.
+end note
+note bottom of backend
+  The API enforces organization membership and
+  admin authorization before database access.
+end note
+@enduml

@@ -4,27 +4,50 @@ __pycache__/
 *.egg-info/
 .venv/
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
 
 # Env
 .env
+.env.*
+!.env.example
 *.env.local
 
 # Node / frontend (Phase 6 onward)
 node_modules/
 dist/
+dist-ssr/
+.next/
 .vite/
+coverage/
+*.tsbuildinfo
 
 # OS
 .DS_Store
+Thumbs.db
 
 # Editors
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # Logs
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
 
 # DB
 *.sqlite3
+*.sqlite
+*.db
+
+# Generated exports / local keys
 backend/app/static/exports/
 backend/scripts/server_key

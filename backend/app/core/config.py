@@ -15,6 +15,10 @@ class Settings(BaseSettings):
     DEV_MODE: bool = False
     FRONTEND_ORIGIN: str = "http://localhost:5173"
     FRONTEND_ORIGINS: str | None = None
+    DEMO_SEED_ON_ALEMBIC_UPGRADE: bool = True
+    DEMO_SEED_EMAIL: str = "demo@slotforge.local"
+    DEMO_SEED_PASSWORD: str = "SlotForgeDemo123!"
+    DEMO_SEED_ORG_NAME: str = "SlotForge Demo University"
 
     @property
     def cors_origins(self) -> list[str]:

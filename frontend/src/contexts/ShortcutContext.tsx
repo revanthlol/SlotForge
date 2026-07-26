@@ -183,12 +183,14 @@ export function ShortcutProvider({ children }: { children: ReactNode }) {
   }, [navigate]);
 
   const globalActions = useMemo<ShortcutAction[]>(() => [
-    { id: 'nav.dashboard', label: 'Go to Dashboard', shortcut: 'g d', keywords: ['home'], handler: () => navigate('/dashboard') },
+    { id: 'nav.dashboard', label: 'Go to Dashboard', shortcut: 'g d', keywords: ['home'], handler: () => navigate('/') },
     { id: 'nav.teachers', label: 'Go to Teachers', shortcut: 'g t', keywords: ['faculty'], handler: () => navigate('/resources/teachers') },
     { id: 'nav.rooms', label: 'Go to Rooms', shortcut: 'g r', handler: () => navigate('/resources/rooms') },
     { id: 'nav.subjects', label: 'Go to Subjects', shortcut: 'g s', handler: () => navigate('/resources/subjects') },
     { id: 'nav.sections', label: 'Go to Sections', shortcut: 'g c', keywords: ['classes'], handler: () => navigate('/resources/sections') },
     { id: 'nav.timetable', label: 'Go to Timetable', shortcut: 'g m', handler: () => navigate('/timetable') },
+    { id: 'nav.faculty', label: 'Go to Faculty Timetables', shortcut: 'g f', keywords: ['share links'], handler: () => navigate('/faculty') },
+    { id: 'nav.heatmap', label: 'Go to Conflict Heatmap', shortcut: 'g h', keywords: ['pressure', 'violations', 'explainability'], handler: () => navigate('/heatmap') },
     { id: 'nav.canvas', label: 'Go to Canvas View', shortcut: 'g a', keywords: ['graph'], handler: () => navigate('/canvas') },
     { id: 'nav.versions', label: 'Go to Version History', shortcut: 'g v', handler: () => navigate('/versions') },
     { id: 'nav.solver', label: 'Go to Solver Engine', shortcut: 'g e', handler: () => navigate('/solver') },

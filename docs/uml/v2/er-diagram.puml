@@ -1,0 +1,153 @@
+@startuml
+title SlotForge — Core Entity-Relationship Diagram
+hide methods
+hide stereotypes
+skinparam linetype ortho
+skinparam shadowing false
+skinparam entity {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+}
+skinparam ArrowColor #475569
+
+entity "profiles" as profiles {
+  * id : uuid <<PK>>
+  --
+  full_name : varchar
+  job_title : varchar
+}
+entity "organizations" as organizations {
+  * id : uuid <<PK>>
+  --
+  name : varchar
+  scheduling_mode : varchar
+}
+entity "organization_memberships" as memberships {
+  * id : uuid <<PK>>
+  --
+  user_id : uuid <<FK>>
+  organization_id : uuid <<FK>>
+  role : varchar
+}
+entity "scheduling_workspaces" as workspaces {
+  * id : uuid <<PK>>
+  --
+  organization_id : uuid <<FK>>
+  name : varchar
+  domain_preset : varchar
+}
+entity "resources\n(teachers)" as resources {
+  * id : uuid <<PK>>
+  --
+  workspace_id : uuid <<FK>>
+  name : varchar
+  resource_type : varchar
+  availability : jsonb
+}
+entity "tasks\n(subjects)" as tasks {
+  * id : uuid <<PK>>
+  --
+  workspace_id : uuid <<FK>>
+  name : varchar
+  task_type : varchar
+  required_hours : integer
+}
+entity "groups\n(sections)" as groups {
+  * id : uuid <<PK>>
+  --
+  workspace_id : uuid <<FK>>
+  name : varchar
+  group_type : varchar
+  size : integer
+}
+entity "locations\n(rooms / labs)" as locations {
+  * id : uuid <<PK>>
+  --
+  workspace_id : uuid <<FK>>
+  name : varchar
+  location_type : varchar
+  capacity : integer
+}
+entity timeslots {
+  * id : uuid <<PK>>
+  --
+  workspace_id : uuid <<FK>>
+  day : varchar
+  slot_index : integer
+}
+entity constraint_rules {
+  * id : uuid <<PK>>
+  --
+  workspace_id : uuid <<FK>>
+  name : varchar
+  rule_type : varchar
+  priority : varchar
+  enabled : boolean
+}
+entity schedule_runs {
+  * id : uuid <<PK>>
+  --
+  workspace_id : uuid <<FK>>
+  status : varchar
+  result : jsonb
+}
+entity schedule_versions {
+  * id : uuid <<PK>>
+  --
+  workspace_id : uuid <<FK>>
+  schedule_run_id : uuid <<FK>>
+  version_label : varchar
+  status : varchar
+  parent_version_id : uuid <<FK>>
+}
+entity assignments {
+  * id : uuid <<PK>>
+  --
+  schedule_version_id : uuid <<FK>>
+  task_id : uuid <<FK>>
+  group_id : uuid <<FK>>
+  timeslot_id : uuid <<FK>>
+  teacher_id : uuid <<FK>>
+  room_id : uuid <<FK>>
+}
+entity faculty_share_links {
+  * id : uuid <<PK>>
+  --
+  resource_id : uuid <<FK>>
+  schedule_run_id : uuid <<FK>>
+  token : varchar
+  expires_at : timestamp
+  is_active : boolean
+}
+
+profiles ||--o{ memberships
+organizations ||--o{ memberships
+organizations ||--o{ workspaces
+workspaces ||--o{ resources
+workspaces ||--o{ tasks
+workspaces ||--o{ groups
+workspaces ||--o{ locations
+workspaces ||--o{ timeslots
+workspaces ||--o{ constraint_rules
+workspaces ||--o{ schedule_runs
+workspaces ||--o{ schedule_versions
+schedule_runs ||--o{ schedule_versions : produces
+schedule_versions ||--o{ assignments : contains
+schedule_versions |o--o{ schedule_versions : parent
+resources ||--o{ assignments : teacher
+tasks ||--o{ assignments : subject
+groups |o--o{ assignments : section
+locations ||--o{ assignments : room
+timeslots |o--o{ assignments : occurs_in
+resources ||--o{ faculty_share_links
+schedule_runs ||--o{ faculty_share_links
+
+note bottom of profiles
+  profiles.id corresponds to the user UUID
+  issued by Supabase Auth.
+end note
+note bottom of assignments
+  Academic names are friendly views over the
+  generic scheduling tables used by the solver.
+end note
+@enduml

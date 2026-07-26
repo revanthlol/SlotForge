@@ -1,0 +1,107 @@
+@startuml
+title SlotForge — Academic Scheduling Model
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam linetype ortho
+skinparam ArrowColor #475569
+skinparam ClassBackgroundColor #F8FAFC
+skinparam ClassBorderColor #334155
+
+class Profile {
+  +id: UUID
+  +fullName: String
+  +jobTitle: String
+}
+class Organization {
+  +id: UUID
+  +name: String
+  +schedulingMode: String
+}
+class Membership {
+  +role: String
+}
+class Workspace {
+  +id: UUID
+  +name: String
+  +domainPreset: String
+}
+class Teacher <<Resource>> {
+  +name: String
+  +availability: JSON
+  +maxHours: Integer
+}
+class Subject <<Task>> {
+  +name: String
+  +weeklyHours: Integer
+}
+class Section <<Group>> {
+  +name: String
+  +studentCount: Integer
+}
+class Room <<Location>> {
+  +name: String
+  +capacity: Integer
+  +type: String
+}
+class TimeSlot {
+  +day: String
+  +slotIndex: Integer
+}
+class ConstraintRule {
+  +name: String
+  +ruleType: String
+  +priority: String
+  +enabled: Boolean
+}
+class ScheduleRun {
+  +status: String
+  +result: JSON
+}
+class TimetableVersion {
+  +label: String
+  +versionNumber: Integer
+  +status: String
+}
+class Assignment {
+  +day: String
+  +period: Integer
+  +durationSlots: Integer
+}
+class Scheduler {
+  +generate(): ScheduleRun
+  +explainConflicts(): Report
+}
+class ExportService {
+  +exportPDF()
+  +exportExcel()
+  +exportCalendar()
+}
+
+Profile "1" -- "0..*" Membership
+Organization "1" -- "1..*" Membership
+Organization "1" o-- "1..*" Workspace
+Workspace "1" o-- "0..*" Teacher
+Workspace "1" o-- "0..*" Subject
+Workspace "1" o-- "0..*" Section
+Workspace "1" o-- "0..*" Room
+Workspace "1" o-- "0..*" TimeSlot
+Workspace "1" o-- "0..*" ConstraintRule
+Workspace "1" o-- "0..*" ScheduleRun
+ScheduleRun "1" --> "0..*" TimetableVersion : produces
+TimetableVersion "1" *-- "0..*" Assignment
+Teacher "1" --> "0..*" Assignment : teaches
+Subject "1" --> "0..*" Assignment : scheduled as
+Section "0..1" --> "0..*" Assignment : attends
+Room "1" --> "0..*" Assignment : uses
+TimeSlot "0..1" --> "0..*" Assignment : occurs in
+ConstraintRule "0..*" --> Scheduler : guides
+Scheduler --> ScheduleRun : records
+ExportService --> TimetableVersion : reads
+
+note right of Teacher
+  Teacher, Subject, Section, and Room are the
+  academic presentation of generic Resource,
+  Task, Group, and Location records.
+end note
+@enduml

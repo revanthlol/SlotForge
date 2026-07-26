@@ -1,0 +1,36 @@
+@startuml
+title SlotForge — Generate Timetable Sequence
+skinparam shadowing false
+skinparam linetype ortho
+skinparam ArrowColor #475569
+skinparam ParticipantBorderColor #334155
+skinparam ParticipantBackgroundColor #F8FAFC
+
+actor Admin
+participant "React frontend" as Frontend
+participant "Supabase Auth" as Auth
+participant "FastAPI backend" as Backend
+database "PostgreSQL" as Database
+participant "OR-Tools scheduler" as Scheduler
+
+Admin -> Frontend : Sign in
+Frontend -> Auth : Submit credentials
+Auth --> Frontend : Session + access token
+Admin -> Frontend : Generate timetable
+Frontend -> Backend : POST generation request\nBearer access token
+Backend -> Auth : Verify token signature / claims
+Backend -> Database : Check membership and load\nworkspace inputs + constraints
+Database --> Backend : Resources, tasks, groups,\nlocations, timeslots, rules
+Backend -> Scheduler : Build and solve problem
+alt feasible
+  Scheduler --> Backend : Assignments + score
+  Backend -> Database : Save run, version, assignments
+  Backend --> Frontend : Draft timetable
+  Frontend --> Admin : Review conflicts and placements
+else infeasible
+  Scheduler --> Backend : Infeasibility details
+  Backend -> Database : Save failed run
+  Backend --> Frontend : Conflict explanation
+  Frontend --> Admin : Adjust data or rules
+end
+@enduml

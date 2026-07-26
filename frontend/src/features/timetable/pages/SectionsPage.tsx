@@ -1,0 +1,348 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useAuth } from '../../../contexts/AuthContext';
+import { ShortcutHint, useShortcutAction } from '../../../contexts/ShortcutContext';
+import {
+  useSectionSubjectTeacherAssignments,
+  useSections,
+  useSubjects,
+  useTeachers,
+  useTeacherSubjectAssignments,
+  type Section,
+} from '../../../hooks/useApi';
+import api from '../../../lib/api';
+import PageHeader from '../../../components/ui/PageHeader';
+import Modal from '../../../components/ui/Modal';
+import SearchInput from '../../../components/ui/SearchInput';
+import ConfirmModal from '../../../components/ui/ConfirmModal';
+import { getApiErrorMessage } from '../../../lib/errors';
+import { usePresetConfig } from '../../presets/hooks/usePresetConfig';
+
+export default function SectionsPage() {
+  const { organizationId } = useAuth();
+  const config = usePresetConfig();
+  const { data: sections, loading, refetch } = useSections(organizationId);
+  const { data: teachers, refetch: refetchTeachers } = useTeachers(organizationId);
+  const { data: subjects } = useSubjects(organizationId);
+  const { data: teacherSubjects, refetch: refetchTeacherSubjects } = useTeacherSubjectAssignments(organizationId);
+  const { data: sectionTeacherRows, refetch: refetchSectionTeachers } = useSectionSubjectTeacherAssignments(organizationId);
+  const [search, setSearch] = useState('');
+  const searchRef = useRef<HTMLInputElement>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editing, setEditing] = useState<Section | null>(null);
+  const [formName, setFormName] = useState('');
+  const [formSize, setFormSize] = useState('');
+  const [classTeacherId, setClassTeacherId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [mapSection, setMapSection] = useState<Section | null>(null);
+  const [teachingMap, setTeachingMap] = useState<Record<string, string>>({});
+  const [subjectEnabledMap, setSubjectEnabledMap] = useState<Record<string, boolean>>({});
+  const [deleteTarget, setDeleteTarget] = useState<Section | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const filtered = sections?.filter(s =>
+    s.name.toLowerCase().includes(search.toLowerCase())
+  ) || [];
+
+  const teacherById = useMemo(() => new Map((teachers || []).map(teacher => [teacher.id, teacher])), [teachers]);
+  const qualifiedTeacherIdsBySubject = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    (teacherSubjects || []).forEach(row => {
+      if (!map.has(row.subject_id)) map.set(row.subject_id, new Set());
+      map.get(row.subject_id)!.add(row.teacher_id);
+    });
+    return map;
+  }, [teacherSubjects]);
+
+  const openCreate = () => { setEditing(null); setFormName(''); setFormSize(''); setClassTeacherId(''); setModalOpen(true); };
+  const openEdit = (s: Section) => {
+    setEditing(s);
+    setFormName(s.name);
+    setFormSize(String(s.size));
+    setClassTeacherId(s.class_teacher_id || '');
+    setModalOpen(true);
+  };
+
+  useEffect(() => {
+    const maybeOpen = (resource?: string) => {
+      const pending = resource || window.sessionStorage.getItem('slotforge:create-resource');
+      if (pending === 'section') {
+        window.sessionStorage.removeItem('slotforge:create-resource');
+        openCreate();
+      }
+    };
+    const onCreate = (event: Event) => maybeOpen((event as CustomEvent<string>).detail);
+    maybeOpen();
+    window.addEventListener('slotforge:create-resource', onCreate);
+    return () => window.removeEventListener('slotforge:create-resource', onCreate);
+  }, []);
+
+  useShortcutAction(useMemo(() => ({
+    id: 'sections.create',
+    label: `Create ${config.sectionLabel}`,
+    shortcut: 'c c',
+    keywords: [`${config.sectionLabel.toLowerCase()}`],
+    handler: openCreate,
+  }), [config.sectionLabel]));
+
+  useShortcutAction(useMemo(() => ({
+    id: 'sections.search',
+    label: `Focus ${config.sectionLabel} Search`,
+    shortcut: '/',
+    handler: () => searchRef.current?.focus(),
+  }), [config.sectionLabel]));
+
+  const handleSave = async () => {
+    if (!formName.trim() || !formSize || !organizationId) return;
+    setSaving(true);
+    try {
+      if (editing) {
+        await api.put(`/sections/${editing.id}`, { name: formName, size: parseInt(formSize), class_teacher_id: classTeacherId || null });
+      } else {
+        await api.post('/sections', { organization_id: organizationId, name: formName, size: parseInt(formSize), class_teacher_id: classTeacherId || null });
+      }
+      setModalOpen(false);
+      refetch();
+    } catch (err) { console.error(err); }
+    finally { setSaving(false); }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) return;
+    setSaving(true);
+    setDeleteError(null);
+    try {
+      await api.delete(`/sections/${deleteTarget.id}`);
+      setDeleteTarget(null);
+      refetch();
+      refetchSectionTeachers();
+    } catch (err) {
+      setDeleteError(getApiErrorMessage(err, `Could not delete ${config.sectionLabel.toLowerCase()}`));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openTeachingMap = (section: Section) => {
+    setMapSection(section);
+    const nextMap: Record<string, string> = {};
+    const rowsForSection = (sectionTeacherRows || [])
+      .filter(row => row.section_id === section.id)
+    rowsForSection.forEach(row => {
+      nextMap[row.subject_id] = row.teacher_id || '';
+    });
+    setTeachingMap(nextMap);
+    const hasRows = rowsForSection.length > 0;
+    setSubjectEnabledMap(Object.fromEntries((subjects || []).map(subject => [
+      subject.id,
+      hasRows ? rowsForSection.some(row => row.subject_id === subject.id) : true,
+    ])));
+  };
+
+  const saveTeachingMap = async () => {
+    if (!mapSection) return;
+    setSaving(true);
+    try {
+      await api.put('/assignments/section-subject-teachers', {
+        assignments: (subjects || []).map(subject => ({
+          section_id: mapSection.id,
+          subject_id: subject.id,
+          enabled: subjectEnabledMap[subject.id] !== false,
+          teacher_id: teachingMap[subject.id] || null,
+        })),
+      });
+      setMapSection(null);
+      refetchSectionTeachers();
+      refetchTeacherSubjects();
+      refetchTeachers();
+    } catch (err) { console.error(err); }
+    finally { setSaving(false); }
+  };
+
+  return (
+    <div>
+      <PageHeader
+        breadcrumb={`RESOURCES / ${config.sectionTitle.toUpperCase()}`}
+        title={config.sectionTitle}
+        subtitle={`Manage ${config.sectionTitle.toLowerCase()} and sizes for scheduling`}
+        actions={
+          <button onClick={openCreate}
+            className="px-4 py-2.5 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors flex items-center gap-2">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>add</span>
+            Add {config.sectionLabel}
+            <ShortcutHint shortcut="c c" />
+          </button>
+        }
+      />
+
+      <div className="mb-5">
+        <SearchInput
+          inputRef={searchRef}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          onClear={() => setSearch('')}
+          placeholder={`Search ${config.sectionTitle.toLowerCase()}...`}
+          shortcut="/"
+        />
+      </div>
+
+      <div className="bg-paper-raised border-2 border-rule rounded-xl overflow-hidden">
+        <div className="grid grid-cols-12 bg-on-background text-paper-raised px-6 py-3">
+          <div className="col-span-1 text-data-table font-semibold">#</div>
+          <div className="col-span-4 text-data-table font-semibold">{config.sectionLabel} Name</div>
+          <div className="col-span-2 text-data-table font-semibold">{config.sectionLabel} Size</div>
+          <div className="col-span-2 text-data-table font-semibold">{config.teacherLabel} Leader</div>
+          <div className="col-span-2 text-data-table font-semibold">ID</div>
+          <div className="col-span-1 text-data-table font-semibold text-right">Actions</div>
+        </div>
+        {loading ? (
+          <div className="px-6 py-12 text-center text-body-sm text-mono-grey">Loading...</div>
+        ) : filtered.length === 0 ? (
+          <div className="px-6 py-12 text-center">
+            <span className="material-symbols-outlined text-outline-variant mb-2" style={{ fontSize: 36 }}>groups</span>
+            <p className="text-body-sm text-on-surface-variant">No {config.sectionTitle.toLowerCase()} configured</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-rule">
+            {filtered.map((s, idx) => (
+              <div key={s.id} className="grid grid-cols-12 px-6 py-3 items-center hover:bg-surface-bright transition-colors group">
+                <div className="col-span-1 text-data-table text-mono-grey">{idx + 1}</div>
+                <div className="col-span-4 flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-signal-soft flex items-center justify-center">
+                    <span className="text-xs font-bold text-secondary">{s.name.slice(0, 2).toUpperCase()}</span>
+                  </div>
+                  <span className="text-sm font-medium text-on-surface">{s.name}</span>
+                </div>
+                <div className="col-span-2 flex items-center gap-3">
+                  <div className="w-16 h-1.5 bg-surface-container rounded-full overflow-hidden">
+                    <div className="h-full bg-secondary rounded-full" style={{ width: `${Math.min((s.size / 100) * 100, 100)}%` }} />
+                  </div>
+                  <span className="text-data-table text-on-surface font-medium">{s.size} capacity</span>
+                </div>
+                <div className="col-span-2 text-data-table text-on-surface">
+                  {s.class_teacher_id ? teacherById.get(s.class_teacher_id)?.name || 'Assigned' : <span className="text-mono-grey">—</span>}
+                </div>
+                <div className="col-span-2 text-code-snippet text-mono-grey">{s.id.slice(0, 8)}</div>
+                <div className="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => openTeachingMap(s)} className="p-1.5 rounded-lg hover:bg-accent-soft transition-colors" title={`${config.subjectLabel} Allocation`}>
+                    <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 18 }}>account_tree</span>
+                  </button>
+                  <button onClick={() => openEdit(s)} className="p-1.5 rounded-lg hover:bg-accent-soft transition-colors">
+                    <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 18 }}>edit</span>
+                  </button>
+                  <button onClick={() => {
+                    setDeleteError(null);
+                    setDeleteTarget(s);
+                  }} className="p-1.5 rounded-lg hover:bg-error-container transition-colors">
+                    <span className="material-symbols-outlined text-error" style={{ fontSize: 18 }}>delete</span>
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="px-6 py-3 border-t border-rule bg-surface-container-low">
+          <p className="text-data-table text-mono-grey">{filtered.length} {filtered.length !== 1 ? config.sectionTitle.toLowerCase() : config.sectionLabel.toLowerCase()}</p>
+        </div>
+      </div>
+
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? `Edit ${config.sectionLabel}` : `Add ${config.sectionLabel}`}
+        actions={
+          <>
+            <button onClick={() => setModalOpen(false)} className="px-4 py-2 text-sm text-on-surface-variant border border-rule rounded-lg hover:bg-surface-container transition-colors">Cancel</button>
+            <button onClick={handleSave} disabled={saving || !formName.trim()} data-modal-primary="true" className="px-4 py-2 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors disabled:opacity-50">
+              {saving ? 'Saving...' : editing ? 'Update' : 'Create'}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-5">
+          <div>
+            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>{config.sectionLabel} Name</label>
+            <input type="text" value={formName} onChange={(e) => setFormName(e.target.value)} className="academic-input w-full" placeholder={config.sectionPlaceholder} autoFocus />
+          </div>
+          <div>
+            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>{config.sectionLabel} Size</label>
+            <input type="number" value={formSize} onChange={(e) => setFormSize(e.target.value)} className="academic-input w-full" placeholder="60" min={1} />
+          </div>
+          <div>
+            <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>{config.teacherLabel} Leader</label>
+            <select value={classTeacherId} onChange={(e) => setClassTeacherId(e.target.value)} className="academic-input w-full">
+              <option value="">Unassigned</option>
+              {(teachers || []).map(teacher => (
+                <option key={teacher.id} value={teacher.id}>{teacher.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </Modal>
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        title={`Delete ${config.sectionLabel.toLowerCase()}`}
+        message={`Delete ${deleteTarget?.name || `this ${config.sectionLabel.toLowerCase()}`}? Related assignments and generated schedules may need regeneration.`}
+        loading={saving}
+        error={deleteError}
+        onCancel={() => {
+          setDeleteTarget(null);
+          setDeleteError(null);
+        }}
+        onConfirm={handleDelete}
+      />
+
+      <Modal open={!!mapSection} onClose={() => setMapSection(null)} title={`${config.subjectLabel} Allocations for ${mapSection?.name || ''}`}
+        maxWidth="max-w-3xl"
+        actions={
+          <>
+            <button onClick={() => setMapSection(null)} className="px-4 py-2 text-sm text-on-surface-variant border border-rule rounded-lg hover:bg-surface-container transition-colors">Cancel</button>
+            <button onClick={saveTeachingMap} disabled={saving} data-modal-primary="true" className="px-4 py-2 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors disabled:opacity-50">
+              {saving ? 'Saving...' : 'Save'}
+            </button>
+          </>
+        }
+      >
+        <div className="space-y-3">
+          {(subjects || []).map(subject => {
+            const qualifiedIds = qualifiedTeacherIdsBySubject.get(subject.id) || new Set<string>();
+            const sortedTeachers = [...(teachers || [])].sort((a, b) => {
+              const aQualified = qualifiedIds.has(a.id) ? 0 : 1;
+              const bQualified = qualifiedIds.has(b.id) ? 0 : 1;
+              return aQualified - bQualified || a.name.localeCompare(b.name);
+            });
+            return (
+              <div key={subject.id} className={`grid grid-cols-12 items-center gap-3 rounded-lg border px-3 py-2 ${subjectEnabledMap[subject.id] === false ? 'border-rule bg-surface-container-low opacity-70' : 'border-rule'}`}>
+                <div className="col-span-5 flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={subjectEnabledMap[subject.id] !== false}
+                    onChange={(event) => setSubjectEnabledMap(prev => ({ ...prev, [subject.id]: event.target.checked }))}
+                    className="h-4 w-4 accent-primary"
+                    aria-label={`Include ${subject.name} in ${mapSection?.name || 'section'}`}
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-on-surface">{subject.name}</p>
+                    <p className="text-data-table text-mono-grey">{subject.weekly_hours} weekly {config.timeUnitLabel.toLowerCase()}</p>
+                  </div>
+                </div>
+                <div className="col-span-7">
+                  <select
+                    value={teachingMap[subject.id] || ''}
+                    onChange={(event) => setTeachingMap(prev => ({ ...prev, [subject.id]: event.target.value }))}
+                    className="academic-input w-full"
+                    disabled={subjectEnabledMap[subject.id] === false}
+                  >
+                    <option value="">Included, use qualified {config.teacherLabel.toLowerCase()} pool</option>
+                    {sortedTeachers.map(teacher => (
+                      <option key={teacher.id} value={teacher.id}>
+                        {teacher.name}{qualifiedIds.has(teacher.id) ? '' : ' (adds qualification)'}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Modal>
+    </div>
+  );
+}

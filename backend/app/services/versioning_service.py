@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from typing import Optional, List
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -32,14 +33,17 @@ class VersioningService:
             return None
 
         # Demote current published version to archived
+        now = datetime.utcnow()
         db.query(VersionModel).filter(
             VersionModel.organization_id == org_id,
             VersionModel.status == "published",
             VersionModel.id != version_id
-        ).update({"status": "archived"}, synchronize_session=False)
+        ).update({"status": "archived", "archived_at": now}, synchronize_session=False)
 
         # Update target version status to published
         target.status = "published"
+        target.published_at = now
+        target.archived_at = None
         db.commit()
         db.refresh(target)
 
@@ -82,9 +86,13 @@ class VersioningService:
         # Create new version
         new_version = VersionModel(
             organization_id=org_id,
+            workspace_id=target.workspace_id,
+            version_label=f"v{new_version_number}",
             version_number=new_version_number,
             status="published",
             scores=target.scores,
+            parent_version_id=target.id,
+            branch_name=f"Rollback: {target.version_label}",
             created_by=actor_id
         )
         db.add(new_version)
@@ -107,11 +115,13 @@ class VersioningService:
             db.add(new_slot)
 
         # Demote currently published version(s) to archived
+        now = datetime.utcnow()
+        new_version.published_at = now
         db.query(VersionModel).filter(
             VersionModel.organization_id == org_id,
             VersionModel.status == "published",
             VersionModel.id != new_version.id
-        ).update({"status": "archived"}, synchronize_session=False)
+        ).update({"status": "archived", "archived_at": now}, synchronize_session=False)
 
         db.commit()
         db.refresh(new_version)

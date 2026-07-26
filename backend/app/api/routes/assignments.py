@@ -54,7 +54,7 @@ def _section_teacher_schema(row: SectionSubjectTeacherAssignmentModel) -> Sectio
         organization_id=str(row.organization_id),
         section_id=str(row.section_id),
         subject_id=str(row.subject_id),
-        teacher_id=str(row.teacher_id),
+        teacher_id=str(row.teacher_id) if row.teacher_id else None,
     )
 
 
@@ -138,7 +138,7 @@ def bulk_update_section_subject_teacher_assignments(
             SectionSubjectTeacherAssignmentModel.subject_id == subject_uuid,
         ).first()
 
-        if teacher_uuid is None:
+        if not item.enabled:
             if existing:
                 db.delete(existing)
             continue
@@ -153,17 +153,18 @@ def bulk_update_section_subject_teacher_assignments(
                 teacher_id=teacher_uuid,
             ))
 
-        qualified = db.query(TeacherSubjectAssignmentModel).filter(
-            TeacherSubjectAssignmentModel.organization_id == current_user.organization_id,
-            TeacherSubjectAssignmentModel.teacher_id == teacher_uuid,
-            TeacherSubjectAssignmentModel.subject_id == subject_uuid,
-        ).first()
-        if not qualified:
-            db.add(TeacherSubjectAssignmentModel(
-                organization_id=current_user.organization_id,
-                teacher_id=teacher_uuid,
-                subject_id=subject_uuid,
-            ))
+        if teacher_uuid:
+            qualified = db.query(TeacherSubjectAssignmentModel).filter(
+                TeacherSubjectAssignmentModel.organization_id == current_user.organization_id,
+                TeacherSubjectAssignmentModel.teacher_id == teacher_uuid,
+                TeacherSubjectAssignmentModel.subject_id == subject_uuid,
+            ).first()
+            if not qualified:
+                db.add(TeacherSubjectAssignmentModel(
+                    organization_id=current_user.organization_id,
+                    teacher_id=teacher_uuid,
+                    subject_id=subject_uuid,
+                ))
 
     AssignmentSyncService.regenerate_assignment_constraints(db, current_user.organization_id)
     db.commit()

@@ -14,6 +14,10 @@ from app.models.section import Section as SectionModel
 from app.models.constraint import Constraint as ConstraintModel
 from app.models.timetable_version import TimetableVersion as VersionModel
 from app.models.timetable_slot import TimetableSlot as SlotModel
+from app.models.workspace import SchedulingWorkspace
+from app.models.schedule_run import ScheduleRun
+from app.models.schedule_version import ScheduleVersion
+from app.models.timeslot import TimeSlot as DbTimeSlot
 
 FIXED_WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
@@ -49,9 +53,10 @@ class TimetableService:
         org_sections = [
             Section(id=str(sec.id), name=sec.name, size=sec.size) for sec in db_sections
         ]
+        from app.services.constraints.compiler import ConstraintCompiler
+        compiler = ConstraintCompiler()
         org_constraints = [
-            SolverConstraint(id=str(c.id), constraint_type=c.constraint_type, payload=c.payload, weight=c.weight)
-            for c in db_constraints
+            compiler.compile(c) for c in db_constraints if getattr(c, "enabled", True)
         ]
         
         # Dynamically generate slots based on organization configuration
@@ -160,6 +165,27 @@ class TimetableService:
                     duration_periods=a.duration_periods,
                 )
                 db.add(slot)
+                db.flush() # Populate slot.id
+                
+                from app.models.assignment import AssignmentLocation
+                for ra in a.room_assignments:
+                    exists = db.query(AssignmentLocation).filter(
+                        AssignmentLocation.assignment_id == slot.id,
+                        AssignmentLocation.location_id == uuid.UUID(ra.room_id)
+                    ).first()
+                    if exists:
+                        exists.student_count = ra.student_count
+                        exists.sub_group = ra.sub_group
+                        exists.capacity_contribution = ra.capacity_contribution
+                    else:
+                        db_al = AssignmentLocation(
+                            assignment_id=slot.id,
+                            location_id=uuid.UUID(ra.room_id),
+                            student_count=ra.student_count,
+                            sub_group=ra.sub_group,
+                            capacity_contribution=ra.capacity_contribution
+                        )
+                        db.add(db_al)
                 
         db.commit()
         db.refresh(version)
@@ -214,6 +240,22 @@ class TimetableService:
             found_slot_id = f"{slot.day.lower().replace(' ', '_')}-{slot.period}"
         else:
             found_slot_id = f"{slot.day.lower()}-{slot.period}"
+            
+        from app.models.assignment import AssignmentLocation
+        db = Session.object_session(slot)
+        room_assigns = []
+        if db:
+            locs = db.query(AssignmentLocation).filter(AssignmentLocation.assignment_id == slot.id).all()
+            room_assigns = [
+                {
+                    "room_id": str(loc.location_id),
+                    "student_count": loc.student_count,
+                    "sub_group": loc.sub_group,
+                    "capacity_contribution": loc.capacity_contribution
+                }
+                for loc in locs
+            ]
+            
         return {
             "id": str(slot.id),
             "section_id": str(slot.section_id),
@@ -224,4 +266,154 @@ class TimetableService:
             "day": slot.day,
             "period": slot.period,
             "duration_periods": slot.duration_periods,
+            "room_assignments": room_assigns
         }
+
+    @staticmethod
+    def generate_timetable_for_workspace(workspace_id: uuid.UUID, user_id: Optional[uuid.UUID], db: Session) -> Optional[dict]:
+        workspace = db.query(SchedulingWorkspace).filter(SchedulingWorkspace.id == workspace_id).first()
+        if not workspace:
+            return None
+        org_id = workspace.organization_id
+
+        import time as pytime
+        start_time = pytime.time()
+        
+        run = ScheduleRun(
+            organization_id=org_id,
+            workspace_id=workspace_id,
+            status="running"
+        )
+        db.add(run)
+        db.flush()
+
+        from app.services.presets import get_preset_adapter, PRESET_REGISTRY
+        preset_key = workspace.domain_preset or "academic"
+        adapter_cls = get_preset_adapter(preset_key)
+        adapter = adapter_cls()
+        
+        try:
+            if hasattr(adapter, "solve_custom"):
+                solver_result = adapter.solve_custom(workspace_id, db)
+            else:
+                instance = adapter.build_instance(workspace_id, db)
+                solver_result = solve(instance)
+        except Exception as e:
+            run.status = "failed"
+            run.error_message = str(e)
+            db.commit()
+            return {
+                "run_id": str(run.id),
+                "status": "failed",
+                "error_message": str(e)
+            }
+
+        max_version = db.query(func.max(ScheduleVersion.version_number)).filter(
+            ScheduleVersion.workspace_id == workspace_id
+        ).scalar() or 0
+        new_version_number = max_version + 1
+
+        if solver_result.status == "INFEASIBLE":
+            run.status = "failed"
+            run.solver_score = solver_result.scores
+            run.error_message = solver_result.infeasible_reason
+            run.duration_seconds = pytime.time() - start_time
+            db.commit()
+            return {
+                "run_id": str(run.id),
+                "status": "failed",
+                "solver_score": solver_result.scores,
+                "error_message": solver_result.infeasible_reason
+            }
+
+        version = ScheduleVersion(
+            organization_id=org_id,
+            workspace_id=workspace_id,
+            version_number=new_version_number,
+            status="draft",
+            scores=solver_result.scores,
+            created_by=user_id
+        )
+        db.add(version)
+        db.flush()
+
+        if solver_result.status in ("OPTIMAL", "FEASIBLE"):
+            for a in solver_result.assignments:
+                # Parse timeslot ID
+                try:
+                    ts_id = uuid.UUID(a.slot_id)
+                    db_timeslot = db.query(DbTimeSlot).filter(DbTimeSlot.id == ts_id).first()
+                except ValueError:
+                    db_timeslot = db.query(DbTimeSlot).filter(
+                        DbTimeSlot.workspace_id == workspace_id,
+                        DbTimeSlot.name == a.slot_id
+                    ).first()
+
+                if not db_timeslot:
+                    continue
+                
+                # If section_id has virtual slot suffix, clean it for database section_id key
+                section_uuid_str = a.section_id
+                sub_group_val = None
+                if "_slot_" in section_uuid_str:
+                    parts = section_uuid_str.split("_slot_")
+                    section_uuid_str = parts[0]
+                    sub_group_val = f"Slot {int(parts[1]) + 1}"
+                
+                section_uuid = uuid.UUID(section_uuid_str)
+                
+                slot = SlotModel(
+                    organization_id=org_id,
+                    workspace_id=workspace_id,
+                    schedule_version_id=version.id,
+                    section_id=section_uuid,
+                    subject_id=uuid.UUID(a.subject_id),
+                    teacher_id=uuid.UUID(a.teacher_id),
+                    room_id=uuid.UUID(a.room_id),
+                    timeslot_id=db_timeslot.id,
+                    day=db_timeslot.day,
+                    period=db_timeslot.slot_index,
+                    duration_periods=a.duration_periods
+                )
+                db.add(slot)
+                db.flush()
+
+                from app.models.assignment import AssignmentLocation
+                for ra in a.room_assignments:
+                    sub_group_to_use = ra.sub_group or sub_group_val
+                    exists = db.query(AssignmentLocation).filter(
+                        AssignmentLocation.assignment_id == slot.id,
+                        AssignmentLocation.location_id == uuid.UUID(ra.room_id)
+                    ).first()
+                    if exists:
+                        exists.student_count = ra.student_count
+                        exists.sub_group = sub_group_to_use
+                        exists.capacity_contribution = ra.capacity_contribution
+                    else:
+                        db_al = AssignmentLocation(
+                            assignment_id=slot.id,
+                            location_id=uuid.UUID(ra.room_id),
+                            student_count=ra.student_count,
+                            sub_group=sub_group_to_use,
+                            capacity_contribution=ra.capacity_contribution
+                        )
+                        db.add(db_al)
+
+        run.status = "success"
+        run.schedule_version_id = version.id
+        run.solver_score = solver_result.scores
+        run.duration_seconds = pytime.time() - start_time
+        
+        db.commit()
+        db.refresh(run)
+        db.refresh(version)
+
+        return {
+            "run_id": str(run.id),
+            "status": "success",
+            "version_id": str(version.id),
+            "version_number": version.version_number,
+            "scores": version.scores
+        }
+
+

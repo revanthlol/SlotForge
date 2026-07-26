@@ -1,8 +1,9 @@
 import uuid
 from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.orm import Session
-from app.schemas.organization import Organization as OrgSchema, OrganizationUpdate as OrgUpdateSchema
+from app.schemas.organization import Organization as OrgSchema, OrganizationCreate as OrgCreateSchema, OrganizationUpdate as OrgUpdateSchema
 from app.models.organization import Organization as OrgModel
+from app.models.organization_membership import OrganizationMembership
 from app.core.db import get_db
 from app.core.auth import get_current_user_profile, require_org_admin
 from app.models.profile import Profile
@@ -20,10 +21,67 @@ router = APIRouter()
 
 @router.get("/", response_model=list[OrgSchema])
 def list_organizations(current_user: Profile = Depends(get_current_user_profile), db: Session = Depends(get_db)):
+    orgs = db.query(OrgModel).join(
+        OrganizationMembership,
+        OrganizationMembership.organization_id == OrgModel.id,
+    ).filter(
+        OrganizationMembership.user_id == current_user.id,
+    ).order_by(OrgModel.created_at.asc()).all()
+
+    if orgs:
+        return orgs
+
     org = db.query(OrgModel).filter(OrgModel.id == current_user.organization_id).first()
+    return [org] if org else []
+
+
+@router.post("/", response_model=OrgSchema, status_code=201)
+def create_organization(
+    payload: OrgCreateSchema,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db),
+):
+    org = OrgModel(name=payload.name)
+    db.add(org)
+    db.flush()
+    db.add(OrganizationMembership(
+        user_id=current_user.id,
+        organization_id=org.id,
+        role=current_user.role or "org_admin",
+    ))
+    current_user.organization_id = org.id
+    current_user.role = current_user.role or "org_admin"
+    db.commit()
+    db.refresh(org)
+    return org
+
+
+@router.post("/{org_id}/switch", response_model=OrgSchema)
+def switch_organization(
+    org_id: str,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db),
+):
+    try:
+        org_uuid = uuid.UUID(org_id)
+    except ValueError:
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    membership = db.query(OrganizationMembership).filter(
+        OrganizationMembership.user_id == current_user.id,
+        OrganizationMembership.organization_id == org_uuid,
+    ).first()
+    if not membership:
+        raise HTTPException(status_code=403, detail="Forbidden: You do not belong to this organization")
+
+    org = db.query(OrgModel).filter(OrgModel.id == org_uuid).first()
     if not org:
-        return []
-    return [org]
+        raise HTTPException(status_code=404, detail="Organization not found")
+
+    current_user.organization_id = org.id
+    current_user.role = membership.role
+    db.commit()
+    return org
 
 @router.get("/{org_id}", response_model=OrgSchema)
 def get_organization(org_id: str, current_user: Profile = Depends(get_current_user_profile), db: Session = Depends(get_db)):

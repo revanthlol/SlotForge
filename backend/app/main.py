@@ -28,19 +28,32 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 REQUIRED_SCHEMA_COLUMNS = {
     "organizations": {"id", "name", "created_at", "scheduling_mode", "cycle_length", "periods_per_day"},
-    "subjects": {"id", "organization_id", "name", "weekly_hours", "session_length", "created_at"},
-    "timetable_slots": {
+    "scheduling_workspaces": {"id", "organization_id", "name", "domain_preset", "created_at", "updated_at"},
+    "resources": {"id", "organization_id", "workspace_id", "name", "resource_type", "metadata", "availability", "created_at"},
+    "tasks": {"id", "organization_id", "workspace_id", "name", "task_type", "required_hours", "metadata", "created_at"},
+    "groups": {"id", "organization_id", "workspace_id", "name", "group_type", "size", "metadata", "created_at"},
+    "locations": {"id", "organization_id", "workspace_id", "name", "location_type", "capacity", "metadata", "created_at"},
+    "timeslots": {"id", "organization_id", "workspace_id", "name", "day", "slot_index", "created_at"},
+    "schedule_versions": {"id", "organization_id", "workspace_id", "version_label", "version_number", "status", "scores", "created_at", "branch_name", "published_at", "archived_at"},
+    "assignments": {
         "id",
         "organization_id",
-        "timetable_version_id",
-        "section_id",
-        "subject_id",
-        "teacher_id",
-        "room_id",
+        "workspace_id",
+        "schedule_version_id",
+        "task_id",
+        "group_id",
+        "timeslot_id",
+        "duration_slots",
+        "metadata",
+        "created_at",
         "day",
         "period",
-        "duration_periods",
+        "teacher_id",
+        "room_id",
     },
+    "constraint_rules": {"id", "organization_id", "workspace_id", "name", "rule_type", "template_key", "parameters", "priority", "penalty", "enabled", "created_at"},
+    "teacher_subject_assignments": {"id", "organization_id", "workspace_id", "teacher_id", "subject_id", "created_at"},
+    "section_subject_teacher_assignments": {"id", "organization_id", "workspace_id", "section_id", "subject_id", "teacher_id", "created_at"},
 }
 
 
@@ -86,7 +99,7 @@ def health_db(db: Session = Depends(get_db)):
 
 
 # Route modules get included here as they're built (Phase 2 onward):
-from app.api.routes import auth, organizations, teachers, rooms, subjects, sections, constraints, timetables, exports, assignments
+from app.api.routes import auth, organizations, teachers, rooms, subjects, sections, constraints, timetables, exports, assignments, workspaces, presets, share
 
 
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
@@ -99,3 +112,7 @@ app.include_router(constraints.router, prefix="/constraints", tags=["constraints
 app.include_router(timetables.router, prefix="/timetables", tags=["timetables"])
 app.include_router(exports.router, prefix="/timetables", tags=["exports"])
 app.include_router(assignments.router, prefix="/assignments", tags=["assignments"])
+app.include_router(workspaces.router, prefix="/api/v1/workspaces", tags=["workspaces"])
+app.include_router(presets.router, prefix="/api/v1/presets", tags=["presets"])
+app.include_router(share.router, prefix="/api/v1/share", tags=["share"])
+app.include_router(constraints.templates_router, prefix="/api/v1/constraint-templates", tags=["constraint-templates"])

@@ -3,7 +3,9 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from app.schemas.room import Room as RoomSchema, RoomCreate, RoomUpdate
-from app.models.room import Room as RoomModel
+from app.models.location import Location as LocationModel
+from app.models.workspace import SchedulingWorkspace
+from app.services.presets import get_preset_types
 from app.core.db import get_db
 from app.core.auth import get_current_user_profile, require_org_admin
 from app.models.profile import Profile
@@ -11,17 +13,25 @@ from app.services.audit_service import AuditService
 
 router = APIRouter()
 
+def _get_active_location_types(db: Session, org_id: uuid.UUID) -> list[str]:
+    workspace = db.query(SchedulingWorkspace).filter(SchedulingWorkspace.organization_id == org_id).first()
+    preset_key = workspace.domain_preset if workspace else "academic"
+    return get_preset_types(preset_key)["location_types"]
+
 @router.post("/", response_model=RoomSchema, status_code=201)
 def create_room(
     payload: RoomCreate,
     current_user: Profile = Depends(require_org_admin),
     db: Session = Depends(get_db)
 ):
-    room = RoomModel(
+    allowed_types = _get_active_location_types(db, current_user.organization_id)
+    room_type = payload.room_type if payload.room_type in allowed_types else allowed_types[0]
+    
+    room = LocationModel(
         organization_id=current_user.organization_id,
         name=payload.name,
         capacity=payload.capacity,
-        room_type=payload.room_type
+        location_type=room_type
     )
     db.add(room)
     db.commit()
@@ -34,7 +44,7 @@ def create_room(
         action="room.create",
         target_table="rooms",
         target_id=room.id,
-        diff={"new_values": {"name": room.name, "capacity": room.capacity, "room_type": room.room_type}}
+        diff={"new_values": {"name": room.name, "capacity": room.capacity, "room_type": room.location_type}}
     )
     
     return RoomSchema(
@@ -42,7 +52,7 @@ def create_room(
         organization_id=str(room.organization_id),
         name=room.name,
         capacity=room.capacity,
-        type=room.room_type
+        type=room.location_type
     )
 
 @router.get("/", response_model=list[RoomSchema])
@@ -50,8 +60,10 @@ def list_rooms(
     current_user: Profile = Depends(get_current_user_profile),
     db: Session = Depends(get_db)
 ):
-    rooms = db.query(RoomModel).filter(
-        RoomModel.organization_id == current_user.organization_id
+    allowed_types = _get_active_location_types(db, current_user.organization_id)
+    rooms = db.query(LocationModel).filter(
+        LocationModel.organization_id == current_user.organization_id,
+        LocationModel.location_type.in_(allowed_types)
     ).all()
     return [
         RoomSchema(
@@ -59,7 +71,7 @@ def list_rooms(
             organization_id=str(r.organization_id),
             name=r.name,
             capacity=r.capacity,
-            type=r.room_type
+            type=r.location_type
         ) for r in rooms
     ]
 
@@ -74,9 +86,11 @@ def get_room(
     except ValueError:
         raise HTTPException(status_code=404, detail="Room not found")
         
-    room = db.query(RoomModel).filter(
-        RoomModel.id == r_uuid,
-        RoomModel.organization_id == current_user.organization_id
+    allowed_types = _get_active_location_types(db, current_user.organization_id)
+    room = db.query(LocationModel).filter(
+        LocationModel.id == r_uuid,
+        LocationModel.organization_id == current_user.organization_id,
+        LocationModel.location_type.in_(allowed_types)
     ).first()
     
     if not room:
@@ -87,7 +101,7 @@ def get_room(
         organization_id=str(room.organization_id),
         name=room.name,
         capacity=room.capacity,
-        type=room.room_type
+        type=room.location_type
     )
 
 @router.put("/{room_id}", response_model=RoomSchema)
@@ -102,9 +116,11 @@ def update_room(
     except ValueError:
         raise HTTPException(status_code=404, detail="Room not found")
         
-    room = db.query(RoomModel).filter(
-        RoomModel.id == r_uuid,
-        RoomModel.organization_id == current_user.organization_id
+    allowed_types = _get_active_location_types(db, current_user.organization_id)
+    room = db.query(LocationModel).filter(
+        LocationModel.id == r_uuid,
+        LocationModel.organization_id == current_user.organization_id,
+        LocationModel.location_type.in_(allowed_types)
     ).first()
     
     if not room:
@@ -113,7 +129,7 @@ def update_room(
     old_values = {
         "name": room.name,
         "capacity": room.capacity,
-        "room_type": room.room_type
+        "room_type": room.location_type
     }
     
     mutated = False
@@ -124,7 +140,7 @@ def update_room(
         room.capacity = payload.capacity
         mutated = True
     if payload.room_type is not None:
-        room.room_type = payload.room_type
+        room.location_type = payload.room_type if payload.room_type in allowed_types else allowed_types[0]
         mutated = True
         
     if mutated:
@@ -143,7 +159,7 @@ def update_room(
                 "new_values": {
                     "name": room.name,
                     "capacity": room.capacity,
-                    "room_type": room.room_type
+                    "room_type": room.location_type
                 }
             }
         )
@@ -153,7 +169,7 @@ def update_room(
         organization_id=str(room.organization_id),
         name=room.name,
         capacity=room.capacity,
-        type=room.room_type
+        type=room.location_type
     )
 
 @router.delete("/{room_id}", status_code=204)
@@ -167,9 +183,11 @@ def delete_room(
     except ValueError:
         raise HTTPException(status_code=404, detail="Room not found")
         
-    room = db.query(RoomModel).filter(
-        RoomModel.id == r_uuid,
-        RoomModel.organization_id == current_user.organization_id
+    allowed_types = _get_active_location_types(db, current_user.organization_id)
+    room = db.query(LocationModel).filter(
+        LocationModel.id == r_uuid,
+        LocationModel.organization_id == current_user.organization_id,
+        LocationModel.location_type.in_(allowed_types)
     ).first()
     
     if not room:
@@ -178,7 +196,7 @@ def delete_room(
     old_values = {
         "name": room.name,
         "capacity": room.capacity,
-        "room_type": room.room_type
+        "room_type": room.location_type
     }
     room_id_val = room.id
     

@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.db import get_db
 from app.models.profile import Profile
+from app.models.organization import Organization
+from app.models.organization_membership import OrganizationMembership
 
 # PyJWKClient dynamically fetches keys from Supabase's JWKS endpoint.
 # It handles caching internally.
@@ -62,9 +64,37 @@ def get_current_user_profile(
         raise HTTPException(status_code=401, detail="Invalid user ID format in token")
         
     profile = db.query(Profile).filter(Profile.id == user_uuid).first()
+    if not profile and payload.get("email", "").lower() == settings.DEMO_SEED_EMAIL.lower():
+        profile = _repair_demo_profile(db, user_uuid, payload)
     if not profile:
         raise HTTPException(status_code=404, detail="User profile not found")
         
+    return profile
+
+
+def _repair_demo_profile(db: Session, user_uuid: uuid.UUID, payload: dict) -> Profile | None:
+    """Restore the known demo profile after an interrupted seed/deploy."""
+    organization = db.query(Organization).filter(Organization.name == settings.DEMO_SEED_ORG_NAME).first()
+    if not organization:
+        # A failed seed can remove the entire demo application graph while
+        # Supabase Auth keeps the user. Reuse the idempotent seed with the
+        # verified Auth UUID so workspace data and the profile recover
+        # together, rather than manufacturing a profile without its graph.
+        from scripts.seed_demo_data import seed_demo_data
+
+        seed_demo_data(db, sync_auth=False, echo=False, user_id=user_uuid)
+        return db.query(Profile).filter(Profile.id == user_uuid).first()
+    profile = Profile(
+        id=user_uuid,
+        organization_id=organization.id,
+        role="org_admin",
+        full_name=(payload.get("user_metadata") or {}).get("full_name") or "Demo Admin",
+    )
+    db.add(profile)
+    db.flush()
+    db.add(OrganizationMembership(user_id=user_uuid, organization_id=organization.id, role="org_admin"))
+    db.commit()
+    db.refresh(profile)
     return profile
 
 def require_org_admin(profile: Profile = Depends(get_current_user_profile)) -> Profile:
@@ -74,4 +104,3 @@ def require_org_admin(profile: Profile = Depends(get_current_user_profile)) -> P
     if profile.role != "org_admin":
         raise HTTPException(status_code=403, detail="Forbidden: Admin role required")
     return profile
-

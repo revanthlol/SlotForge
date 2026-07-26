@@ -1,0 +1,34 @@
+@startuml
+title SlotForge — Scheduling Workflow
+skinparam shadowing false
+skinparam linetype ortho
+skinparam ArrowColor #475569
+skinparam activity {
+  BackgroundColor #F8FAFC
+  BorderColor #334155
+}
+
+start
+:Sign in on desktop;
+:Open Academic workspace;
+:Add teachers, subjects, sections,\nrooms, time slots, and assignments;
+:Configure constraints;
+:Run preflight check;
+if (Inputs ready?) then (Yes)
+  :Generate with CP-SAT;
+  if (Feasible draft?) then (Yes)
+    :Inspect Canvas, pressure,\nand placement explanations;
+    :Compare or edit draft;
+    :Publish timetable version;
+    :Share faculty views\nand export files;
+    stop
+  else (No)
+    :Review conflict explanation;
+    :Adjust data or constraints;
+    -> Run preflight check;
+  endif
+else (No)
+  :Resolve missing or invalid inputs;
+  -> Run preflight check;
+endif
+@enduml

@@ -111,15 +111,24 @@ def _basic_capacity_infeasibility(instance: ProblemInstance) -> Optional[str]:
     if slot_count == 0 or section_count == 0:
         return None
 
-    periods_required_per_section = sum(subject.weekly_hours for subject in instance.subjects)
-    if periods_required_per_section > slot_count:
-        return (
-            "Infeasible due to weekly hours requirements "
-            f"({periods_required_per_section} periods requested per section, "
-            f"but only {slot_count} periods are available in the configured cycle)."
-        )
+    active_pairs = _active_section_subject_pairs(instance)
+    subjects_map = {subject.id: subject for subject in instance.subjects}
+    section_periods = defaultdict(int)
+    for sec_id, sub_id in active_pairs:
+        subject = subjects_map.get(sub_id)
+        if subject:
+            section_periods[sec_id] += subject.weekly_hours
 
-    total_required_periods = periods_required_per_section * section_count
+    for sec in instance.sections:
+        required_periods = section_periods.get(sec.id, 0)
+        if required_periods > slot_count:
+            return (
+                "Infeasible due to weekly hours requirements "
+                f"({required_periods} periods requested for section {sec.name}, "
+                f"but only {slot_count} periods are available in the configured cycle)."
+            )
+
+    total_required_periods = sum(section_periods.values())
     room_period_capacity = len(instance.rooms) * slot_count
     if total_required_periods > room_period_capacity:
         return (
@@ -137,6 +146,25 @@ def _basic_capacity_infeasibility(instance: ProblemInstance) -> Optional[str]:
         )
 
     return None
+
+
+def _active_section_subject_pairs(instance: ProblemInstance) -> set[tuple[str, str]]:
+    configured_pairs = {
+        (c.payload.get("section_id"), c.payload.get("subject_id"))
+        for c in instance.constraints
+        if c.constraint_type == "section_subject" and c.weight is None
+    }
+    configured_pairs = {
+        (sec_id, sub_id) for sec_id, sub_id in configured_pairs if sec_id and sub_id
+    }
+    if configured_pairs:
+        return configured_pairs
+
+    return {
+        (sec.id, sub.id)
+        for sec in instance.sections
+        for sub in instance.subjects
+    }
 
 
 def _assignment_option_infeasibility(instance: ProblemInstance) -> Optional[str]:
@@ -191,8 +219,11 @@ def _assignment_option_infeasibility(instance: ProblemInstance) -> Optional[str]
 
     teacher_ids = {teacher.id for teacher in instance.teachers}
 
+    active_pairs = _active_section_subject_pairs(instance)
     for sec in instance.sections:
         for sub in instance.subjects:
+            if (sec.id, sub.id) not in active_pairs:
+                continue
             required_teacher = section_subject_teachers.get((sec.id, sub.id))
             if required_teacher:
                 allowed_teachers = [teacher for teacher in instance.teachers if teacher.id == required_teacher]
@@ -217,18 +248,17 @@ def _assignment_option_infeasibility(instance: ProblemInstance) -> Optional[str]
             required_room = room_requirements_subject.get(sub.id)
             allowed_rooms = []
             for room in instance.rooms:
-                if room.capacity < sec.size:
-                    continue
                 if room_type and room.room_type != room_type:
                     continue
                 if required_room and room.id != required_room:
                     continue
                 allowed_rooms.append(room)
 
-            if not allowed_rooms:
+            total_capacity = sum(r.capacity for r in allowed_rooms)
+            if total_capacity < sec.size:
                 return (
-                    "Infeasible due to room constraints "
-                    f"(no room can host section {sec.name} subject {sub.name}; check room capacity, room type, and hard room assignments)."
+                    "Infeasible due to room constraints (room capacity: "
+                    f"the combined capacity of all compatible rooms ({total_capacity}) is less than section size for section {sec.name} ({sec.size}) and subject {sub.name})."
                 )
 
             available_starts = 0
@@ -283,6 +313,7 @@ def _solve_model(
     sections_map = {sec.id: sec for sec in instance.sections}
     slots_map = {slot.id: slot for slot in instance.slots}
     slots_by_day_period = {(slot.day, slot.period): slot for slot in instance.slots}
+    active_section_subjects = _active_section_subject_pairs(instance)
     
     # 1. Parse Hard Constraints from constraints list
     # Subject room type requirements
@@ -342,12 +373,25 @@ def _solve_model(
                 if t_id:
                     room_requirements_teacher[t_id] = r_id
 
+    # Reserved slots / Assembly blocks (hard)
+    blocked_slots = set()
+    for c in instance.constraints:
+        if c.constraint_type in ("reserve_period_for_assembly", "hard_block_slot") and c.weight is None:
+            day = c.payload.get("day")
+            period = c.payload.get("period")
+            if day and period is not None:
+                blocked_slots.add((str(day), int(period)))
+
     # 2. Decision Variables
-    # x[sec, sub, t, r, slot] = Boolean variable indicating assignment
+    # x[sec, sub, t, slot] = Boolean variable indicating session is scheduled
+    # y[sec, sub, t, slot, r] = Boolean variable indicating room r is assigned to session
     x = {}
+    y = {}
     covered_slots_by_assignment = {}
     for sec in instance.sections:
         for sub in instance.subjects:
+            if (sec.id, sub.id) not in active_section_subjects:
+                continue
             session_length = getattr(sub, "session_length", 1) or 1
             for t in instance.teachers:
                 required_teacher = section_subject_teachers.get((sec.id, sub.id))
@@ -356,50 +400,69 @@ def _solve_model(
                 # Qualification check
                 if has_qualification_constraints and t.id not in teacher_qualified_subjects[sub.id]:
                     continue
-                for r in instance.rooms:
-                    # Capacity check
-                    if not relax_room_capacity and r.capacity < sec.size:
+                    
+                for slot in instance.slots:
+                    covered_slots = []
+                    for offset in range(session_length):
+                        covered_slot = slots_by_day_period.get((slot.day, slot.period + offset))
+                        if not covered_slot:
+                            covered_slots = []
+                            break
+                        covered_slots.append(covered_slot.id)
+                    if not covered_slots:
                         continue
-                    # Room type check
-                    req_type = subject_room_types.get(sub.id)
-                    if req_type and r.room_type != req_type:
+                    # Reserved assembly slot block check
+                    if any((slots_map[cs_id].day, slots_map[cs_id].period) in blocked_slots for cs_id in covered_slots):
                         continue
-                    # Room requirement check (subject)
-                    req_room_sub = room_requirements_subject.get(sub.id)
-                    if req_room_sub and r.id != req_room_sub:
-                        continue
-                    # Room requirement check (teacher)
-                    req_room_t = room_requirements_teacher.get(t.id)
-                    if req_room_t and r.id != req_room_t:
+                    # Teacher unavailability check
+                    if not relax_teacher_availability and any((t.id, covered_slot_id) in unavailable_teacher_slots for covered_slot_id in covered_slots):
                         continue
                         
-                    for slot in instance.slots:
-                        covered_slots = []
-                        for offset in range(session_length):
-                            covered_slot = slots_by_day_period.get((slot.day, slot.period + offset))
-                            if not covered_slot:
-                                covered_slots = []
-                                break
-                            covered_slots.append(covered_slot.id)
-                        if not covered_slots:
+                    # Filter rooms allowed for this session
+                    allowed_rooms = []
+                    for r in instance.rooms:
+                        # Room type check
+                        req_type = subject_room_types.get(sub.id)
+                        if req_type and r.room_type != req_type:
                             continue
-                        # Teacher unavailability check
-                        if not relax_teacher_availability and any((t.id, covered_slot_id) in unavailable_teacher_slots for covered_slot_id in covered_slots):
+                        # Room requirement check (subject)
+                        req_room_sub = room_requirements_subject.get(sub.id)
+                        if req_room_sub and r.id != req_room_sub:
                             continue
-                            
-                        # If all checks pass, create decision variable
-                        var_name = f"x_{sec.id}_{sub.id}_{t.id}_{r.id}_{slot.id}"
-                        assignment_key = (sec.id, sub.id, t.id, r.id, slot.id)
-                        x[assignment_key] = model.NewBoolVar(var_name)
-                        covered_slots_by_assignment[assignment_key] = covered_slots
+                        # Room requirement check (teacher)
+                        req_room_t = room_requirements_teacher.get(t.id)
+                        if req_room_t and r.id != req_room_t:
+                            continue
+                        allowed_rooms.append(r)
+                        
+                    if not allowed_rooms:
+                        continue
+                        
+                    session_key = (sec.id, sub.id, t.id, slot.id)
+                    x[session_key] = model.NewBoolVar(f"x_{sec.id}_{sub.id}_{t.id}_{slot.id}")
+                    covered_slots_by_assignment[session_key] = covered_slots
+                    
+                    # Room decision variables
+                    for r in allowed_rooms:
+                        room_key = (sec.id, sub.id, t.id, slot.id, r.id)
+                        y[room_key] = model.NewBoolVar(f"y_{sec.id}_{sub.id}_{t.id}_{slot.id}_{r.id}")
+                        # Room activation link: room can only be assigned if session is active
+                        model.Add(y[room_key] <= x[session_key])
+                        
+                    # Capacity constraint: total room capacity >= section size (if active)
+                    if not relax_room_capacity:
+                        model.Add(
+                            sum(y[(sec.id, sub.id, t.id, slot.id, r.id)] * r.capacity for r in allowed_rooms) 
+                            >= x[session_key] * sec.size
+                        )
 
     # 3. Hard Constraints
     # Constraint A: Teacher occupies at most one slot at any given time
     for t in instance.teachers:
         for slot in instance.slots:
             vars_for_teacher_slot = [
-                var for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
-                if t_id == t.id and slot.id in covered_slots_by_assignment[(sec_id, sub_id, t_id, r_id, slot_id)]
+                var for (sec_id, sub_id, t_id, slot_id), var in x.items()
+                if t_id == t.id and slot.id in covered_slots_by_assignment[(sec_id, sub_id, t_id, slot_id)]
             ]
             if vars_for_teacher_slot:
                 model.Add(sum(vars_for_teacher_slot) <= 1)
@@ -408,8 +471,8 @@ def _solve_model(
     for r in instance.rooms:
         for slot in instance.slots:
             vars_for_room_slot = [
-                var for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
-                if r_id == r.id and slot.id in covered_slots_by_assignment[(sec_id, sub_id, t_id, r_id, slot_id)]
+                var for (sec_id, sub_id, t_id, slot_id, r_id), var in y.items()
+                if r_id == r.id and slot.id in covered_slots_by_assignment[(sec_id, sub_id, t_id, slot_id)]
             ]
             if vars_for_room_slot:
                 model.Add(sum(vars_for_room_slot) <= 1)
@@ -418,8 +481,8 @@ def _solve_model(
     for sec in instance.sections:
         for slot in instance.slots:
             vars_for_section_slot = [
-                var for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
-                if sec_id == sec.id and slot.id in covered_slots_by_assignment[(sec_id, sub_id, t_id, r_id, slot_id)]
+                var for (sec_id, sub_id, t_id, slot_id), var in x.items()
+                if sec_id == sec.id and slot.id in covered_slots_by_assignment[(sec_id, sub_id, t_id, slot_id)]
             ]
             if vars_for_section_slot:
                 model.Add(sum(vars_for_section_slot) <= 1)
@@ -427,9 +490,11 @@ def _solve_model(
     # Constraint D: Each section receives exactly `subject.weekly_hours` (or <= if relaxed)
     for sec in instance.sections:
         for sub in instance.subjects:
+            if (sec.id, sub.id) not in active_section_subjects:
+                continue
             vars_for_sec_sub = [
                 var * (getattr(subjects_map[sub_id], "session_length", 1) or 1)
-                for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
+                for (sec_id, sub_id, t_id, slot_id), var in x.items()
                 if sec_id == sec.id and sub_id == sub.id
             ]
             if relax_weekly_hours:
@@ -438,19 +503,20 @@ def _solve_model(
                 model.Add(sum(vars_for_sec_sub) == sub.weekly_hours)
 
     # Constraint E: Spread subject sessions across day orders before allowing repeats.
-    # A 2-hour lab is one session that covers two periods, so count assignment starts here.
     days = list(set(slot.day for slot in instance.slots))
     num_days = len(days)
     if num_days > 0:
         for sec in instance.sections:
             for sub in instance.subjects:
+                if (sec.id, sub.id) not in active_section_subjects:
+                    continue
                 session_length = getattr(sub, "session_length", 1) or 1
                 required_sessions = math.ceil(sub.weekly_hours / session_length)
                 max_sessions_per_day = max(1, math.ceil(required_sessions / num_days))
                 for day in days:
                     day_slot_ids = {s.id for s in instance.slots if s.day == day}
                     vars_for_sec_sub_day = [
-                        var for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
+                        var for (sec_id, sub_id, t_id, slot_id), var in x.items()
                         if sec_id == sec.id and sub_id == sub.id and slot_id in day_slot_ids
                     ]
                     if vars_for_sec_sub_day:
@@ -472,40 +538,34 @@ def _solve_model(
                 load_balance_penalty = c.weight
 
     # A. Teacher Gap Minimization
-    # Get unique days
-    # Map slots to day and period
     slots_by_day = defaultdict(list)
     for slot in instance.slots:
         slots_by_day[slot.day].append(slot)
     for day in slots_by_day:
         slots_by_day[day] = sorted(slots_by_day[day], key=lambda s: s.period)
         
-    # Teacher presence helper variables Y[t, d, p]
     teacher_active = {}
     for t in instance.teachers:
         for day in days:
             day_slots = slots_by_day[day]
             num_periods = len(day_slots)
             for slot in day_slots:
-                # Sum variables for teacher t in this slot
                 vars_for_t_slot = [
-                    var for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
-                    if t_id == t.id and slot.id in covered_slots_by_assignment[(sec_id, sub_id, t_id, r_id, slot_id)]
+                    var for (sec_id, sub_id, t_id, slot_id), var in x.items()
+                    if t_id == t.id and slot.id in covered_slots_by_assignment[(sec_id, sub_id, t_id, slot_id)]
                 ]
                 if vars_for_t_slot:
-                    y_var = model.NewBoolVar(f"y_{t.id}_{day}_{slot.period}")
+                    y_var = model.NewBoolVar(f"y_t_act_{t.id}_{day}_{slot.period}")
                     model.Add(y_var == sum(vars_for_t_slot))
                     teacher_active[(t.id, day, slot.period)] = y_var
                 else:
                     teacher_active[(t.id, day, slot.period)] = 0
                     
-            # For periods > 2, define gap variables
             if num_periods > 2 and gap_penalty > 0:
                 for idx_2 in range(1, num_periods - 1):
                     p2 = day_slots[idx_2].period
                     gap_var = model.NewBoolVar(f"gap_{t.id}_{day}_{p2}")
                     
-                    # For any p1 < p2 and p3 > p2
                     for idx_1 in range(0, idx_2):
                         p1 = day_slots[idx_1].period
                         for idx_3 in range(idx_2 + 1, num_periods):
@@ -515,31 +575,29 @@ def _solve_model(
                             y2 = teacher_active[(t.id, day, p2)]
                             y3 = teacher_active[(t.id, day, p3)]
                             
-                            # gap_var >= y1 + y3 - y2 - 1
-                            # Model it as gap_var - y1 - y3 + y2 >= -1
                             model.Add(gap_var >= y1 + y3 - y2 - 1)
                             
                     objective_terms.append(gap_var * gap_penalty)
 
     # B. Daily Load Balancing
-    num_days = len(days)
     if num_days > 0 and load_balance_penalty > 0:
         for sec in instance.sections:
-            total_hours = sum(sub.weekly_hours for sub in instance.subjects)
+            total_hours = sum(
+                sub.weekly_hours for sub in instance.subjects
+                if (sec.id, sub.id) in active_section_subjects
+            )
             min_ideal = math.floor(total_hours / num_days)
             max_ideal = math.ceil(total_hours / num_days)
             
             for day in days:
                 day_slot_ids = {s.id for s in slots_by_day[day]}
-                # Sum assignments for this section on this day
                 vars_for_sec_day = [
                     var * (getattr(subjects_map[sub_id], "session_length", 1) or 1)
-                    for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
+                    for (sec_id, sub_id, t_id, slot_id), var in x.items()
                     if sec_id == sec.id and slot_id in day_slot_ids
                 ]
                 
                 if vars_for_sec_day:
-                    # Daily load L[sec, d]
                     load_var = model.NewIntVar(0, len(day_slot_ids), f"load_{sec.id}_{day}")
                     model.Add(load_var == sum(vars_for_sec_day))
                     
@@ -552,10 +610,10 @@ def _solve_model(
                     objective_terms.append(over_var * load_balance_penalty)
                     objective_terms.append(under_var * load_balance_penalty)
 
-        # Subject-specific spread: when repeated sessions are required, avoid bunching
-        # them on the same day unless the hard max requires it.
         for sec in instance.sections:
             for sub in instance.subjects:
+                if (sec.id, sub.id) not in active_section_subjects:
+                    continue
                 session_length = getattr(sub, "session_length", 1) or 1
                 required_sessions = math.ceil(sub.weekly_hours / session_length)
                 min_sessions = math.floor(required_sessions / num_days)
@@ -564,7 +622,7 @@ def _solve_model(
                 for day in days:
                     day_slot_ids = {s.id for s in slots_by_day[day]}
                     vars_for_sec_sub_day = [
-                        var for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items()
+                        var for (sec_id, sub_id, t_id, slot_id), var in x.items()
                         if sec_id == sec.id and sub_id == sub.id and slot_id in day_slot_ids
                     ]
                     if not vars_for_sec_sub_day:
@@ -593,13 +651,10 @@ def _solve_model(
                             s_id = slot.id
                             break
                 if t_id and s_id:
-                    # Teacher presence variable Y[t_id, s_id]
                     slot_obj = slots_map.get(s_id)
                     if slot_obj:
                         y_term = teacher_active.get((t_id, slot_obj.day, slot_obj.period), 0)
                         if isinstance(y_term, cp_model.IntVar):
-                            # Minimize penalty, which is equivalent to subtracting reward:
-                            # Cost += c.weight * (1 - y_term) -> equivalent to subtracting c.weight * y_term
                             objective_terms.append(-c.weight * y_term)
                             
             elif c.constraint_type == "preferred_room":
@@ -608,14 +663,13 @@ def _solve_model(
                 t_id = c.payload.get("teacher_id")
                 if r_id:
                     # Penalize any assignment that does NOT use the preferred room
-                    for (sec_id, s_id, teacher_id, room_id, slot_id), var in x.items():
-                        match_sub = (sub_id is None or s_id == sub_id)
+                    for (sec_id, sub_id_key, teacher_id, slot_id, room_id), var in y.items():
+                        match_sub = (sub_id is None or sub_id_key == sub_id)
                         match_t = (t_id is None or teacher_id == t_id)
                         if match_sub and match_t and room_id != r_id:
                             objective_terms.append(c.weight * var)
                             
             elif c.constraint_type == "teacher_unavailable":
-                # Soft teacher unavailable penalty
                 t_id = c.payload.get("teacher_id")
                 s_id = c.payload.get("slot_id")
                 if not s_id:
@@ -631,6 +685,85 @@ def _solve_model(
                         y_term = teacher_active.get((t_id, slot_obj.day, slot_obj.period), 0)
                         if isinstance(y_term, cp_model.IntVar):
                             objective_terms.append(c.weight * y_term)
+
+            elif c.constraint_type == "avoid_consecutive_same_subject":
+                penalty = c.weight or c.payload.get("penalty", 5)
+                for sec in instance.sections:
+                    for sub in instance.subjects:
+                        if (sec.id, sub.id) not in active_section_subjects:
+                            continue
+                        for day in days:
+                            day_slots_sorted = sorted([s for s in instance.slots if s.day == day], key=lambda s: s.period)
+                            for i in range(len(day_slots_sorted) - 1):
+                                p1_id = day_slots_sorted[i].id
+                                p2_id = day_slots_sorted[i+1].id
+                                vars_p1 = [var for (sec_id, sub_id_k, t_id, s_id), var in x.items() if sec_id == sec.id and sub_id_k == sub.id and s_id == p1_id]
+                                vars_p2 = [var for (sec_id, sub_id_k, t_id, s_id), var in x.items() if sec_id == sec.id and sub_id_k == sub.id and s_id == p2_id]
+                                if vars_p1 and vars_p2:
+                                    consec_b = model.NewBoolVar(f"consec_{sec.id}_{sub.id}_{day}_{i}")
+                                    model.Add(consec_b >= sum(vars_p1) + sum(vars_p2) - 1)
+                                    objective_terms.append(consec_b * penalty)
+
+            elif c.constraint_type == "avoid_last_period":
+                penalty = c.weight or c.payload.get("penalty", 3)
+                res_id = c.payload.get("resource_id")
+                max_period_by_day = {}
+                for slot in instance.slots:
+                    max_period_by_day[slot.day] = max(max_period_by_day.get(slot.day, 0), slot.period)
+                for (sec_id, sub_id_k, t_id, s_id), var in x.items():
+                    if res_id and t_id != res_id:
+                        continue
+                    slot_obj = slots_map.get(s_id)
+                    if slot_obj and slot_obj.period == max_period_by_day.get(slot_obj.day):
+                        objective_terms.append(var * penalty)
+
+            elif c.constraint_type == "prefer_morning_labs":
+                penalty = c.weight or c.payload.get("penalty", 4)
+                thresh = c.payload.get("morning_threshold", 3)
+                for (sec_id, sub_id_k, t_id, s_id), var in x.items():
+                    sub_obj = subjects_map.get(sub_id_k)
+                    is_lab = sub_obj and (getattr(sub_obj, "session_length", 1) > 1 or "lab" in sub_obj.name.lower())
+                    slot_obj = slots_map.get(s_id)
+                    if is_lab and slot_obj and slot_obj.period > thresh:
+                        objective_terms.append(var * penalty)
+
+            elif c.constraint_type == "limit_daily_load":
+                penalty = c.weight or c.payload.get("penalty", 5)
+                max_load = c.payload.get("max_periods_per_day", 4)
+                for t in instance.teachers:
+                    for day in days:
+                        day_slot_ids = {s.id for s in instance.slots if s.day == day}
+                        vars_t_day = [
+                            var for (sec_id, sub_id_k, t_id, s_id), var in x.items()
+                            if t_id == t.id and s_id in day_slot_ids
+                        ]
+                        if vars_t_day:
+                            t_load = model.NewIntVar(0, len(day_slot_ids), f"t_load_{t.id}_{day}")
+                            model.Add(t_load == sum(vars_t_day))
+                            t_over = model.NewIntVar(0, len(day_slot_ids), f"t_over_{t.id}_{day}")
+                            model.Add(t_load - max_load <= t_over)
+                            objective_terms.append(t_over * penalty)
+
+            elif c.constraint_type == "avoid_section_overload_day":
+                penalty = c.weight or c.payload.get("penalty", 6)
+                max_load = c.payload.get("max_periods_per_day", 5)
+                for sec in instance.sections:
+                    for day in days:
+                        day_slot_ids = {s.id for s in instance.slots if s.day == day}
+                        vars_sec_day = [
+                            var for (sec_id, sub_id_k, t_id, s_id), var in x.items()
+                            if sec_id == sec.id and s_id in day_slot_ids
+                        ]
+                        if vars_sec_day:
+                            sec_load = model.NewIntVar(0, len(day_slot_ids), f"sec_load_{sec.id}_{day}")
+                            model.Add(sec_load == sum(vars_sec_day))
+                            sec_over = model.NewIntVar(0, len(day_slot_ids), f"sec_over_{sec.id}_{day}")
+                            model.Add(sec_load - max_load <= sec_over)
+                            objective_terms.append(sec_over * penalty)
+
+    # Penalize assigning multiple rooms to avoid unnecessary splits
+    for var in y.values():
+        objective_terms.append(var * 1)
 
     # Set objective
     if objective_terms:
@@ -651,16 +784,52 @@ def _solve_model(
         
     # Extract assignments
     assignments = []
-    for (sec_id, sub_id, t_id, r_id, slot_id), var in x.items():
+    from app.solver.models import RoomAssignment
+    for (sec_id, sub_id, t_id, slot_id), var in x.items():
         if solver.Value(var) == 1:
+            # Find all rooms assigned to this session
+            assigned_rooms = [
+                r_id for (s_id, sb_id, teacher_id, sl_id, r_id), r_var in y.items()
+                if s_id == sec_id and sb_id == sub_id and teacher_id == t_id and sl_id == slot_id and solver.Value(r_var) == 1
+            ]
+            
+            total_cap = sum(rooms_map[r].capacity for r in assigned_rooms)
+            room_assignments = []
+            
+            if not assigned_rooms:
+                primary_room = "none"
+            else:
+                primary_room = assigned_rooms[0]
+                sec_size = sections_map[sec_id].size
+                remaining_students = sec_size
+                for idx, r_id in enumerate(assigned_rooms):
+                    room_cap = rooms_map[r_id].capacity
+                    if idx == len(assigned_rooms) - 1:
+                        student_count = remaining_students
+                    else:
+                        student_count = min(room_cap, int(math.ceil(sec_size * (room_cap / total_cap))) if total_cap else 0)
+                        student_count = min(student_count, remaining_students)
+                    
+                    remaining_students -= student_count
+                    
+                    room_assignments.append(
+                        RoomAssignment(
+                            room_id=r_id,
+                            student_count=student_count,
+                            sub_group=f"{sections_map[sec_id].name}_{idx+1}" if len(assigned_rooms) > 1 else None,
+                            capacity_contribution=student_count
+                        )
+                    )
+            
             assignments.append(
                 ScheduledSlot(
                     section_id=sec_id,
                     subject_id=sub_id,
                     teacher_id=t_id,
-                    room_id=r_id,
+                    room_id=primary_room,
                     slot_id=slot_id,
-                    duration_periods=getattr(subjects_map[sub_id], "session_length", 1) or 1
+                    duration_periods=getattr(subjects_map[sub_id], "session_length", 1) or 1,
+                    room_assignments=room_assignments
                 )
             )
             

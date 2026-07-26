@@ -3,7 +3,9 @@ from fastapi import APIRouter, HTTPException, Depends
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from app.schemas.subject import Subject as SubjectSchema, SubjectCreate, SubjectUpdate
-from app.models.subject import Subject as SubjectModel
+from app.models.task import Task as TaskModel
+from app.models.workspace import SchedulingWorkspace
+from app.services.presets import get_preset_types
 from app.core.db import get_db
 from app.core.auth import get_current_user_profile, require_org_admin
 from app.models.profile import Profile
@@ -11,19 +13,25 @@ from app.services.audit_service import AuditService
 
 router = APIRouter()
 
+def _get_active_task_type(db: Session, org_id: uuid.UUID) -> str:
+    workspace = db.query(SchedulingWorkspace).filter(SchedulingWorkspace.organization_id == org_id).first()
+    preset_key = workspace.domain_preset if workspace else "academic"
+    return get_preset_types(preset_key)["task_type"]
+
 def _validate_session_length(weekly_hours: int, session_length: int) -> None:
     if session_length not in (1, 2):
         raise HTTPException(status_code=422, detail="session_length must be 1 or 2")
     if weekly_hours % session_length != 0:
         raise HTTPException(status_code=422, detail="weekly_hours must be divisible by session_length")
 
-def _subject_schema(subject: SubjectModel) -> SubjectSchema:
+def _subject_schema(subject: TaskModel) -> SubjectSchema:
     return SubjectSchema(
         id=str(subject.id),
         organization_id=str(subject.organization_id),
         name=subject.name,
-        weekly_hours=subject.weekly_hours,
+        weekly_hours=subject.weekly_hours if subject.weekly_hours is not None else 0,
         session_length=subject.session_length,
+        color=subject.color,
     )
 
 @router.post("/", response_model=SubjectSchema, status_code=201)
@@ -33,11 +41,14 @@ def create_subject(
     db: Session = Depends(get_db)
 ):
     _validate_session_length(payload.weekly_hours, payload.session_length)
-    subject = SubjectModel(
+    task_type = _get_active_task_type(db, current_user.organization_id)
+    subject = TaskModel(
         organization_id=current_user.organization_id,
         name=payload.name,
         weekly_hours=payload.weekly_hours,
         session_length=payload.session_length,
+        color=payload.color,
+        task_type=task_type
     )
     db.add(subject)
     db.commit()
@@ -50,7 +61,7 @@ def create_subject(
         action="subject.create",
         target_table="subjects",
         target_id=subject.id,
-        diff={"new_values": {"name": subject.name, "weekly_hours": subject.weekly_hours, "session_length": subject.session_length}}
+        diff={"new_values": {"name": subject.name, "weekly_hours": subject.weekly_hours, "session_length": subject.session_length, "color": subject.color}}
     )
     
     return _subject_schema(subject)
@@ -60,8 +71,10 @@ def list_subjects(
     current_user: Profile = Depends(get_current_user_profile),
     db: Session = Depends(get_db)
 ):
-    subjects = db.query(SubjectModel).filter(
-        SubjectModel.organization_id == current_user.organization_id
+    task_type = _get_active_task_type(db, current_user.organization_id)
+    subjects = db.query(TaskModel).filter(
+        TaskModel.organization_id == current_user.organization_id,
+        TaskModel.task_type == task_type
     ).all()
     return [_subject_schema(s) for s in subjects]
 
@@ -76,9 +89,11 @@ def get_subject(
     except ValueError:
         raise HTTPException(status_code=404, detail="Subject not found")
         
-    subject = db.query(SubjectModel).filter(
-        SubjectModel.id == s_uuid,
-        SubjectModel.organization_id == current_user.organization_id
+    task_type = _get_active_task_type(db, current_user.organization_id)
+    subject = db.query(TaskModel).filter(
+        TaskModel.id == s_uuid,
+        TaskModel.organization_id == current_user.organization_id,
+        TaskModel.task_type == task_type
     ).first()
     
     if not subject:
@@ -98,9 +113,11 @@ def update_subject(
     except ValueError:
         raise HTTPException(status_code=404, detail="Subject not found")
         
-    subject = db.query(SubjectModel).filter(
-        SubjectModel.id == s_uuid,
-        SubjectModel.organization_id == current_user.organization_id
+    task_type = _get_active_task_type(db, current_user.organization_id)
+    subject = db.query(TaskModel).filter(
+        TaskModel.id == s_uuid,
+        TaskModel.organization_id == current_user.organization_id,
+        TaskModel.task_type == task_type
     ).first()
     
     if not subject:
@@ -110,8 +127,10 @@ def update_subject(
         "name": subject.name,
         "weekly_hours": subject.weekly_hours,
         "session_length": subject.session_length,
+        "color": subject.color,
     }
-    next_weekly_hours = payload.weekly_hours if payload.weekly_hours is not None else subject.weekly_hours
+    
+    next_weekly_hours = payload.weekly_hours if payload.weekly_hours is not None else (subject.weekly_hours if subject.weekly_hours is not None else 0)
     next_session_length = payload.session_length if payload.session_length is not None else subject.session_length
     _validate_session_length(next_weekly_hours, next_session_length)
     
@@ -124,6 +143,9 @@ def update_subject(
         mutated = True
     if payload.session_length is not None:
         subject.session_length = payload.session_length
+        mutated = True
+    if "color" in payload.model_fields_set:
+        subject.color = payload.color
         mutated = True
         
     if mutated:
@@ -143,6 +165,7 @@ def update_subject(
                     "name": subject.name,
                     "weekly_hours": subject.weekly_hours,
                     "session_length": subject.session_length,
+                    "color": subject.color,
                 }
             }
         )
@@ -160,9 +183,11 @@ def delete_subject(
     except ValueError:
         raise HTTPException(status_code=404, detail="Subject not found")
         
-    subject = db.query(SubjectModel).filter(
-        SubjectModel.id == s_uuid,
-        SubjectModel.organization_id == current_user.organization_id
+    task_type = _get_active_task_type(db, current_user.organization_id)
+    subject = db.query(TaskModel).filter(
+        TaskModel.id == s_uuid,
+        TaskModel.organization_id == current_user.organization_id,
+        TaskModel.task_type == task_type
     ).first()
     
     if not subject:
@@ -172,6 +197,7 @@ def delete_subject(
         "name": subject.name,
         "weekly_hours": subject.weekly_hours,
         "session_length": subject.session_length,
+        "color": subject.color,
     }
     subject_id_val = subject.id
     

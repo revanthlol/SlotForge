@@ -23,6 +23,8 @@ class AssignmentSyncService:
         for assignment in teacher_subjects:
             db.add(Constraint(
                 organization_id=org_id,
+                name="Teacher subject qualification",
+                rule_type="hard",
                 constraint_type="teacher_subject",
                 payload={
                     "source": ASSIGNMENT_SOURCE,
@@ -38,6 +40,22 @@ class AssignmentSyncService:
         for assignment in section_teachers:
             db.add(Constraint(
                 organization_id=org_id,
+                name="Section subject curriculum",
+                rule_type="hard",
+                constraint_type="section_subject",
+                payload={
+                    "source": ASSIGNMENT_SOURCE,
+                    "section_id": str(assignment.section_id),
+                    "subject_id": str(assignment.subject_id),
+                },
+                weight=None,
+            ))
+            if not assignment.teacher_id:
+                continue
+            db.add(Constraint(
+                organization_id=org_id,
+                name="Section subject teacher assignment",
+                rule_type="hard",
                 constraint_type="section_subject_teacher",
                 payload={
                     "source": ASSIGNMENT_SOURCE,
