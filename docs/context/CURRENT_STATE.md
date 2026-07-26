@@ -28,6 +28,7 @@ Academic Timetable is the only supported domain preset. Staff roster, event, exa
 - Identity/data: Supabase Auth and PostgreSQL.
 - Backend tests start a disposable loopback PostgreSQL container and fail closed if isolation is unavailable; they cannot fall back to the configured Supabase database.
 - Production: Vercel frontend; `slotforge-api.service` on the Oracle VPS.
+- Oracle is running the authentication-persistence application release `0d6368c`; service and database health checks pass and `/auth/complete-account` is loaded.
 - Alembic head: `c7d4e5f6a7b8`.
 - Public schema: 20 application tables plus `alembic_version`, structure only.
 

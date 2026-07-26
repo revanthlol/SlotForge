@@ -6,6 +6,7 @@
 - Added idempotent application account completion for verified Supabase identities, preserving existing profiles and ignoring user-editable OAuth role metadata.
 - Added Google and GitHub sign-in controls, an OAuth callback route, and a first-time institution completion flow. Missing application profiles now keep their valid Supabase session instead of being automatically signed out.
 - Documented the exact Google/GitHub provider callback and SlotForge redirect allow-list configuration. Supabase remains the single identity authority; no Firebase identity split was introduced.
+- Verification passed with `61` backend tests in disposable Docker PostgreSQL, a successful frontend production build, zero frontend lint errors, and browser smoke coverage for both OAuth controls. Release `0d6368c` was pushed to `dev` and fast-forwarded onto Oracle; dependencies were synchronized, no migration was pending, `slotforge-api.service` restarted active, `/health` and `/health/db` returned HTTP 200 at Alembic `c7d4e5f6a7b8`, the new `/auth/complete-account` route appeared in production OpenAPI, and the recent error-level journal was empty.
 
 - Unified the landing, login, signup, open-source, privacy, terms, and contact pages around the same floating public navbar; removed the separate three-button auth switcher and added contextual sign-in/create-institution actions.
 - Gave GitHub a dedicated logo button, added explicit external-link arrows to GitHub and Contribute in the shared footer, and added `/landing` plus route-safe landing section links.
