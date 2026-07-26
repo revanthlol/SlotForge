@@ -9,7 +9,7 @@ from app.core.db import get_db
 from app.models.organization import Organization
 from app.models.organization_membership import OrganizationMembership
 from app.models.profile import Profile
-from app.schemas.auth import AuthMeResponse, SignupOrganizationRequest, SignupOrganizationResponse
+from app.schemas.auth import AuthMeResponse, ProfileUpdateRequest, SignupOrganizationRequest, SignupOrganizationResponse
 
 router = APIRouter()
 
@@ -21,6 +21,26 @@ def get_me(current_user: Profile = Depends(get_current_user_profile)):
         organization_id=str(current_user.organization_id),
         role=current_user.role,
         full_name=current_user.full_name,
+        job_title=current_user.job_title,
+    )
+
+
+@router.patch("/me", response_model=AuthMeResponse)
+def update_me(
+    payload: ProfileUpdateRequest,
+    current_user: Profile = Depends(get_current_user_profile),
+    db: Session = Depends(get_db),
+):
+    current_user.full_name = payload.full_name.strip()
+    current_user.job_title = payload.job_title.strip()
+    db.commit()
+    db.refresh(current_user)
+    return AuthMeResponse(
+        user_id=str(current_user.id),
+        organization_id=str(current_user.organization_id),
+        role=current_user.role,
+        full_name=current_user.full_name,
+        job_title=current_user.job_title,
     )
 
 @router.post("/signup-organization", response_model=SignupOrganizationResponse, status_code=201)
@@ -45,7 +65,8 @@ def signup_organization(payload: SignupOrganizationRequest, db: Session = Depend
                 "password": payload.password,
                 "options": {
                     "data": {
-                        "full_name": payload.full_name
+                        "full_name": payload.full_name,
+                        "job_title": payload.job_title,
                     }
                 }
             }
@@ -117,7 +138,8 @@ def signup_organization(payload: SignupOrganizationRequest, db: Session = Depend
             id=uuid.UUID(user_id),
             organization_id=org.id,
             role="org_admin",
-            full_name=payload.full_name
+            full_name=payload.full_name,
+            job_title=payload.job_title,
         )
         db.add(profile)
         db.flush()

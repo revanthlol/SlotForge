@@ -29,19 +29,22 @@ function LoadingRouteState() {
   return <LoadingScreen />;
 }
 
+const onboardingFinished = (progress: { skipped?: boolean; completed_steps: string[] }) =>
+  Boolean(progress.skipped || progress.completed_steps.includes('generate'));
+
 function ProtectedRoute({ children }: { children: React.JSX.Element }) {
   const { organizationId, loading } = useAuth();
   const location = useLocation();
-  const { progress, loading: onboardingLoading } = useOnboardingProgress(organizationId);
+  const { progress, loading: onboardingLoading, loadedWorkspaceId } = useOnboardingProgress(organizationId);
 
-  if (loading || (organizationId && onboardingLoading)) return <LoadingRouteState />;
+  if (loading || (organizationId && (onboardingLoading || loadedWorkspaceId !== organizationId))) return <LoadingRouteState />;
 
   if (!organizationId) {
     const redirect = encodeURIComponent(`${location.pathname}${location.search}`);
     return <Navigate to={`/login?redirect=${redirect}`} replace />;
   }
 
-  const isCompletedOrSkipped = progress.skipped || progress.completed_steps.includes('generate');
+  const isCompletedOrSkipped = onboardingFinished(progress);
   if (!isCompletedOrSkipped && location.pathname !== '/onboarding') {
     return <Navigate to="/onboarding" replace />;
   }
@@ -51,21 +54,33 @@ function ProtectedRoute({ children }: { children: React.JSX.Element }) {
 
 function PublicAuthRoute({ children }: { children: React.JSX.Element }) {
   const { organizationId, loading } = useAuth();
-  const { progress, loading: onboardingLoading } = useOnboardingProgress(organizationId);
+  const { progress, loading: onboardingLoading, loadedWorkspaceId } = useOnboardingProgress(organizationId);
 
-  if (loading || (organizationId && onboardingLoading)) return <LoadingRouteState />;
+  if (loading || (organizationId && (onboardingLoading || loadedWorkspaceId !== organizationId))) return <LoadingRouteState />;
   if (organizationId) {
-    const isCompletedOrSkipped = progress.skipped || progress.completed_steps.includes('generate');
-    return <Navigate to={isCompletedOrSkipped ? '/dashboard' : '/onboarding'} replace />;
+    const isCompletedOrSkipped = onboardingFinished(progress);
+    return <Navigate to={isCompletedOrSkipped ? '/' : '/onboarding'} replace />;
   }
 
   return children;
 }
 
+function HomeRoute() {
+  const { organizationId, loading } = useAuth();
+  const { progress, loading: onboardingLoading, loadedWorkspaceId } = useOnboardingProgress(organizationId);
+
+  if (loading || (organizationId && (onboardingLoading || loadedWorkspaceId !== organizationId))) return <LoadingRouteState />;
+  if (!organizationId) return <LandingPage />;
+  if (!onboardingFinished(progress)) return <Navigate to="/onboarding" replace />;
+
+  return <ShortcutProvider><AppLayout><DashboardPage /></AppLayout></ShortcutProvider>;
+}
+
 export default function AppRouter() {
   return (
     <Routes>
-      <Route path="/" element={<LandingPage />} />
+      <Route path="/" element={<HomeRoute />} />
+      <Route path="/landing" element={<LandingPage />} />
       <Route path="/login" element={<PublicAuthRoute><LoginPage /></PublicAuthRoute>} />
       <Route path="/signup" element={<PublicAuthRoute><SignupPage /></PublicAuthRoute>} />
       <Route path="/share/faculty/:token" element={<PublicSharePage />} />
@@ -73,7 +88,7 @@ export default function AppRouter() {
       <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
 
       <Route element={<ProtectedRoute><ShortcutProvider><AppLayout /></ShortcutProvider></ProtectedRoute>}>
-        <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/dashboard" element={<Navigate to="/" replace />} />
         <Route path="/resources">
           <Route index element={<Navigate to="/resources/teachers" replace />} />
           <Route path="teachers" element={<TeachersPage />} />

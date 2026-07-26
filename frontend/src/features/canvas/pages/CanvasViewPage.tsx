@@ -1,15 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
-import ReactFlow, {
-  Background,
-  Controls,
-  Handle,
-  MiniMap,
-  Position,
-  type Edge,
-  type Node,
-  type NodeProps,
-} from 'reactflow';
+import ReactFlow, { Background, Controls, Handle, MiniMap, Position, type Edge, type Node, type NodeProps } from 'reactflow';
 import 'reactflow/dist/style.css';
 import PageHeader from '../../../components/ui/PageHeader';
 import { useApiGet } from '../../../hooks/useApi';
@@ -19,82 +9,83 @@ type CanvasView = 'resource' | 'constraint' | 'conflict' | 'version';
 type CanvasNode = { id: string; type: string; label: string; metadata: Record<string, unknown>; pressure_level?: string | null };
 type CanvasEdge = { id: string; source: string; target: string; label?: string | null; edge_type: string };
 type CanvasResponse = { workspace_id: string; view: CanvasView; nodes: CanvasNode[]; edges: CanvasEdge[] };
-type CanvasNodeData = CanvasNode & { dimmed?: boolean; focused?: boolean; onSelect: (id: string) => void };
+type GraphNodeData = CanvasNode & { degree: number; selected: boolean; related: boolean; faded: boolean; showLabel: boolean; onSelect: (id: string) => void };
 
-const viewMeta: Record<CanvasView, { label: string; icon: string; eyebrow: string; description: string; accent: string }> = {
-  resource: { label: 'Resource graph', icon: 'hub', eyebrow: 'LIVE RELATIONSHIPS', description: 'How sections, subjects, faculty, and spaces meet inside the timetable.', accent: '#0f766e' },
-  constraint: { label: 'Constraint graph', icon: 'rule', eyebrow: 'SOLVER PRESSURE', description: 'Which rules shape which parts of the workspace, and where they apply.', accent: '#b45309' },
-  conflict: { label: 'Conflict graph', icon: 'warning', eyebrow: 'SCHEDULING FRICTION', description: 'Pressure hotspots and the resources connected to them.', accent: '#be3b3b' },
-  version: { label: 'Version graph', icon: 'account_tree', eyebrow: 'HISTORY TREE', description: 'The draft lineage behind every published timetable.', accent: '#4f46a5' },
+const viewMeta: Record<CanvasView, { label: string; icon: string; eyebrow: string; description: string; color: string }> = {
+  resource: { label: 'Resources', icon: 'hub', eyebrow: 'LIVE WORKSPACE', description: 'Who teaches what, where each section meets, and how often.', color: '#6ee7c2' },
+  constraint: { label: 'Rules', icon: 'rule', eyebrow: 'RULE INFLUENCE', description: 'Select a rule to see exactly which resources it governs.', color: '#f2c66d' },
+  conflict: { label: 'Pressure', icon: 'warning', eyebrow: 'PRESSURE SIGNALS', description: 'Follow overloaded resources and the timetable links around them.', color: '#ff8f83' },
+  version: { label: 'Versions', icon: 'account_tree', eyebrow: 'VERSION LINEAGE', description: 'Trace how schedule drafts branch from one another over time.', color: '#b7a8ff' },
 };
 
-const typeMeta: Record<string, { label: string; icon: string; color: string }> = {
-  teacher: { label: 'Teacher', icon: 'school', color: '#0f766e' },
-  resource: { label: 'Resource', icon: 'person', color: '#475569' },
-  subject: { label: 'Subject', icon: 'menu_book', color: '#4f46a5' },
-  section: { label: 'Section', icon: 'groups', color: '#166534' },
-  room: { label: 'Room', icon: 'meeting_room', color: '#b45309' },
-  lab: { label: 'Lab', icon: 'science', color: '#a16207' },
-  constraint: { label: 'Constraint', icon: 'rule', color: '#be3b3b' },
-  version: { label: 'Version', icon: 'account_tree', color: '#4f46a5' },
+const typeMeta: Record<string, { label: string; color: string }> = {
+  teacher: { label: 'Teacher', color: '#6ee7c2' },
+  resource: { label: 'Resource', color: '#8cc8ff' },
+  subject: { label: 'Subject', color: '#b7a8ff' },
+  section: { label: 'Section', color: '#a7e57a' },
+  room: { label: 'Room', color: '#f2c66d' },
+  lab: { label: 'Lab', color: '#ffb870' },
+  constraint: { label: 'Rule', color: '#ff8f83' },
+  version: { label: 'Version', color: '#c6b7ff' },
 };
 
-const pressureColor: Record<string, string> = { critical: '#be3b3b', high: '#c2410c', medium: '#a16207', low: '#15803d', none: '#94a3b8' };
+const pressureColor: Record<string, string> = { critical: '#ff6f68', high: '#ff9468', medium: '#f2c66d', low: '#6ee7c2', none: '#8fa49f' };
 
-function layoutNodes(items: CanvasNode[], view: CanvasView, query: string, selectedId: string | null, onSelect: (id: string) => void): Node<CanvasNodeData>[] {
-  const columns: Record<string, number> = view === 'resource'
-    ? { section: 0, subject: 1, teacher: 2, resource: 2, room: 3, lab: 3 }
-    : view === 'constraint'
-      ? { constraint: 0, teacher: 1, resource: 1, subject: 2, section: 2, room: 3, lab: 3 }
-      : { version: 1, teacher: 0, resource: 0, subject: 2, section: 2, room: 3, lab: 3, constraint: 0 };
-  const rows = new Map<number, number>();
-  const normalized = query.trim().toLowerCase();
-  return items.map((item) => {
-    const column = columns[item.type] ?? 1;
-    const row = rows.get(column) || 0;
-    rows.set(column, row + 1);
-    const matches = !normalized || `${item.label} ${item.type} ${Object.values(item.metadata).join(' ')}`.toLowerCase().includes(normalized);
-    return {
-      id: item.id,
-      type: 'canvasNode',
-      position: { x: 60 + column * 270, y: 48 + row * 112 },
-      data: { ...item, dimmed: !matches || Boolean(normalized && selectedId && item.id !== selectedId), focused: item.id === selectedId, onSelect },
-      draggable: true,
-    };
+function graphLayout(items: CanvasNode[], edges: CanvasEdge[]): Map<string, { x: number; y: number }> {
+  const degrees = new Map(items.map((item) => [item.id, 0]));
+  edges.forEach((edge) => {
+    degrees.set(edge.source, (degrees.get(edge.source) || 0) + 1);
+    degrees.set(edge.target, (degrees.get(edge.target) || 0) + 1);
   });
+  const ordered = [...items].sort((a, b) => (degrees.get(b.id) || 0) - (degrees.get(a.id) || 0) || a.label.localeCompare(b.label));
+  const result = new Map<string, { x: number; y: number }>();
+
+  if (ordered.every((node) => node.type === 'version')) {
+    ordered.forEach((node, index) => result.set(node.id, { x: 120 + index * 210, y: 330 + ((index % 3) - 1) * 120 }));
+    return result;
+  }
+
+  ordered.forEach((node, index) => {
+    if (index === 0) {
+      result.set(node.id, { x: 620, y: 390 });
+      return;
+    }
+    const angle = index * 2.399963229728653;
+    const radius = 92 + Math.sqrt(index) * 84;
+    result.set(node.id, { x: 620 + Math.cos(angle) * radius, y: 390 + Math.sin(angle) * radius });
+  });
+  return result;
 }
 
-function CanvasNodeCard({ data }: NodeProps<CanvasNodeData>) {
+function GraphNode({ data }: NodeProps<GraphNodeData>) {
   const meta = typeMeta[data.type] || typeMeta.resource;
-  const pressure = data.pressure_level ? pressureColor[data.pressure_level] || pressureColor.none : meta.color;
+  const color = data.pressure_level ? pressureColor[data.pressure_level] || meta.color : meta.color;
+  const size = data.selected ? 25 : 12 + Math.min(data.degree, 5) * 2;
+
   return (
-    <div
-      className={`group relative w-[220px] rounded-[18px] border bg-paper-raised px-4 py-3 shadow-[0_10px_30px_rgba(19,35,42,0.08)] transition-all ${data.dimmed ? 'opacity-25' : 'opacity-100'} ${data.focused ? 'ring-2 ring-primary ring-offset-2' : ''}`}
-      style={{ borderColor: data.focused ? meta.color : `${pressure}55` }}
-      onClick={() => data.onSelect(data.id)}
+    <button
+      type="button"
+      onClick={(event) => {
+        if (event.detail === 0) {
+          event.stopPropagation();
+          data.onSelect(data.id);
+        }
+      }}
+      className={`group relative flex w-[144px] -translate-x-1/2 flex-col items-center bg-transparent text-center outline-none transition-all ${data.faded ? 'opacity-15' : 'opacity-100'}`}
+      aria-label={`${data.label}, ${meta.label}, ${data.degree} relationships`}
     >
-      <Handle type="target" position={Position.Left} className="!h-2 !w-2 !border-2 !border-paper-raised" style={{ background: pressure }} />
-      <Handle type="source" position={Position.Right} className="!h-2 !w-2 !border-2 !border-paper-raised" style={{ background: pressure }} />
-      <div className="flex items-start gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-paper-raised" style={{ background: pressure }}>
-          <span className="material-symbols-outlined" style={{ fontSize: 19 }}>{meta.icon}</span>
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <p className="truncate text-sm font-black text-on-surface">{data.label}</p>
-            {data.pressure_level && <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: pressure }} title={`${data.pressure_level} pressure`} />}
-          </div>
-          <p className="mt-1 text-[10px] font-bold uppercase tracking-[0.14em] text-mono-grey">{meta.label}</p>
-        </div>
-      </div>
-      {data.type === 'version' && <p className="mt-3 text-xs text-on-surface-variant">{String(data.metadata.status || 'draft')} · {data.metadata.branch_name ? String(data.metadata.branch_name) : 'generated'}</p>}
-      {data.type === 'constraint' && <p className="mt-3 truncate text-xs text-on-surface-variant">{String(data.metadata.template_key || 'custom rule')} · {data.metadata.enabled ? 'enabled' : 'disabled'}</p>}
-      {data.pressure_level && <p className="mt-3 text-xs font-semibold capitalize" style={{ color: pressure }}>{data.pressure_level} pressure</p>}
-    </div>
+      <Handle type="target" position={Position.Left} className="!left-1/2 !top-3 !h-px !w-px !border-0 !bg-transparent" />
+      <Handle type="source" position={Position.Right} className="!right-1/2 !top-3 !h-px !w-px !border-0 !bg-transparent" />
+      <span
+        className={`block rounded-full border-2 shadow-[0_0_0_5px_rgba(255,255,255,0.025),0_0_18px_currentColor] transition-all group-hover:scale-125 ${data.selected ? 'ring-2 ring-white/80 ring-offset-4 ring-offset-[#111918]' : data.related ? 'ring-1 ring-white/45 ring-offset-2 ring-offset-[#111918]' : ''}`}
+        style={{ width: size, height: size, borderColor: '#d9eee7', background: color, color }}
+      />
+      {(data.showLabel || data.selected || data.related) && <span className={`mt-2 max-w-[144px] truncate rounded bg-[#111918]/80 px-1.5 py-0.5 text-[11px] font-semibold text-[#dcebe6] backdrop-blur-sm ${data.selected ? 'text-white' : ''}`}>{data.label}</span>}
+    </button>
   );
 }
 
-const nodeTypes = { canvasNode: CanvasNodeCard };
+const nodeTypes = { graphNode: GraphNode };
 
 export default function CanvasViewPage() {
   const { data: workspaces, isLoading: workspacesLoading } = useWorkspaces();
@@ -103,80 +94,79 @@ export default function CanvasViewPage() {
   const [view, setView] = useState<CanvasView>('resource');
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showDetails, setShowDetails] = useState(true);
-  const [focusMode, setFocusMode] = useState(false);
+  const [showLabels, setShowLabels] = useState(true);
+  const [showInspector, setShowInspector] = useState(true);
   const { data, loading, error } = useApiGet<CanvasResponse>(activeWorkspaceId ? `/api/v1/workspaces/${activeWorkspaceId}/canvas?view=${view}` : null);
-  const selected = data?.nodes.find((node) => node.id === selectedId) || null;
 
-  const onSelect = (id: string) => {
-    setSelectedId((current) => current === id ? null : id);
-    setShowDetails(true);
-  };
-  const graphNodes = useMemo(() => layoutNodes(data?.nodes || [], view, query, focusMode ? selectedId : null, onSelect), [data?.nodes, view, query, focusMode, selectedId]);
-  const graphEdges = useMemo<Edge[]>(() => (data?.edges || []).map((edge) => ({
-    id: edge.id,
-    source: edge.source,
-    target: edge.target,
-    label: edge.label || undefined,
-    type: 'smoothstep',
-    animated: view === 'conflict' && edge.edge_type === 'pressure',
-    style: { stroke: viewMeta[view].accent, strokeWidth: 1.5, opacity: 0.72 },
-    labelStyle: { fill: '#475569', fontSize: 10, fontWeight: 700 },
-    labelBgStyle: { fill: '#f8faf8', fillOpacity: 0.92 },
-    labelBgPadding: [5, 3],
-  })), [data?.edges, view]);
+  const nodesById = useMemo(() => new Map((data?.nodes || []).map((node) => [node.id, node])), [data?.nodes]);
+  const selected = selectedId ? nodesById.get(selectedId) || null : null;
+  const relationships = useMemo(() => selectedId ? (data?.edges || []).filter((edge) => edge.source === selectedId || edge.target === selectedId) : [], [data?.edges, selectedId]);
+  const relatedIds = useMemo(() => new Set(relationships.flatMap((edge) => [edge.source, edge.target])), [relationships]);
+  const normalizedQuery = query.trim().toLowerCase();
+  const degreeMap = useMemo(() => {
+    const map = new Map<string, number>();
+    (data?.edges || []).forEach((edge) => { map.set(edge.source, (map.get(edge.source) || 0) + 1); map.set(edge.target, (map.get(edge.target) || 0) + 1); });
+    return map;
+  }, [data?.edges]);
+  const positions = useMemo(() => graphLayout(data?.nodes || [], data?.edges || []), [data?.nodes, data?.edges]);
+  const onSelect = (id: string) => { setSelectedId((current) => current === id ? null : id); setShowInspector(true); };
+
+  const graphNodes = useMemo<Node<GraphNodeData>[]>(() => (data?.nodes || []).map((node) => {
+    const matches = !normalizedQuery || `${node.label} ${node.type} ${Object.values(node.metadata).join(' ')}`.toLowerCase().includes(normalizedQuery);
+    const selectedState = node.id === selectedId;
+    const related = Boolean(selectedId && relatedIds.has(node.id) && !selectedState);
+    return { id: node.id, type: 'graphNode', position: positions.get(node.id) || { x: 0, y: 0 }, draggable: true, data: { ...node, degree: degreeMap.get(node.id) || 0, selected: selectedState, related, faded: !matches || Boolean(selectedId && !selectedState && !related), showLabel: showLabels, onSelect } };
+  }), [data?.nodes, normalizedQuery, selectedId, relatedIds, positions, degreeMap, showLabels]);
+
+  const graphEdges = useMemo<Edge[]>(() => (data?.edges || []).map((edge) => {
+    const active = !selectedId || edge.source === selectedId || edge.target === selectedId;
+    return { id: edge.id, source: edge.source, target: edge.target, label: selectedId && active ? (edge.label || edge.edge_type.replaceAll('_', ' ')) : undefined, type: 'straight', animated: view === 'conflict' && active, style: { stroke: active ? viewMeta[view].color : '#78908a', strokeWidth: selectedId && active ? 2.4 : 1, opacity: selectedId ? (active ? .95 : .06) : .34 }, labelStyle: { fill: '#dcebe6', fontSize: 10, fontWeight: 700 }, labelBgStyle: { fill: '#111918', fillOpacity: .9 }, labelBgPadding: [5, 3] };
+  }), [data?.edges, selectedId, view]);
+
+  const resetView = (nextView: CanvasView) => { setView(nextView); setSelectedId(null); setQuery(''); };
 
   return (
     <div className="space-y-5">
-      <PageHeader
-        breadcrumb="SOLVER / CANVAS MAP"
-        title="Canvas Map"
-        subtitle="Read the timetable as a living system: resources, rules, pressure, and version lineage in one navigable map."
-        actions={<Link to="/onboarding" className="inline-flex items-center gap-2 rounded-lg border-2 border-rule bg-paper-raised px-4 py-2 text-sm font-semibold text-on-surface hover:bg-accent-soft"><span className="material-symbols-outlined" style={{ fontSize: 18 }}>checklist</span>Setup Guide</Link>}
-      />
+      <PageHeader breadcrumb="WORKSPACE / RELATIONSHIP MAP" title="Canvas" subtitle="Explore the living structure behind the timetable. Select any point to isolate its direct relationships." />
 
-      <section className="overflow-hidden rounded-[22px] border-2 border-[#cbd8d2] bg-[#eef3ef] shadow-[0_20px_60px_rgba(19,35,42,0.08)]">
-        <div className="border-b border-[#cbd8d2] bg-[#f8faf8] px-5 py-4">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#163b3b] text-[#d4f27c]"><span className="material-symbols-outlined">hub</span></div>
-              <div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#54716a]">Workspace signal map</p><p className="truncate text-sm font-black text-[#163b3b]">{workspaces?.find((workspace) => workspace.id === activeWorkspaceId)?.name || (workspacesLoading ? 'Loading workspace…' : 'No workspace')}</p></div>
-            </div>
+      <section className="overflow-hidden rounded-2xl border-2 border-[#31443f] bg-[#111918] shadow-[0_22px_70px_rgba(8,20,17,.25)]">
+        <div className="border-b border-white/10 bg-[#15201e] px-4 py-4 sm:px-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3"><span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#d8f57c] text-[#173b34]"><span className="material-symbols-outlined" style={{ fontSize: 20 }}>grain</span></span><div><p className="text-[9px] font-bold uppercase tracking-[.2em] text-[#7e9a92]">{viewMeta[view].eyebrow}</p><p className="text-sm font-semibold text-[#e6f0ed]">{workspaces?.find((item) => item.id === activeWorkspaceId)?.name || (workspacesLoading ? 'Loading workspace…' : 'Workspace graph')}</p></div></div>
             <div className="flex flex-wrap items-center gap-2">
-              {workspaces && workspaces.length > 1 && <select value={activeWorkspaceId || ''} onChange={(event) => { setWorkspaceId(event.target.value); setSelectedId(null); }} className="rounded-lg border border-rule bg-paper-raised px-3 py-2 text-xs font-semibold text-on-surface"><option value="">Select workspace</option>{workspaces.map((workspace) => <option key={workspace.id} value={workspace.id}>{workspace.name}</option>)}</select>}
-              <button type="button" onClick={() => setFocusMode((current) => !current)} className={`rounded-lg border px-3 py-2 text-xs font-bold ${focusMode ? 'border-[#163b3b] bg-[#163b3b] text-[#d4f27c]' : 'border-rule bg-paper-raised text-on-surface-variant'}`}><span className="material-symbols-outlined mr-1 align-middle" style={{ fontSize: 15 }}>center_focus_strong</span>Focus mode</button>
-              <button type="button" onClick={() => setShowDetails((current) => !current)} className="rounded-lg border border-rule bg-paper-raised px-3 py-2 text-xs font-bold text-on-surface-variant"><span className="material-symbols-outlined mr-1 align-middle" style={{ fontSize: 15 }}>{showDetails ? 'right_panel_close' : 'right_panel_open'}</span>Details</button>
+              {workspaces && workspaces.length > 1 && <select value={activeWorkspaceId || ''} onChange={(event) => { setWorkspaceId(event.target.value); setSelectedId(null); }} className="rounded-lg border border-white/15 bg-[#111918] px-3 py-2 text-xs font-semibold text-[#dcebe6]">{workspaces.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}</select>}
+              <button type="button" onClick={() => setShowLabels((current) => !current)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${showLabels ? 'border-[#d8f57c]/40 bg-[#d8f57c]/10 text-[#d8f57c]' : 'border-white/15 text-[#9ab0aa]'}`}><span className="material-symbols-outlined mr-1 align-middle" style={{ fontSize: 15 }}>label</span>Labels</button>
+              <button type="button" onClick={() => setShowInspector((current) => !current)} className="rounded-lg border border-white/15 px-3 py-2 text-xs font-semibold text-[#9ab0aa] hover:text-white"><span className="material-symbols-outlined mr-1 align-middle" style={{ fontSize: 15 }}>{showInspector ? 'right_panel_close' : 'right_panel_open'}</span>Inspector</button>
             </div>
           </div>
           <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex gap-1 overflow-x-auto rounded-xl border border-[#d8e2dc] bg-[#edf2ee] p-1">
-              {(Object.keys(viewMeta) as CanvasView[]).map((key) => <button key={key} type="button" onClick={() => { setView(key); setSelectedId(null); setQuery(''); }} className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-black transition-colors ${view === key ? 'bg-[#163b3b] text-[#d4f27c] shadow-sm' : 'text-[#54716a] hover:bg-[#f8faf8]'}`}><span className="material-symbols-outlined" style={{ fontSize: 17 }}>{viewMeta[key].icon}</span>{viewMeta[key].label}</button>)}
-            </div>
-            <label className="flex min-w-0 items-center gap-2 rounded-xl border border-[#d8e2dc] bg-[#f8faf8] px-3 py-2 lg:w-[300px]"><span className="material-symbols-outlined text-[#54716a]" style={{ fontSize: 18 }}>search</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search the map…" className="min-w-0 flex-1 bg-transparent text-sm text-[#163b3b] outline-none placeholder:text-[#8ba29a]" /><kbd className="hidden rounded bg-[#edf2ee] px-1.5 py-0.5 text-[10px] text-[#54716a] sm:block">⌘K</kbd></label>
+            <div className="flex gap-1 overflow-x-auto rounded-xl bg-black/15 p-1">{(Object.keys(viewMeta) as CanvasView[]).map((key) => <button key={key} type="button" onClick={() => resetView(key)} className={`flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold transition-colors ${view === key ? 'bg-[#d8f57c] text-[#173b34]' : 'text-[#8fa49f] hover:bg-white/5 hover:text-white'}`}><span className="material-symbols-outlined" style={{ fontSize: 16 }}>{viewMeta[key].icon}</span>{viewMeta[key].label}</button>)}</div>
+            <label className="flex min-w-0 items-center gap-2 rounded-xl border border-white/12 bg-black/15 px-3 py-2 lg:w-[300px]"><span className="material-symbols-outlined text-[#78908a]" style={{ fontSize: 18 }}>search</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a node…" className="min-w-0 flex-1 bg-transparent text-sm text-[#e6f0ed] outline-none placeholder:text-[#637a74]" />{query && <button type="button" onClick={() => setQuery('')} className="text-[#78908a]"><span className="material-symbols-outlined" style={{ fontSize: 16 }}>close</span></button>}</label>
           </div>
         </div>
 
-        <div className={`grid ${showDetails ? 'lg:grid-cols-[minmax(0,1fr)_320px]' : 'grid-cols-1'}`}>
-          <div className="relative min-h-[680px] bg-[#e8efea]">
-            <div className="pointer-events-none absolute left-5 top-5 z-10 max-w-[360px]"><p className="text-[10px] font-black uppercase tracking-[0.2em]" style={{ color: viewMeta[view].accent }}>{viewMeta[view].eyebrow}</p><p className="mt-1 text-xs font-medium text-[#54716a]">{viewMeta[view].description}</p></div>
-            <div className="absolute bottom-5 left-5 z-10 rounded-lg border border-[#cbd8d2] bg-[#f8faf8]/90 px-3 py-2 text-[11px] font-semibold text-[#54716a] shadow-sm">{loading ? 'Synchronizing graph…' : error ? 'Could not load graph data' : `${data?.nodes.length || 0} nodes · ${data?.edges.length || 0} relationships`}</div>
-            {error ? <div className="absolute inset-0 flex items-center justify-center p-8"><div className="max-w-sm rounded-2xl border border-[#e5bcbc] bg-[#fff8f8] p-6 text-center"><span className="material-symbols-outlined text-[#be3b3b]" style={{ fontSize: 30 }}>error</span><h2 className="mt-3 text-lg font-black text-[#4b2020]">Map unavailable</h2><p className="mt-2 text-sm text-[#7f4a4a]">The workspace graph could not be loaded. Try again after checking the API connection.</p></div></div> : <ReactFlow nodes={graphNodes} edges={graphEdges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: 0.22 }} minZoom={0.18} maxZoom={1.5} nodesConnectable={false} proOptions={{ hideAttribution: true }} onPaneClick={() => setSelectedId(null)}><Background color="#c9d8cf" gap={24} size={1} /><Controls position="bottom-right" showInteractive={false} /><MiniMap position="bottom-left" pannable zoomable nodeColor={(node) => pressureColor[node.data?.pressure_level] || typeMeta[node.data?.type]?.color || '#94a3b8'} /></ReactFlow>}
+        <div className={`grid ${showInspector ? 'xl:grid-cols-[minmax(0,1fr)_340px]' : 'grid-cols-1'}`}>
+          <div className="relative h-[min(72vh,760px)] min-h-[560px] bg-[#111918]">
+            <div className="pointer-events-none absolute left-5 top-5 z-10 max-w-xs"><p className="text-sm font-medium leading-6 text-[#78908a]">{selected ? `${relationships.length} direct relationship${relationships.length === 1 ? '' : 's'} selected` : viewMeta[view].description}</p></div>
+            <div className="absolute bottom-5 left-5 z-10 rounded-lg border border-white/10 bg-[#15201e]/90 px-3 py-2 text-[11px] font-semibold text-[#8fa49f] backdrop-blur">{loading ? 'Mapping relationships…' : error ? 'Graph data unavailable' : `${data?.nodes.length || 0} nodes · ${data?.edges.length || 0} relationships`}</div>
+            {error ? <div className="absolute inset-0 grid place-items-center p-8"><div className="max-w-sm text-center"><span className="material-symbols-outlined text-[#ff8f83]" style={{ fontSize: 34 }}>cloud_off</span><h2 className="mt-3 text-xl font-semibold text-white">Could not load this map</h2><p className="mt-2 text-sm text-[#8fa49f]">Check the workspace connection and try again.</p></div></div> : <ReactFlow nodes={graphNodes} edges={graphEdges} nodeTypes={nodeTypes} fitView fitViewOptions={{ padding: .25 }} minZoom={.18} maxZoom={2.2} nodesConnectable={false} proOptions={{ hideAttribution: true }} onNodeClick={(_, node) => onSelect(node.id)} onPaneClick={() => setSelectedId(null)}><Background color="#2a3a36" gap={28} size={1} /><Controls position="bottom-right" showInteractive={false} /><MiniMap position="top-right" pannable zoomable maskColor="rgba(7,12,11,.72)" style={{ background: '#17211f', border: '1px solid #31443f' }} nodeColor={(node) => pressureColor[node.data?.pressure_level] || typeMeta[node.data?.type]?.color || '#8fa49f'} /></ReactFlow>}
           </div>
-          {showDetails && <aside className="border-l border-[#cbd8d2] bg-[#f8faf8] p-5">
-            {selected ? <DetailPanel node={selected} onClose={() => setSelectedId(null)} /> : <EmptyDetail view={view} />}
-          </aside>}
+          {showInspector && <aside className="border-t border-white/10 bg-[#15201e] p-5 xl:border-l xl:border-t-0">{selected ? <Inspector node={selected} relationships={relationships} nodesById={nodesById} onSelect={onSelect} onClose={() => setSelectedId(null)} /> : <EmptyInspector view={view} />}</aside>}
         </div>
       </section>
     </div>
   );
 }
 
-function EmptyDetail({ view }: { view: CanvasView }) {
-  return <div className="flex h-full min-h-[280px] flex-col justify-between"><div><p className="text-[10px] font-black uppercase tracking-[0.2em] text-[#54716a]">Inspector</p><h2 className="mt-3 text-2xl font-black text-[#163b3b]">Choose a signal</h2><p className="mt-3 text-sm leading-6 text-[#668078]">Select any node to inspect its role in the {viewMeta[view].label.toLowerCase()}. Focus mode will mute everything else so the relationship stays readable.</p></div><div className="rounded-2xl bg-[#edf2ee] p-4"><p className="text-xs font-black uppercase tracking-[0.16em] text-[#54716a]">Navigation</p><div className="mt-3 space-y-2 text-sm text-[#54716a]"><p><span className="mr-2 text-[#163b3b]">1</span>Pan the map to scan the workspace.</p><p><span className="mr-2 text-[#163b3b]">2</span>Zoom into a cluster.</p><p><span className="mr-2 text-[#163b3b]">3</span>Click a node for its evidence.</p></div></div></div>;
+function EmptyInspector({ view }: { view: CanvasView }) {
+  return <div className="flex h-full min-h-[300px] flex-col justify-between"><div><p className="text-[9px] font-bold uppercase tracking-[.2em] text-[#78908a]">Relationship inspector</p><h2 className="mt-3 text-2xl font-semibold text-white">Select a point</h2><p className="mt-3 text-sm leading-6 text-[#8fa49f]">Every unrelated point will fade so you can read one {viewMeta[view].label.toLowerCase()} relationship at a time.</p></div><div className="rounded-xl border border-white/8 bg-black/10 p-4 text-xs leading-5 text-[#78908a]"><p className="font-semibold text-[#dcebe6]">Map controls</p><p className="mt-2">Drag to pan · scroll to zoom · move points to untangle dense clusters.</p></div></div>;
 }
 
-function DetailPanel({ node, onClose }: { node: CanvasNode; onClose: () => void }) {
+function Inspector({ node, relationships, nodesById, onSelect, onClose }: { node: CanvasNode; relationships: CanvasEdge[]; nodesById: Map<string, CanvasNode>; onSelect: (id: string) => void; onClose: () => void }) {
   const meta = typeMeta[node.type] || typeMeta.resource;
   const entries = Object.entries(node.metadata).filter(([, value]) => value !== null && value !== undefined && typeof value !== 'object');
-  return <div><div className="flex items-start justify-between gap-3"><div><span className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-paper-raised" style={{ background: meta.color }}><span className="material-symbols-outlined" style={{ fontSize: 13 }}>{meta.icon}</span>{meta.label}</span><h2 className="mt-4 break-words text-2xl font-black leading-tight text-[#163b3b]">{node.label}</h2></div><button type="button" onClick={onClose} className="rounded-lg p-1 text-[#54716a] hover:bg-[#edf2ee]"><span className="material-symbols-outlined">close</span></button></div>{node.pressure_level && <div className="mt-5 rounded-xl border p-3" style={{ borderColor: `${pressureColor[node.pressure_level] || '#94a3b8'}55`, background: `${pressureColor[node.pressure_level] || '#94a3b8'}10` }}><p className="text-[10px] font-black uppercase tracking-[0.16em]" style={{ color: pressureColor[node.pressure_level] || '#64748b' }}>Scheduling pressure</p><p className="mt-1 text-lg font-black capitalize" style={{ color: pressureColor[node.pressure_level] || '#64748b' }}>{node.pressure_level}</p>{node.metadata.message != null && <p className="mt-1 text-xs text-[#668078]">{String(node.metadata.message)}</p>}</div>}<div className="mt-6 space-y-3"><p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#54716a]">Evidence</p>{entries.length ? entries.map(([key, value]) => <div key={key} className="flex items-start justify-between gap-4 border-b border-[#e1e9e3] pb-2 text-sm"><span className="capitalize text-[#668078]">{key.replaceAll('_', ' ')}</span><span className="max-w-[160px] break-words text-right font-bold text-[#163b3b]">{String(value)}</span></div>) : <p className="rounded-xl bg-[#edf2ee] p-3 text-sm text-[#668078]">No additional metadata is available for this node.</p>}</div></div>;
+  return <div><div className="flex items-start justify-between gap-3"><div><span className="inline-flex rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[.16em]" style={{ color: meta.color, borderColor: `${meta.color}66`, background: `${meta.color}14` }}>{meta.label}</span><h2 className="mt-4 break-words text-2xl font-semibold leading-tight text-white">{node.label}</h2><p className="mt-2 text-sm text-[#8fa49f]">{relationships.length} direct relationship{relationships.length === 1 ? '' : 's'}</p></div><button type="button" onClick={onClose} className="rounded-lg p-1 text-[#78908a] hover:bg-white/5 hover:text-white"><span className="material-symbols-outlined">close</span></button></div>
+    <div className="mt-6"><p className="text-[9px] font-bold uppercase tracking-[.18em] text-[#78908a]">Connected to</p><div className="mt-3 space-y-2">{relationships.length ? relationships.map((edge) => { const neighborId = edge.source === node.id ? edge.target : edge.source; const neighbor = nodesById.get(neighborId); if (!neighbor) return null; const neighborMeta = typeMeta[neighbor.type] || typeMeta.resource; return <button key={edge.id} type="button" onClick={() => onSelect(neighborId)} className="flex w-full items-center gap-3 rounded-xl border border-white/8 bg-black/10 p-3 text-left transition-colors hover:border-white/20 hover:bg-white/5"><span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: neighborMeta.color }} /><span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold text-[#dcebe6]">{neighbor.label}</span><span className="mt-0.5 block text-[10px] text-[#78908a]">{edge.label || edge.edge_type.replaceAll('_', ' ')} · {neighborMeta.label}</span></span><span className="material-symbols-outlined text-[#637a74]" style={{ fontSize: 16 }}>arrow_forward</span></button>; }) : <p className="rounded-xl border border-dashed border-white/10 p-4 text-sm text-[#78908a]">This node has no recorded relationships in the current view.</p>}</div></div>
+    {entries.length > 0 && <div className="mt-7"><p className="text-[9px] font-bold uppercase tracking-[.18em] text-[#78908a]">Details</p><div className="mt-3 space-y-2">{entries.slice(0, 8).map(([key, value]) => <div key={key} className="flex items-start justify-between gap-4 border-b border-white/8 pb-2 text-xs"><span className="capitalize text-[#78908a]">{key.replaceAll('_', ' ')}</span><span className="max-w-[170px] break-words text-right font-semibold text-[#dcebe6]">{typeof value === 'boolean' ? (value ? 'Yes' : 'No') : String(value)}</span></div>)}</div></div>}
+  </div>;
 }

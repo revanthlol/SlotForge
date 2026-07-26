@@ -122,6 +122,20 @@ export default function SettingsPage() {
     setMessage({ type: 'success', text: 'Local solver preferences reset to defaults. Click Save to commit.' });
   };
 
+  const handleDiscard = () => {
+    if (organization) {
+      setName(organization.name);
+      setSchedulingMode((organization.scheduling_mode as 'fixed_weekday' | 'day_order') || 'fixed_weekday');
+      setCycleLength(organization.cycle_length || 5);
+      setPeriodsPerDay(organization.periods_per_day || 5);
+    }
+    setStrictness(localStorage.getItem('slotforge_strictness') || 'balanced');
+    setMaxSolverSeconds(Number(localStorage.getItem('slotforge_max_seconds') || 30));
+    setTelemetryEnabled(localStorage.getItem('slotforge_telemetry') !== 'false');
+    setEmailAlertsEnabled(localStorage.getItem('slotforge_email_alerts') === 'true');
+    setMessage(null);
+  };
+
   return (
     <div className="space-y-6 pb-32">
       <PageHeader
@@ -361,38 +375,29 @@ export default function SettingsPage() {
         </div>
       </div>
 
-      {/* Persistent Footer bar */}
-      <div
-        className="fixed bg-paper-raised/90 backdrop-blur-md border-t border-rule px-margin-page py-5 flex items-center justify-between z-40 shadow-[0_-4px_20px_-4px_rgba(0,0,0,0.08)]"
-        style={{
-          left: 'calc(-1 * var(--spacing-margin-page))',
-          right: 'calc(-1 * var(--spacing-margin-page))',
-          bottom: 'calc(-1 * var(--spacing-margin-page))',
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-secondary animate-pulse" style={{ fontSize: 16 }}>
-            info
-          </span>
-          <span className="text-xs text-on-surface-variant font-medium">
-            Unsaved changes will be lost unless committed.
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
+      {/* Zoom-safe floating action panel */}
+      <div className="pointer-events-none fixed bottom-4 right-4 z-30 flex max-w-[calc(100vw-2rem)] justify-end">
+        <div className="pointer-events-auto flex w-full max-w-xl flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-rule bg-paper-raised/95 p-3 shadow-[0_16px_50px_rgba(20,35,32,0.18)] backdrop-blur-md sm:flex-nowrap">
+          <div className="flex min-w-0 items-center gap-2 px-1">
+            <span className="material-symbols-outlined shrink-0 text-secondary" style={{ fontSize: 17 }}>edit_note</span>
+            <span className="truncate text-xs font-medium text-on-surface-variant">Review and save your settings</span>
+          </div>
+          <div className="ml-auto flex shrink-0 items-center gap-2">
           <button
-            onClick={() => refetch()}
-            className="px-4 py-2 text-sm text-on-surface-variant border border-rule rounded-lg hover:bg-surface-container transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            onClick={handleDiscard}
+            className="rounded-lg border border-rule px-4 py-2 text-sm text-on-surface-variant transition-colors hover:bg-surface-container"
           >
             Discard
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-5 py-2 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-on-primary shadow-sm transition-colors hover:bg-primary-container disabled:opacity-50"
           >
             {saving && <span className="material-symbols-outlined animate-spin" style={{ fontSize: 16 }}>sync</span>}
             Save Changes
           </button>
+          </div>
         </div>
       </div>
 

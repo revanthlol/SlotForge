@@ -1,4 +1,4 @@
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { motion } from 'motion/react';
 import Sidebar from '../components/layout/Sidebar';
@@ -21,7 +21,7 @@ function useMobileGate() {
   return blocked;
 }
 
-export default function AppLayout() {
+export default function AppLayout({ children }: { children?: ReactNode }) {
   const location = useLocation();
   const mobileBlocked = useMobileGate();
   const [sidebarExpanded, setSidebarExpanded] = useState(() => {
@@ -50,11 +50,10 @@ export default function AppLayout() {
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             className="h-full w-full"
           >
-            <Outlet />
+            {children ?? <Outlet />}
           </motion.div>
         </main>
       </div>
     </div>
   );
 }
-

@@ -131,7 +131,7 @@ export default function PressureAnalysisView({
                   const value = ratio(item);
                   const tone = severityTone[item.severity] || severityTone.none;
                   return (
-                    <div key={item.id || `${item.type}-${item.name}-${index}`} className="grid gap-3 bg-paper-raised p-4 md:grid-cols-[160px_minmax(0,1fr)_110px] md:items-center">
+                    <div key={`${item.id || `${item.type}-${item.name}`}-${index}`} className="grid gap-3 bg-paper-raised p-4 md:grid-cols-[160px_minmax(0,1fr)_110px] md:items-center">
                       <div>
                         <p className="text-[10px] font-bold uppercase text-mono-grey" style={{ fontFamily: 'var(--font-mono)', letterSpacing: 0 }}>{item.type}</p>
                         <p className="mt-1 text-sm font-semibold text-on-surface">{item.name}</p>

@@ -264,7 +264,7 @@ export default function OnboardingOverlay() {
 
   const skipOnboarding = async () => {
     await progressState.markSkipped();
-    navigate('/dashboard', { replace: true });
+    navigate('/', { replace: true });
   };
 
   const addAcademicItem = async (kind: 'resource' | 'task' | 'group' | 'location', item: Omit<QuickItem, 'id'>) => {
@@ -315,7 +315,7 @@ export default function OnboardingOverlay() {
       } else {
         setGenerateMessage('Setup saved. Generation for this preset will activate when the preset backend is connected.');
       }
-      await saveProgress('generate', 10);
+      await saveProgress('generate', 11);
     } catch (error) {
       setGenerateMessage(error instanceof Error ? error.message : 'Could not generate this schedule yet.');
     } finally {
@@ -547,7 +547,7 @@ export default function OnboardingOverlay() {
           ) : (
             <button
               type="button"
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/')}
               className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-2.5 text-sm font-semibold text-on-primary shadow-sm transition-all hover:bg-primary-container hover:shadow-md"
             >
               Go to dashboard

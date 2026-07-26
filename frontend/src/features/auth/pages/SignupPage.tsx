@@ -2,12 +2,16 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { motion } from 'motion/react';
+import LoadingScreen from '../../../components/ui/LoadingScreen';
+import { WORK_ROLE_OPTIONS } from '../../settings/profileRoles';
 
 export default function SignupPage() {
   const [orgName, setOrgName] = useState('');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [jobTitle, setJobTitle] = useState('Timetable coordinator');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signUp } = useAuth();
@@ -19,7 +23,7 @@ export default function SignupPage() {
     setLoading(true);
     setError('');
     try {
-      await signUp(email, password, fullName, orgName);
+      await signUp(email, password, fullName, orgName, jobTitle);
       navigate('/onboarding', { replace: true });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Registration failed');
@@ -28,8 +32,10 @@ export default function SignupPage() {
     }
   };
 
+  if (loading) return <LoadingScreen label="Preparing your guided setup" />;
+
   return (
-    <div className="auth-screen min-h-screen px-4 py-8">
+    <motion.div initial={{ opacity: 0, x: 18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .32, ease: [0.16, 1, 0.3, 1] }} className="auth-screen min-h-screen px-4 py-8">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl overflow-hidden rounded-2xl border-2 border-rule bg-paper-raised shadow-2xl lg:grid-cols-[0.95fr_1.05fr]">
         <section className="flex items-center justify-center p-6 sm:p-10">
           <div className="w-full max-w-md">
@@ -92,6 +98,15 @@ export default function SignupPage() {
             </div>
             <div>
               <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>
+                Your role
+              </label>
+              <select value={jobTitle} onChange={(event) => setJobTitle(event.target.value)} className="academic-input w-full" required>
+                {WORK_ROLE_OPTIONS.map((option) => <option key={option} value={option}>{option}</option>)}
+              </select>
+              <p className="mt-1.5 text-xs text-mono-grey">Used for your profile and team context. You can change it later.</p>
+            </div>
+            <div>
+              <label className="text-label-caps text-on-surface-variant block mb-2" style={{ fontSize: 10 }}>
                 Password
               </label>
               <input
@@ -109,8 +124,7 @@ export default function SignupPage() {
               disabled={loading}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-on-primary transition-colors hover:bg-primary-container disabled:opacity-60"
             >
-              {loading && <span className="h-2 w-2 animate-pulse rounded-full bg-on-primary" />}
-              {loading ? 'Creating institution' : 'Create institution'}
+              Create institution
             </button>
           </form>
 
@@ -143,6 +157,6 @@ export default function SignupPage() {
           </div>
         </section>
       </div>
-    </div>
+    </motion.div>
   );
 }

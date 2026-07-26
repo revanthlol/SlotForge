@@ -75,7 +75,8 @@ def test_signup_organization():
         "email": "test-admin@slotforge.com",
         "password": "securepassword123",
         "org_name": "New Institutional Org",
-        "full_name": "Principal Skinner"
+        "full_name": "Principal Skinner",
+        "job_title": "Timetable coordinator",
     }
     response = client.post("/auth/signup-organization", json=payload)
     assert response.status_code == 201
@@ -95,6 +96,31 @@ def test_signup_organization():
         assert profile is not None
         assert profile.role == "org_admin"
         assert profile.full_name == "Principal Skinner"
+        assert profile.job_title == "Timetable coordinator"
+    finally:
+        db.close()
+
+
+def test_profile_identity_can_be_updated_without_changing_access_role():
+    _org_id, user_id, headers = create_test_user("Profile Org")
+
+    response = client.patch(
+        "/auth/me",
+        json={"full_name": "Nora Planner", "job_title": "Academic registrar"},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["full_name"] == "Nora Planner"
+    assert response.json()["job_title"] == "Academic registrar"
+    assert response.json()["role"] == "org_admin"
+
+    db = SessionLocal()
+    try:
+        profile = db.query(Profile).filter(Profile.id == uuid.UUID(user_id)).one()
+        assert profile.full_name == "Nora Planner"
+        assert profile.job_title == "Academic registrar"
+        assert profile.role == "org_admin"
     finally:
         db.close()
 

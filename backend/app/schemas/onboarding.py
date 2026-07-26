@@ -14,6 +14,7 @@ OnboardingStepKey = Literal[
     "tasks",
     "groups",
     "locations",
+    "assignments",
     "constraints",
     "preflight",
     "generate",
@@ -21,8 +22,8 @@ OnboardingStepKey = Literal[
 
 
 class OnboardingProgressUpdate(BaseModel):
-    current_step: int = Field(..., ge=0, le=10)
-    completed_steps: list[OnboardingStepKey] = Field(default_factory=list, max_length=11)
+    current_step: int = Field(..., ge=0, le=11)
+    completed_steps: list[OnboardingStepKey] = Field(default_factory=list, max_length=12)
     skipped: bool = False
 
     @field_validator("completed_steps")

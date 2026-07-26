@@ -29,14 +29,17 @@ export function useOnboardingProgress(workspaceId: string | null) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [backendAvailable, setBackendAvailable] = useState(false);
+  const [loadedWorkspaceId, setLoadedWorkspaceId] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
+    setLoadedWorkspaceId(undefined);
 
     const load = async () => {
       if (!workspaceId) {
         setProgress(readStoredProgress(workspaceId));
+        setLoadedWorkspaceId(null);
         setLoading(false);
         return;
       }
@@ -46,11 +49,13 @@ export function useOnboardingProgress(workspaceId: string | null) {
         if (!mounted) return;
         setBackendAvailable(true);
         setProgress({ ...defaultProgress, ...data });
+        setLoadedWorkspaceId(workspaceId);
         window.localStorage.setItem(storageKey(workspaceId), JSON.stringify({ ...defaultProgress, ...data }));
       } catch {
         if (!mounted) return;
         setBackendAvailable(false);
         setProgress(readStoredProgress(workspaceId));
+        setLoadedWorkspaceId(workspaceId);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -94,7 +99,7 @@ export function useOnboardingProgress(workspaceId: string | null) {
   const markSkipped = useCallback(async () => {
     await persistProgress({
       ...progress,
-      current_step: 10,
+      current_step: 11,
       skipped: true,
       completed_steps: progress.completed_steps,
     });
@@ -105,8 +110,9 @@ export function useOnboardingProgress(workspaceId: string | null) {
     loading,
     saving,
     backendAvailable,
+    loadedWorkspaceId,
     persistProgress,
     completeStep,
     markSkipped,
-  }), [backendAvailable, completeStep, loading, markSkipped, persistProgress, progress, saving]);
+  }), [backendAvailable, completeStep, loadedWorkspaceId, loading, markSkipped, persistProgress, progress, saving]);
 }

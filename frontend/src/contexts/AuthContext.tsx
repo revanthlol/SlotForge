@@ -8,10 +8,12 @@ interface AuthState {
   session: Session | null;
   organizationId: string | null;
   role: string | null;
+  jobTitle: string | null;
   fullName: string | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName: string, orgName: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string, orgName: string, jobTitle: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
+  updateProfile: (fullName: string, jobTitle: string) => Promise<void>;
   signOut: () => Promise<void>;
   switchOrganization: (organizationId: string) => Promise<void>;
   createOrganization: (name: string) => Promise<string>;
@@ -24,12 +26,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [organizationId, setOrganizationId] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [jobTitle, setJobTitle] = useState<string | null>(null);
   const [fullName, setFullName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const clearProfile = () => {
     setOrganizationId(null);
     setRole(null);
+    setJobTitle(null);
     setFullName(null);
     localStorage.removeItem('slotforge_org_id');
   };
@@ -38,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = await api.get('/auth/me');
     setOrganizationId(data.organization_id);
     setRole(data.role);
+    setJobTitle(data.job_title);
     setFullName(data.full_name);
     localStorage.setItem('slotforge_org_id', data.organization_id);
     return data;
@@ -87,12 +92,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, orgName: string) => {
+  const signUp = async (email: string, password: string, fullName: string, orgName: string, jobTitle: string) => {
     const { data } = await api.post('/auth/signup-organization', {
       email,
       password,
       full_name: fullName,
       org_name: orgName,
+      job_title: jobTitle,
     });
 
     // Also sign in via Supabase to get a session
@@ -144,6 +150,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearProfile();
   };
 
+  const updateProfile = async (nextFullName: string, nextJobTitle: string) => {
+    const { data } = await api.patch('/auth/me', {
+      full_name: nextFullName,
+      job_title: nextJobTitle,
+    });
+    setFullName(data.full_name);
+    setJobTitle(data.job_title);
+  };
+
   const switchOrganization = async (nextOrganizationId: string) => {
     await api.post(`/organizations/${nextOrganizationId}/switch`);
     setOrganizationId(nextOrganizationId);
@@ -160,7 +175,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, organizationId, role, fullName, loading, signUp, signIn, signOut, switchOrganization, createOrganization }}>
+    <AuthContext.Provider value={{ user, session, organizationId, role, jobTitle, fullName, loading, signUp, signIn, updateProfile, signOut, switchOrganization, createOrganization }}>
       {children}
     </AuthContext.Provider>
   );

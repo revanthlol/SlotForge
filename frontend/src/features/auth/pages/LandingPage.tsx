@@ -31,7 +31,7 @@ export default function LandingPage() {
   const [scrolled, setScrolled] = useState(false);
   const reduceMotion = useReducedMotion();
   const signedIn = Boolean(user);
-  const primaryHref = signedIn ? '/dashboard' : '/signup';
+  const primaryHref = signedIn ? '/' : '/signup';
 
   useEffect(() => {
     const update = () => setScrolled(window.scrollY > 22);

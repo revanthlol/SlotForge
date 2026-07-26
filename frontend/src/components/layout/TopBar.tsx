@@ -6,7 +6,7 @@ import { useOrganization, useOrganizations, useTeachers, useRooms, useSubjects, 
 import Modal from '../ui/Modal';
 
 export default function TopBar() {
-  const { organizationId, signOut, fullName, role, user, switchOrganization, createOrganization } = useAuth();
+  const { organizationId, signOut, fullName, role, jobTitle, user, switchOrganization, createOrganization } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { data: org } = useOrganization(organizationId);
   const { data: organizations, refetch: refetchOrganizations } = useOrganizations(Boolean(organizationId));
@@ -73,7 +73,7 @@ export default function TopBar() {
     if (nextOrgId === organizationId) return;
     setOrgMenuOpen(false);
     await switchOrganization(nextOrgId);
-    navigate('/dashboard');
+    navigate('/');
   };
 
   const handleRefresh = async () => {
@@ -195,7 +195,7 @@ export default function TopBar() {
             </div>
             <div className="hidden min-w-0 text-left md:block">
               <p className="max-w-28 truncate text-sm font-semibold text-on-surface">{fullName || 'Admin'}</p>
-              <p className="text-[10px] uppercase tracking-wider text-mono-grey">{role || 'admin'}</p>
+              <p className="max-w-28 truncate text-[10px] text-mono-grey">{jobTitle || (role === 'org_admin' ? 'Workspace owner' : 'Member')}</p>
             </div>
             <span className={`material-symbols-outlined text-on-surface-variant transition-transform ${accountOpen ? 'rotate-180' : ''}`} style={{ fontSize: 18 }}>
               expand_more

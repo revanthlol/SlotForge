@@ -95,6 +95,38 @@ def test_onboarding_progress_put_validates_and_persists():
     assert get_response.json()["current_step"] == 3
 
 
+def test_onboarding_progress_persists_the_complete_twelve_step_flow():
+    org_id, _user_id, headers = create_test_user()
+    completed_steps = [
+        "organization",
+        "workspace",
+        "preset",
+        "time",
+        "resources",
+        "tasks",
+        "groups",
+        "locations",
+        "assignments",
+        "constraints",
+        "preflight",
+        "generate",
+    ]
+
+    response = client.put(
+        f"/api/v1/workspaces/{org_id}/onboarding/progress",
+        json={"current_step": 11, "completed_steps": completed_steps, "skipped": False},
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json()["current_step"] == 11
+    assert response.json()["completed_steps"] == completed_steps
+
+    restored = client.get(f"/api/v1/workspaces/{org_id}/onboarding/progress", headers=headers)
+    assert restored.status_code == 200
+    assert restored.json()["completed_steps"][-1] == "generate"
+
+
 def test_onboarding_progress_rejects_unknown_steps():
     org_id, _user_id, headers = create_test_user()
 

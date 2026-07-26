@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { useAuth } from '../../../contexts/AuthContext';
 import {
@@ -9,8 +9,6 @@ import {
 } from '../../../hooks/useApi';
 import api from '../../../lib/api';
 import PageHeader from '../../../components/ui/PageHeader';
-import Modal from '../../../components/ui/Modal';
-import { getApiErrorMessage } from '../../../lib/errors';
 import StatusBadge from '../../../components/ui/StatusBadge';
 import { Link } from 'react-router-dom';
 import { useWorkspaces } from '../../../lib/api/hooks/useWorkspaces';
@@ -52,17 +50,16 @@ export default function SolverEnginePage() {
 
   const [savingWeights, setSavingWeights] = useState<Record<string, boolean>>({});
   const [sliderWeights, setSliderWeights] = useState<Record<string, number>>({});
-  const [constraintModalOpen, setConstraintModalOpen] = useState(false);
-  const [newConstraintType, setNewConstraintType] = useState('teacher_gap_minimization');
-  const [newConstraintWeight, setNewConstraintWeight] = useState('5');
-  const [newConstraintPayload, setNewConstraintPayload] = useState('{}');
-  const [constraintSaving, setConstraintSaving] = useState(false);
-  const [constraintError, setConstraintError] = useState<string | null>(null);
 
   // Separate hard vs soft constraints
   // Hard constraints have no weight (null or undefined)
-  const hardConstraints = constraints?.filter((c) => c.weight === null || c.weight === undefined) || [];
-  const softConstraints = constraints?.filter((c) => c.weight !== null && c.weight !== undefined) || [];
+  const hardConstraints = useMemo(() => constraints?.filter((c) => c.weight === null || c.weight === undefined) || [], [constraints]);
+  const softConstraints = useMemo(() => constraints?.filter((c) => c.weight !== null && c.weight !== undefined) || [], [constraints]);
+  const groupedHardConstraints = useMemo(() => {
+    const groups = new Map<string, Constraint[]>();
+    hardConstraints.forEach((constraint) => groups.set(constraint.constraint_type, [...(groups.get(constraint.constraint_type) || []), constraint]));
+    return [...groups.entries()];
+  }, [hardConstraints]);
 
   // Helper to resolve constraint display names
   const getConstraintLabel = (type: string) => {
@@ -89,33 +86,6 @@ export default function SolverEnginePage() {
 
   const handleSliderChange = (id: string, val: number) => {
     setSliderWeights((prev) => ({ ...prev, [id]: val }));
-  };
-
-  const handleCreateConstraint = async () => {
-    if (!organizationId) return;
-    setConstraintSaving(true);
-    setConstraintError(null);
-    try {
-      let payload: Record<string, unknown>;
-      try {
-        payload = JSON.parse(newConstraintPayload || '{}');
-      } catch {
-        throw new Error('Constraint details must be valid JSON.');
-      }
-      if (!payload || Array.isArray(payload)) throw new Error('Constraint details must be a JSON object.');
-      await api.post('/constraints/', {
-        organization_id: organizationId,
-        constraint_type: newConstraintType,
-        payload,
-        weight: newConstraintWeight === '' ? null : Number(newConstraintWeight),
-      });
-      setConstraintModalOpen(false);
-      refetchConstraints();
-    } catch (err) {
-      setConstraintError(getApiErrorMessage(err, 'Could not add constraint'));
-    } finally {
-      setConstraintSaving(false);
-    }
   };
 
   // Save soft constraint weight
@@ -165,7 +135,7 @@ export default function SolverEnginePage() {
       <PageHeader
         breadcrumb="SOLVER / CORE ENGINE"
         title="Solver Engine"
-        subtitle="Configure optimization heuristics, adjust weight priorities, and trigger schedule generation runs"
+        subtitle="Review the active rule strategy, tune preferences, and run the next timetable generation."
       />
 
       <div className="grid grid-cols-12 gap-6">
@@ -180,31 +150,22 @@ export default function SolverEnginePage() {
                 </span>
                 <h3 className="text-headline-sm text-on-surface">Hard Constraints (Absolute)</h3>
               </div>
-              <button onClick={() => { setConstraintError(null); setConstraintModalOpen(true); }} className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-accent-soft">
-                <span className="material-symbols-outlined" style={{ fontSize: 16 }}>add</span>
-                Add rule
-              </button>
+              <Link to="/constraints" className="inline-flex items-center gap-1.5 rounded-lg border border-primary/30 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-accent-soft"><span className="material-symbols-outlined" style={{ fontSize: 16 }}>tune</span>Manage rules</Link>
             </div>
             <p className="text-body-sm text-on-surface-variant mb-4">
               These rules are mathematically absolute. The solver will reject any schedule that violates even one of these conditions.
             </p>
 
-            <div className="space-y-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               {hardConstraints.length === 0 ? (
-                <p className="text-xs text-mono-grey italic">No hard constraints configured</p>
+                <div className="col-span-full rounded-lg border border-dashed border-rule bg-surface-container-low p-4 text-xs text-mono-grey">No hard constraints configured. Open the Constraint Playground to add the rules the solver must never break.</div>
               ) : (
-                hardConstraints.map((c) => (
-                  <div key={c.id} className="flex items-start gap-3 p-3 bg-surface-container-low border border-rule rounded-lg">
-                    <span className="material-symbols-outlined text-primary mt-0.5" style={{ fontSize: 16 }}>
-                      check_circle
-                    </span>
-                    <div>
-                      <h4 className="text-xs font-semibold text-on-surface">
-                        {getConstraintLabel(c.constraint_type)}
-                      </h4>
-                      <p className="text-[11px] text-mono-grey mt-0.5">
-                        Guarantees no double-bookings or physical overlaps.
-                      </p>
+                groupedHardConstraints.map(([type, group]) => (
+                  <div key={type} className="flex items-start gap-3 rounded-xl border border-rule bg-surface-container-low p-3.5">
+                    <span className="material-symbols-outlined mt-0.5 text-primary" style={{ fontSize: 17 }}>verified_user</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2"><h4 className="text-xs font-semibold leading-5 text-on-surface">{getConstraintLabel(type).replace(' (Hard)', '')}</h4>{group.length > 1 && <span className="shrink-0 rounded-full bg-paper-raised px-2 py-0.5 text-[10px] font-bold text-on-surface-variant">{group.length} rules</span>}</div>
+                      <p className="mt-1 text-[11px] leading-4 text-mono-grey">Applied as a non-negotiable solver guardrail.</p>
                     </div>
                   </div>
                 ))
@@ -483,39 +444,6 @@ export default function SolverEnginePage() {
         </div>
       </div>
 
-      <Modal
-        open={constraintModalOpen}
-        onClose={() => { if (!constraintSaving) setConstraintModalOpen(false); }}
-        title="Add solver constraint"
-        actions={<>
-          <button onClick={() => setConstraintModalOpen(false)} disabled={constraintSaving} className="rounded-lg border border-rule px-4 py-2 text-sm text-on-surface-variant">Cancel</button>
-          <button onClick={handleCreateConstraint} disabled={constraintSaving} data-modal-primary="true" className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-on-primary disabled:opacity-50">{constraintSaving ? 'Adding...' : 'Add constraint'}</button>
-        </>}
-      >
-        {constraintError && <div className="mb-4 rounded-lg border border-error/30 bg-error-container/30 px-3 py-2 text-sm text-error" role="alert">{constraintError}</div>}
-        <div className="space-y-4">
-          <div>
-            <label className="mb-2 block text-label-caps text-on-surface-variant" style={{ fontSize: 10 }}>Rule type</label>
-            <select value={newConstraintType} onChange={(event) => setNewConstraintType(event.target.value)} className="academic-input w-full">
-              <option value="teacher_gap_minimization">Teacher gap minimization</option>
-              <option value="daily_load_balancing">Daily load balancing</option>
-              <option value="teacher_preferred_slot">Teacher preferred slot</option>
-              <option value="teacher_unavailable">Teacher unavailable</option>
-              <option value="preferred_room">Preferred room</option>
-              <option value="subject_requires_room_type">Subject requires room type</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-2 block text-label-caps text-on-surface-variant" style={{ fontSize: 10 }}>Priority weight · leave blank for hard</label>
-            <input type="number" min="0" max="10" value={newConstraintWeight} onChange={(event) => setNewConstraintWeight(event.target.value)} className="academic-input w-full" placeholder="5" />
-          </div>
-          <div>
-            <label className="mb-2 block text-label-caps text-on-surface-variant" style={{ fontSize: 10 }}>Rule details (JSON)</label>
-            <textarea value={newConstraintPayload} onChange={(event) => setNewConstraintPayload(event.target.value)} className="academic-input min-h-24 w-full font-mono text-sm" spellCheck={false} />
-            <p className="mt-1 text-xs text-mono-grey">Use IDs and slot details here when the selected rule needs them.</p>
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 }

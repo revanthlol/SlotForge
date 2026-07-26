@@ -34,6 +34,11 @@ SlotForge is a multi-tenant institutional timetable and schedule optimization pl
 - Phase 11 Canvas Map is implemented: the workspace `/canvas` endpoint exposes resource, constraint, conflict, and version graphs; the frontend renders them with React Flow, search, focus mode, minimap, pan/zoom controls, and a node inspector.
 - Demo Auth recovery is hardened: the known demo account now self-heals the complete application graph, not just its profile, when Supabase Auth survives an interrupted seed/deploy.
 - Protected application routes now show a dedicated mobile-unavailable screen below desktop workspace dimensions; desktop-site mode in landscape remains the explicit phone fallback, and the Android app is marked coming soon.
+- Authenticated routing now treats `/` as the dashboard, keeps `/landing` available as the public product page, and redirects the legacy `/dashboard` path to `/`.
+- Onboarding persists the complete 12-step flow, including assignments, and route guards wait for the active workspace's server-backed progress before redirecting. Completed/skipped users no longer re-enter onboarding during login or reload races.
+- Profiles now store an editable professional `job_title` separately from the authorization `role`; signup captures it, `/auth/me` exposes and updates it, and workspace access cannot be changed through profile editing.
+- The Canvas now uses an Obsidian-style constellation layout with compact typed nodes, relationship focus/fading, labeled edges, neighbor traversal, search, and a relationship inspector.
+- Constraints and solver rules are grouped into readable families instead of repeated rows; version snapshots resolve assignment names instead of exposing UUID fragments; settings save controls remain inside the viewport at browser zoom.
 
 - Light mode is set as the default theme across the application.
 - Site colors enhanced with vibrant emerald primary (`#0d7a5b`), warm orange secondary (`#d95714`), and clean surface tints.
@@ -44,6 +49,9 @@ SlotForge is a multi-tenant institutional timetable and schedule optimization pl
 - Protected-route loading uses a dedicated Newton's-cradle screen; onboarding renders outside the application sidebar/topbar and includes assignment setup.
 
 ## Recently fixed / added
+
+- Workspace experience revamp verification: authenticated browser coverage passed landing/auth transitions, `/` dashboard routing, persistent onboarding, a selectable 17-node Canvas, grouped constraints, solver rules, human-readable version history, editable profile role, and the settings action panel at 125% emulation with no clipping.
+- Backend profile/onboarding changes are covered by integration tests; the complete backend suite passes `54 passed`. Frontend production build passes and Oxlint reports only the three existing Fast Refresh warnings.
 
 - Phase 8 Constraint Playground backend completed: 12 pre-built rule templates added to registry, compiler maps rules to solver CP-SAT constraints, and endpoints added (`GET /api/v1/constraint-templates/`, `GET/POST/PATCH/DELETE /api/v1/workspaces/{id}/constraints`, `POST /api/v1/workspaces/{id}/constraints/preview`).
 - Phase 9 Version Control completed: branch creates a child draft with copied assignments, compare reports moved/changed assignments and affected resources, publish archives the prior published version, archive preserves history, and rollback creates a non-published draft.

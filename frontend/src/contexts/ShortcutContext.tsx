@@ -183,7 +183,7 @@ export function ShortcutProvider({ children }: { children: ReactNode }) {
   }, [navigate]);
 
   const globalActions = useMemo<ShortcutAction[]>(() => [
-    { id: 'nav.dashboard', label: 'Go to Dashboard', shortcut: 'g d', keywords: ['home'], handler: () => navigate('/dashboard') },
+    { id: 'nav.dashboard', label: 'Go to Dashboard', shortcut: 'g d', keywords: ['home'], handler: () => navigate('/') },
     { id: 'nav.teachers', label: 'Go to Teachers', shortcut: 'g t', keywords: ['faculty'], handler: () => navigate('/resources/teachers') },
     { id: 'nav.rooms', label: 'Go to Rooms', shortcut: 'g r', handler: () => navigate('/resources/rooms') },
     { id: 'nav.subjects', label: 'Go to Subjects', shortcut: 'g s', handler: () => navigate('/resources/subjects') },

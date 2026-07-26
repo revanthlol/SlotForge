@@ -6,6 +6,7 @@ class SignupOrganizationRequest(BaseModel):
     password: str = Field(..., min_length=6)
     org_name: str = Field(..., min_length=1)
     full_name: Optional[str] = None
+    job_title: Optional[str] = Field(default=None, max_length=80)
 
 class SignupOrganizationResponse(BaseModel):
     organization_id: str
@@ -18,3 +19,9 @@ class AuthMeResponse(BaseModel):
     organization_id: str
     role: str
     full_name: Optional[str] = None
+    job_title: Optional[str] = None
+
+
+class ProfileUpdateRequest(BaseModel):
+    full_name: str = Field(..., min_length=2, max_length=120)
+    job_title: str = Field(..., min_length=2, max_length=80)

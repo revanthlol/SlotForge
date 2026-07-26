@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { useWorkspaces } from '../../../lib/api/hooks/useWorkspaces';
-import { useWorkspaceRunAssignments, useWorkspaceScheduleRuns, type ScheduleRun } from '../../../hooks/useApi';
+import { useRooms, useSections, useSubjects, useTeachers, useWorkspaceRunAssignments, useWorkspaceScheduleRuns, type ScheduleRun, type ScheduledSlot } from '../../../hooks/useApi';
+import { useAuth } from '../../../contexts/AuthContext';
 import api from '../../../lib/api';
 import PageHeader from '../../../components/ui/PageHeader';
 import StatusBadge from '../../../components/ui/StatusBadge';
@@ -20,6 +21,7 @@ const scoreLabel = (run: ScheduleRun) => {
 };
 
 export default function VersionHistoryPage() {
+  const { organizationId } = useAuth();
   const { workspaceId: routeWorkspaceId } = useParams();
   const [params, setParams] = useSearchParams();
   const { data: workspaces } = useWorkspaces();
@@ -37,7 +39,23 @@ export default function VersionHistoryPage() {
   const [diffLoading, setDiffLoading] = useState(false);
   const selected = orderedRuns.find((run) => run.id === selectedId) || orderedRuns[0] || null;
   const { data: assignmentsData, loading: assignmentsLoading } = useWorkspaceRunAssignments(workspaceId, selected?.id || null);
-  const assignments = assignmentsData || [];
+  const assignments = useMemo(() => assignmentsData || [], [assignmentsData]);
+  const teachers = useTeachers(organizationId);
+  const rooms = useRooms(organizationId);
+  const subjects = useSubjects(organizationId);
+  const sections = useSections(organizationId);
+  const names = useMemo(() => ({
+    teachers: new Map((teachers.data || []).map((item) => [item.id, item.name])),
+    rooms: new Map((rooms.data || []).map((item) => [item.id, item.name])),
+    subjects: new Map((subjects.data || []).map((item) => [item.id, item.name])),
+    sections: new Map((sections.data || []).map((item) => [item.id, item.name])),
+  }), [teachers.data, rooms.data, subjects.data, sections.data]);
+  const assignmentsByDay = useMemo(() => {
+    const order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const grouped = new Map<string, ScheduledSlot[]>();
+    assignments.forEach((assignment) => grouped.set(assignment.day, [...(grouped.get(assignment.day) || []), assignment]));
+    return [...grouped.entries()].sort((a, b) => order.indexOf(a[0]) - order.indexOf(b[0])).map(([day, items]) => [day, [...items].sort((a, b) => a.period - b.period)] as const);
+  }, [assignments]);
 
   useEffect(() => {
     if (!selectedId && orderedRuns[0]) setSelectedId(orderedRuns[0].id);
@@ -122,7 +140,7 @@ export default function VersionHistoryPage() {
 
         <section className="space-y-6">
           {selected && <section className="rounded-xl border-2 border-rule bg-paper-raised p-5"><div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-label-caps text-mono-grey" style={{ fontSize: 10 }}>Selected version</p><h2 className="mt-1 text-headline-sm text-on-surface">{versionLabel(selected)}</h2><p className="mt-1 text-sm text-on-surface-variant">{selected.branch_name || 'Generated solver version'} · {dateLabel(selected.created_at)}</p></div><div className="flex gap-2">{selected.version_status === 'draft' && <><button type="button" onClick={() => setAction({ kind: 'publish', run: selected })} className="rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-on-primary">Publish</button><button type="button" onClick={() => setAction({ kind: 'archive', run: selected })} className="rounded-lg border border-rule px-3 py-2 text-xs font-semibold text-on-surface-variant">Archive</button></>}</div></div></section>}
-          {selected && <section className="rounded-xl border-2 border-rule bg-paper-raised p-5"><div className="mb-4 flex items-center justify-between"><div><h3 className="text-headline-sm text-on-surface">Assignments</h3><p className="mt-1 text-xs text-on-surface-variant">Read-only snapshot for this version.</p></div><span className="rounded-full bg-surface-container px-3 py-1 text-xs font-semibold text-on-surface-variant">{assignments.length} slots</span></div>{assignmentsLoading ? <p className="text-sm text-on-surface-variant">Loading snapshot…</p> : assignments.length === 0 ? <p className="text-sm text-on-surface-variant">No assignments in this version.</p> : <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{assignments.map((assignment: any) => <div key={assignment.id} className="rounded-lg border border-rule bg-surface-container-low p-3 text-xs"><p className="font-semibold text-on-surface">{assignment.day} · P{assignment.period}</p><p className="mt-1 text-on-surface-variant">Subject {assignment.subject_id?.slice(0, 8)} · Section {assignment.section_id?.slice(0, 8)}</p><p className="mt-1 text-on-surface-variant">Teacher {assignment.teacher_id?.slice(0, 8)} · Room {assignment.room_id?.slice(0, 8)}</p></div>)}</div>}</section>}
+              {selected && <section className="overflow-hidden rounded-xl border-2 border-rule bg-paper-raised"><div className="flex flex-wrap items-center justify-between gap-3 border-b border-rule bg-surface-container-low px-5 py-4"><div><p className="text-label-caps text-mono-grey" style={{ fontSize: 10 }}>Version snapshot</p><h3 className="mt-1 text-headline-sm text-on-surface">Timetable at a glance</h3><p className="mt-1 text-xs text-on-surface-variant">Human-readable assignments saved with this version.</p></div><span className="rounded-full border border-rule bg-paper-raised px-3 py-1 text-xs font-semibold text-on-surface-variant">{assignments.length} slots</span></div>{assignmentsLoading ? <p className="p-5 text-sm text-on-surface-variant">Loading snapshot…</p> : assignments.length === 0 ? <p className="m-5 rounded-lg bg-surface-container-low p-4 text-sm text-on-surface-variant">No assignments were saved in this version.</p> : <div className="overflow-x-auto p-5"><div className="grid min-w-[760px] gap-3" style={{ gridTemplateColumns: `repeat(${assignmentsByDay.length}, minmax(150px, 1fr))` }}>{assignmentsByDay.map(([day, dayAssignments]) => <div key={day}><div className="mb-2 flex items-center justify-between border-b-2 border-primary/25 pb-2"><h4 className="text-sm font-black text-on-surface">{day}</h4><span className="text-[10px] font-semibold text-mono-grey">{dayAssignments.length} classes</span></div><div className="space-y-2">{dayAssignments.map((assignment, index) => <AssignmentCard key={`${assignment.id}-${index}`} assignment={assignment} names={names} />)}</div></div>)}</div></div>}</section>}
           {diffLoading && <div className="rounded-xl border-2 border-rule bg-paper-raised p-5 text-sm text-on-surface-variant">Comparing versions…</div>}
           {diff && <DiffPanel diff={diff} onClose={() => { setDiff(null); setParams({}); }} />}
         </section>
@@ -131,6 +149,10 @@ export default function VersionHistoryPage() {
       <ConfirmModal open={Boolean(action)} title={`${action?.kind === 'publish' ? 'Publish' : 'Archive'} version?`} message={action?.kind === 'publish' ? 'The current published version will be archived and this version will become active.' : 'This draft will be archived and kept in history.'} confirmLabel={action?.kind === 'publish' ? 'Publish version' : 'Archive version'} loading={working} onCancel={() => setAction(null)} onConfirm={runAction} />
     </div>
   );
+}
+
+function AssignmentCard({ assignment, names }: { assignment: ScheduledSlot; names: { teachers: Map<string, string>; rooms: Map<string, string>; subjects: Map<string, string>; sections: Map<string, string> } }) {
+  return <article className="rounded-lg border border-rule bg-paper p-3 shadow-sm"><div className="flex items-center justify-between gap-2"><span className="rounded bg-primary px-2 py-0.5 text-[10px] font-bold text-on-primary">P{assignment.period}</span>{assignment.duration_periods > 1 && <span className="text-[9px] font-semibold text-mono-grey">{assignment.duration_periods} periods</span>}</div><h5 className="mt-2 text-sm font-semibold leading-5 text-on-surface">{names.subjects.get(assignment.subject_id) || 'Unlabelled subject'}</h5><p className="mt-1 text-xs text-on-surface-variant">{names.sections.get(assignment.section_id) || 'Unlabelled section'}</p><div className="mt-3 space-y-1 border-t border-rule pt-2 text-[10px] text-mono-grey"><p className="flex items-center gap-1.5"><span className="material-symbols-outlined" style={{ fontSize: 13 }}>person</span>{names.teachers.get(assignment.teacher_id) || 'Teacher unavailable'}</p><p className="flex items-center gap-1.5"><span className="material-symbols-outlined" style={{ fontSize: 13 }}>meeting_room</span>{names.rooms.get(assignment.room_id) || 'Room unavailable'}</p></div></article>;
 }
 
 function DiffPanel({ diff, onClose }: { diff: DiffReport; onClose: () => void }) {

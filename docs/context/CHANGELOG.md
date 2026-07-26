@@ -2,6 +2,13 @@
 
 ## 2026-07-26
 
+- Revamped the authenticated workspace experience: `/` is now the signed-in dashboard while `/landing` remains public; added auth loading transitions, a signup work-role field, and a profile editor that keeps professional role separate from security access.
+- Fixed recurring onboarding by aligning the backend with all 12 frontend steps (including assignments) and making route guards wait for workspace-specific server progress before redirecting.
+- Rebuilt Canvas as an Obsidian-style relationship constellation with typed nodes, focus/fade selection, labeled direct edges, searchable views, neighbor traversal, and a detailed inspector.
+- Grouped repeated Constraint Playground and Solver rules, replaced raw version-history UUID fragments with resolved timetable cards, and moved the Settings save panel into a zoom-safe floating layout.
+- Added the nullable `profiles.job_title` migration and authenticated `PATCH /auth/me`; added integration coverage for signup/profile updates and full onboarding persistence.
+- Local verification passed: backend `54 passed`, frontend production build passed, Oxlint completed with the three existing Fast Refresh warnings, and the authenticated browser suite exercised the requested screens and routing at desktop and 125% emulation.
+
 - Updated the landing and application-shell baseline through `fed3b5a`: removed global app-route transitions that remounted the sidebar/topbar, pinned the protected topbar, and retained transitions only for page content. The sidebar logo no longer has a hover lift/shadow treatment.
 - Reworked the public landing navigation with the SlotForge Fraunces wordmark, mono utility links, larger actions, auth-aware sign-in/create-institution behavior, and smooth, header-offset section scrolling.
 - Replaced the abstract scheduling-node hero illustration with an app-like weekly draft preview showing timetable placements, rooms, readiness, conflict status, and coverage. Removed its decorative pulse/connector animation CSS.

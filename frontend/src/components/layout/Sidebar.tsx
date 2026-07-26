@@ -17,7 +17,7 @@ const resourceLinks: SidebarLink[] = [
 ];
 
 const primaryLinks: SidebarLink[] = [
-  { label: 'Dashboard', path: '/dashboard', icon: 'dashboard' },
+  { label: 'Dashboard', path: '/', icon: 'dashboard' },
   { label: 'Timetable', path: '/timetable', icon: 'calendar_month' },
   { label: 'Faculty', path: '/faculty', icon: 'badge' },
   { label: 'Heatmap', path: '/heatmap', icon: 'ssid_chart' },
@@ -37,6 +37,7 @@ function SidebarNavLink({ item, expanded, inset = false }: { item: SidebarLink; 
   return (
     <NavLink
       to={item.path}
+      end={item.path === '/'}
       title={expanded ? undefined : item.label}
       className={({ isActive }) => [
         'sidebar-nav-item group relative flex items-center rounded-lg text-sm font-semibold transition-colors duration-150',
@@ -83,7 +84,7 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
     <aside className={`sidebar-shell slotforge-sidebar fixed inset-y-0 left-0 z-50 flex flex-col border-r-2 border-rule bg-paper-raised transition-[width] duration-200 ease-out ${expanded ? 'w-64' : 'w-20'}`}>
       <div className={`${expanded ? 'px-5' : 'px-2'} shrink-0 border-b border-rule py-4`}>
         <div className={`flex items-center ${expanded ? 'justify-between gap-3' : 'justify-center'}`}>
-          <Link to="/dashboard" className={`flex min-w-0 items-center ${expanded ? 'gap-3' : 'justify-center'}`} title={expanded ? undefined : 'SlotForge dashboard'}>
+          <Link to="/" className={`flex min-w-0 items-center ${expanded ? 'gap-3' : 'justify-center'}`} title={expanded ? undefined : 'SlotForge dashboard'}>
             <img src={logoSrc} alt="SlotForge Logo" className="h-9 w-9 object-contain" />
             {expanded && (
               <div className="min-w-0">

@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../contexts/ThemeContext';
+import { motion } from 'motion/react';
+import LoadingScreen from '../../../components/ui/LoadingScreen';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -12,7 +14,7 @@ export default function LoginPage() {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const redirectTo = searchParams.get('redirect') || '/dashboard';
+  const redirectTo = searchParams.get('redirect') || '/';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -20,7 +22,7 @@ export default function LoginPage() {
     setError('');
     try {
       await signIn(email, password);
-      navigate(redirectTo.startsWith('/') ? redirectTo : '/dashboard', { replace: true });
+      navigate(redirectTo.startsWith('/') ? redirectTo : '/', { replace: true });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Sign in failed');
     } finally {
@@ -28,8 +30,10 @@ export default function LoginPage() {
     }
   };
 
+  if (loading) return <LoadingScreen label="Opening your workspace" />;
+
   return (
-    <div className="auth-screen min-h-screen px-4 py-8">
+    <motion.div initial={{ opacity: 0, x: -18 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: .32, ease: [0.16, 1, 0.3, 1] }} className="auth-screen min-h-screen px-4 py-8">
       <div className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-6xl overflow-hidden rounded-2xl border-2 border-rule bg-paper-raised shadow-2xl lg:grid-cols-[1.05fr_0.95fr]">
         <section className="relative hidden border-r-2 border-rule bg-surface-container-low p-10 lg:flex lg:flex-col lg:justify-between">
           <Link to="/" className="flex items-center gap-3">
@@ -109,8 +113,7 @@ export default function LoginPage() {
               disabled={loading}
               className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 font-semibold text-on-primary transition-colors hover:bg-primary-container disabled:opacity-60"
             >
-              {loading && <span className="h-2 w-2 animate-pulse rounded-full bg-on-primary" />}
-              {loading ? 'Signing in' : 'Sign in'}
+              Sign in
             </button>
           </form>
 
@@ -123,6 +126,6 @@ export default function LoginPage() {
           </div>
         </section>
       </div>
-    </div>
+    </motion.div>
   );
 }
