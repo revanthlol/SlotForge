@@ -168,6 +168,7 @@
 
 .app-main {
   position: relative;
+  padding-top: calc(var(--spacing-margin-page) + 3.5rem);
 }
 
 .route-transition {
@@ -243,6 +244,7 @@
 }
 
 .topbar-shell {
+  left: var(--slotforge-sidebar-offset, 16rem);
   animation: headerIn var(--motion-slow) var(--motion-spring) both;
   backdrop-filter: blur(10px);
 }

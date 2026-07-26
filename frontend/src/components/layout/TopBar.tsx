@@ -83,7 +83,7 @@ export default function TopBar() {
   };
 
   return (
-    <header className="topbar-shell h-14 bg-paper-raised border-b-2 border-rule flex items-center justify-between px-6 sticky top-0 z-40">
+    <header className="topbar-shell fixed top-0 right-0 z-40 h-14 bg-paper-raised border-b-2 border-rule flex items-center justify-between px-6">
       <div className="flex items-center gap-3">
         <div className="relative" ref={orgMenuRef}>
           <button
