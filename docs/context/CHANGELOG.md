@@ -2,6 +2,12 @@
 
 ## 2026-07-26
 
+- Updated the landing and application-shell baseline through `fed3b5a`: removed global app-route transitions that remounted the sidebar/topbar, pinned the protected topbar, and retained transitions only for page content. The sidebar logo no longer has a hover lift/shadow treatment.
+- Reworked the public landing navigation with the SlotForge Fraunces wordmark, mono utility links, larger actions, auth-aware sign-in/create-institution behavior, and smooth, header-offset section scrolling.
+- Replaced the abstract scheduling-node hero illustration with an app-like weekly draft preview showing timetable placements, rooms, readiness, conflict status, and coverage. Removed its decorative pulse/connector animation CSS.
+- Fixed landing workflow-label contrast and isolated FAQ accordion state inside `LandingFaq`, preventing a full animated landing-page render when an answer opens.
+- Frontend production builds passed for the changes above (latest build at `fed3b5a`); the existing large-chunk warning remains. Pushed frontend commits `8be3119`, `dee4465`, `bf5ffb2`, `d0d5886`, `11c4cf7`, and `fed3b5a` to `dev`. No Oracle API release was needed because these are frontend-only changes.
+
 - Refined the public landing motion and navigation: added the floating, scroll-responsive navigation bar, SlotForge-styled sign-in/create-institution actions, staged hero and content reveals, subtle solver-map animation, global route transitions, and loading/onboarding loading-state entrances with reduced-motion support.
 - Committed and pushed `6cd68c7` (`refine landing motion and navigation`) to `dev`; fast-forwarded Oracle, confirmed Alembic head `8a1c2d3e4f50`, restarted `slotforge-api.service`, and verified `/health` and `/health/db` both returned HTTP 200 without new error-level logs. Vercel dev returned HTTP 200 from a fresh deployment.
 
