@@ -23,32 +23,10 @@ import FacultyListPage from '../features/faculty/FacultyListPage';
 import PublicSharePage from '../features/faculty/PublicSharePage';
 import HeatmapPage from '../features/heatmap/HeatmapPage';
 import ConstraintPlaygroundPage from '../features/constraints/ConstraintPlaygroundPage';
+import LoadingScreen from '../components/ui/LoadingScreen';
 
 function LoadingRouteState() {
-  return (
-    <div className="min-h-screen bg-paper p-6">
-      <div className="mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl overflow-hidden rounded-2xl border-2 border-rule bg-paper-raised shadow-xl lg:grid-cols-[280px_minmax(0,1fr)]">
-        <div className="hidden border-r-2 border-rule bg-surface-container-low p-6 lg:block">
-          <div className="h-10 w-32 rounded-xl bg-surface-container onboarding-skeleton" />
-          <div className="mt-10 space-y-3">
-            {Array.from({ length: 7 }).map((_, index) => (
-              <div key={index} className="h-9 rounded-lg bg-surface-container onboarding-skeleton" />
-            ))}
-          </div>
-        </div>
-        <div className="flex items-center justify-center p-6">
-          <div className="w-full max-w-xl text-center">
-            <div className="mx-auto h-12 w-12 rounded-xl bg-accent-soft p-3">
-              <div className="h-full w-full animate-pulse rounded-lg bg-primary" />
-            </div>
-            <p className="mt-5 text-label-caps text-mono-grey" style={{ fontSize: 10 }}>Restoring workspace</p>
-            <div className="mx-auto mt-5 h-9 max-w-md rounded-xl bg-surface-container onboarding-skeleton" />
-            <div className="mx-auto mt-3 h-4 max-w-sm rounded-full bg-surface-container onboarding-skeleton" />
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <LoadingScreen />;
 }
 
 function ProtectedRoute({ children }: { children: React.JSX.Element }) {
@@ -92,17 +70,10 @@ export default function AppRouter() {
       <Route path="/signup" element={<PublicAuthRoute><SignupPage /></PublicAuthRoute>} />
       <Route path="/share/faculty/:token" element={<PublicSharePage />} />
 
-      <Route
-        element={
-          <ProtectedRoute>
-            <ShortcutProvider>
-              <AppLayout />
-            </ShortcutProvider>
-          </ProtectedRoute>
-        }
-      >
+      <Route path="/onboarding" element={<ProtectedRoute><OnboardingPage /></ProtectedRoute>} />
+
+      <Route element={<ProtectedRoute><ShortcutProvider><AppLayout /></ShortcutProvider></ProtectedRoute>}>
         <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/onboarding" element={<OnboardingPage />} />
         <Route path="/resources">
           <Route index element={<Navigate to="/resources/teachers" replace />} />
           <Route path="teachers" element={<TeachersPage />} />

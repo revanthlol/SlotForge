@@ -81,9 +81,9 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
 
   return (
     <aside className={`sidebar-shell slotforge-sidebar fixed inset-y-0 left-0 z-50 flex flex-col border-r-2 border-rule bg-paper-raised transition-[width] duration-200 ease-out ${expanded ? 'w-64' : 'w-20'}`}>
-      <div className={`${expanded ? 'px-5' : 'px-3'} shrink-0 border-b border-rule py-4`}>
+      <div className={`${expanded ? 'px-5' : 'px-2'} shrink-0 border-b border-rule py-4`}>
         <div className={`flex items-center ${expanded ? 'justify-between gap-3' : 'justify-center'}`}>
-          <Link to="/dashboard" className={`flex min-w-0 items-center ${expanded ? 'gap-3' : 'justify-center'}`} title="SlotForge dashboard">
+          <Link to="/dashboard" className={`flex min-w-0 items-center ${expanded ? 'gap-3' : 'justify-center'}`} title={expanded ? undefined : 'SlotForge dashboard'}>
             <img src={logoSrc} alt="SlotForge Logo" className="brand-mark h-9 w-9 object-contain" />
             {expanded && (
               <div className="min-w-0">
@@ -114,7 +114,7 @@ export default function Sidebar({ expanded, onToggle }: SidebarProps) {
           <button
             type="button"
             onClick={onToggle}
-            className="mt-4 flex w-full items-center justify-center rounded-lg p-2 text-on-surface-variant hover:bg-accent-soft hover:text-primary"
+            className="sidebar-collapse-toggle mt-4 flex w-full items-center justify-center rounded-lg p-2 text-on-surface-variant hover:bg-accent-soft hover:text-primary"
             title="Expand sidebar"
             aria-label="Expand sidebar"
           >

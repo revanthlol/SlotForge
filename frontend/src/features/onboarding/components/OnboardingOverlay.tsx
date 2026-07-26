@@ -12,6 +12,8 @@ import {
   useSubjects,
   useTeachers,
   useTimetableVersions,
+  useTeacherSubjectAssignments,
+  useSectionSubjectTeacherAssignments,
   type Room,
   type Section,
   type Subject,
@@ -27,6 +29,7 @@ import ConstraintSelector from './ConstraintSelector';
 import PreflightCheck, { type PreflightWarning } from './PreflightCheck';
 import { OnboardingSkeleton } from './OnboardingSkeleton';
 import { useOnboardingProgress } from '../hooks/useOnboardingProgress';
+import AssignmentStep from './AssignmentStep';
 
 const workspaceSchema = z.object({
   organizationName: z.string().min(2, 'Organization name is required'),
@@ -124,6 +127,8 @@ export default function OnboardingOverlay() {
   const subjects = useSubjects(organizationId);
   const sections = useSections(organizationId);
   const versions = useTimetableVersions(organizationId);
+  const teacherAssignments = useTeacherSubjectAssignments(organizationId);
+  const sectionAssignments = useSectionSubjectTeacherAssignments(organizationId);
   const progressState = useOnboardingProgress(organizationId);
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -173,6 +178,7 @@ export default function OnboardingOverlay() {
     { key: 'tasks', title: flowCopy[preset].task[0], label: preset === 'academic' ? 'Subjects' : 'Tasks', icon: 'task_alt' },
     { key: 'groups', title: flowCopy[preset].group[0], label: preset === 'academic' ? 'Sections' : 'Groups', icon: 'groups' },
     { key: 'locations', title: flowCopy[preset].location[0], label: preset === 'academic' ? 'Rooms' : 'Locations', icon: 'meeting_room' },
+    { key: 'assignments', title: 'Connect the timetable', label: 'Assignments', icon: 'account_tree' },
     { key: 'constraints', title: 'Define Constraints', label: 'Constraints', icon: 'rule_settings' },
     { key: 'preflight', title: 'Preflight Check', label: 'Preflight', icon: 'fact_check' },
     { key: 'generate', title: 'Generate First Schedule', label: 'Generate', icon: 'play_circle' },
@@ -215,7 +221,7 @@ export default function OnboardingOverlay() {
       setStepError('Add at least one location to continue.');
       return false;
     }
-    if (currentStep === 8 && constraints.length === 0) {
+    if (currentStep === 9 && constraints.length === 0) {
       setStepError('Select at least one constraint template.');
       return false;
     }
@@ -234,7 +240,7 @@ export default function OnboardingOverlay() {
       }
     }
 
-    if (currentStep === 9) {
+    if (currentStep === 10) {
       setChecking(true);
       try {
         if (organizationId) {
@@ -279,6 +285,15 @@ export default function OnboardingOverlay() {
       await api.post('/rooms', { organization_id: organizationId, name: item.name, capacity: item.count || 40, room_type: item.detail || 'classroom' });
       rooms.refetch();
     }
+  };
+
+  const removeAcademicItem = async (kind: 'resource' | 'task' | 'group' | 'location', id: string) => {
+    const paths = { resource: 'teachers', task: 'subjects', group: 'sections', location: 'rooms' };
+    await api.delete(`/${paths[kind]}/${id}`);
+    if (kind === 'resource') teachers.refetch();
+    if (kind === 'task') subjects.refetch();
+    if (kind === 'group') sections.refetch();
+    if (kind === 'location') rooms.refetch();
   };
 
   const addLocalItem = (setter: React.Dispatch<React.SetStateAction<QuickItem[]>>, item: Omit<QuickItem, 'id'>) => {
@@ -362,7 +377,7 @@ export default function OnboardingOverlay() {
           detailPlaceholder={preset === 'academic' ? 'Expertise note, optional' : 'Role or availability note'}
           items={activeResources}
           onAdd={(item) => preset === 'academic' ? addAcademicItem('resource', item) : addLocalItem(setLocalResources, item)}
-          onRemove={(id) => removeLocalItem(setLocalResources, id)}
+          onRemove={(id) => preset === 'academic' ? removeAcademicItem('resource', id) : removeLocalItem(setLocalResources, id)}
         />
       );
     }
@@ -377,7 +392,7 @@ export default function OnboardingOverlay() {
           numericLabel={preset === 'academic' ? 'Weekly periods' : 'Required count'}
           items={activeTasks}
           onAdd={(item) => preset === 'academic' ? addAcademicItem('task', item) : addLocalItem(setLocalTasks, item)}
-          onRemove={(id) => removeLocalItem(setLocalTasks, id)}
+          onRemove={(id) => preset === 'academic' ? removeAcademicItem('task', id) : removeLocalItem(setLocalTasks, id)}
         />
       );
     }
@@ -392,7 +407,7 @@ export default function OnboardingOverlay() {
             numericLabel={preset === 'academic' ? 'Section size' : 'Expected size'}
             items={activeGroups}
             onAdd={(item) => preset === 'academic' ? addAcademicItem('group', item) : addLocalItem(setLocalGroups, item)}
-            onRemove={(id) => removeLocalItem(setLocalGroups, id)}
+            onRemove={(id) => preset === 'academic' ? removeAcademicItem('group', id) : removeLocalItem(setLocalGroups, id)}
           />
           {preset === 'academic' && (
             <label className="flex items-center justify-between gap-4 rounded-xl border-2 border-rule bg-paper-raised p-4">
@@ -417,12 +432,13 @@ export default function OnboardingOverlay() {
           numericLabel="Capacity"
           items={activeLocations}
           onAdd={(item) => preset === 'academic' ? addAcademicItem('location', item) : addLocalItem(setLocalLocations, item)}
-          onRemove={(id) => removeLocalItem(setLocalLocations, id)}
+          onRemove={(id) => preset === 'academic' ? removeAcademicItem('location', id) : removeLocalItem(setLocalLocations, id)}
         />
       );
     }
-    if (currentStep === 8) return <ConstraintSelector preset={preset} value={constraints} onChange={setConstraints} />;
-    if (currentStep === 9) {
+    if (currentStep === 8) return <AssignmentStep teachers={teachers.data || []} subjects={subjects.data || []} sections={sections.data || []} teacherAssignments={teacherAssignments.data || []} sectionAssignments={sectionAssignments.data || []} onRefresh={() => { teacherAssignments.refetch(); sectionAssignments.refetch(); }} />;
+    if (currentStep === 9) return <ConstraintSelector preset={preset} value={constraints} onChange={setConstraints} />;
+    if (currentStep === 10) {
       return (
         <PreflightCheck
           preset={preset}
@@ -466,8 +482,9 @@ export default function OnboardingOverlay() {
   }
 
   return (
-    <div className="min-h-full max-w-5xl mx-auto space-y-6 pb-12">
-      <header className="rounded-2xl border-2 border-rule bg-paper-raised p-6 shadow-sm">
+    <div className="onboarding-screen">
+      <div className="onboarding-shell max-w-6xl space-y-6 pb-12">
+      <header className="onboarding-header rounded-2xl border-2 border-rule bg-paper-raised p-6 shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <span className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>Guided Setup Wizard</span>
@@ -539,6 +556,7 @@ export default function OnboardingOverlay() {
           )}
         </footer>
       </main>
+      </div>
     </div>
   );
 }

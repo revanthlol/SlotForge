@@ -1,200 +1,132 @@
+import { useState } from 'react';
+import { motion } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useTheme } from '../../../contexts/ThemeContext';
 
 const workflow = [
-  { label: 'Resources', icon: 'inventory_2' },
-  { label: 'Constraints', icon: 'rule' },
-  { label: 'Solver', icon: 'precision_manufacturing' },
-  { label: 'Published', icon: 'verified' },
+  ['01', 'Model your institution', 'Bring teachers, subjects, sections, rooms, and time structure into one source of truth.'],
+  ['02', 'Set the rules', 'Capture workload, capacity, availability, and the constraints your timetable must respect.'],
+  ['03', 'Solve and inspect', 'Generate a conflict-aware draft, review its placement logic, and make precise adjustments.'],
+  ['04', 'Publish with confidence', 'Keep draft, published, and archived versions clear for everyone who depends on the schedule.'],
 ];
 
-const previewRows = [
-  ['I', 'AJ', 'OR', 'MAD', 'ST/SE', 'CN', ''],
-  ['II', 'AJ', 'BD', 'ST/SE', 'BD LAB', '', ''],
-  ['III', 'AJ LAB', 'AJ LAB', 'CN', 'OR', 'MAD', ''],
-  ['IV', 'OR', 'ST/SE', 'MAD', 'AJ', 'BD', ''],
-  ['V', 'MAD', 'AJ', 'CN', 'BD', 'OR', ''],
-  ['VI', 'CN', 'MAD LAB', 'MAD LAB', 'ST/SE', 'AJ', ''],
+const faqs = [
+  ['What does SlotForge schedule?', 'SlotForge brings together faculty, subjects, sections, rooms, periods, and institutional rules to generate timetable drafts that your team can review.'],
+  ['Can I use day-order timetables?', 'Yes. You can configure either a fixed weekday week or a rotating day-order cycle during setup, then render the timetable in the same structure.'],
+  ['Can I review a schedule before publishing?', 'Yes. Generated schedules start as drafts. Review conflicts, edit slots where needed, compare versions, and publish only when the result is ready.'],
+  ['Do I need every detail before I begin?', 'No. Start with the resources and rules you know, save your progress, and continue refining the workspace as your institution’s data becomes available.'],
 ];
 
-const facultyRows = [
-  ['AJ', 'Advanced Java', 'S. Swapna', '5+2'],
-  ['BD', 'Big Data Analytics', 'Sri Meghana', '3'],
-  ['MAD', 'Mobile App Development', 'K. Hima Bindu', '4+2'],
-  ['OR', 'Operations Research', 'D. Sravani', '5'],
+const capabilities = [
+  ['groups', 'Faculty load', 'Balance teaching hours while retaining the visibility needed for real academic teams.'],
+  ['domain', 'Room capacity', 'Match sections to the right room or lab before a capacity problem reaches the timetable.'],
+  ['menu_book', 'Course structure', 'Map subjects, session lengths, and teaching assignments in the same operational model.'],
+  ['rule_settings', 'Conflict prevention', 'Turn institutional rules into explicit scheduling constraints instead of last-minute fixes.'],
 ];
 
 export default function LandingPage() {
-  const { organizationId } = useAuth();
+  const { user, loading } = useAuth();
   const { theme, toggleTheme } = useTheme();
+  const [openFaq, setOpenFaq] = useState(0);
+  const signedIn = Boolean(user);
+  const primaryHref = signedIn ? '/dashboard' : '/signup';
 
   return (
-    <div className="min-h-screen bg-paper text-on-surface">
-      <header className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-        <Link to="/" className="flex items-center gap-3">
-          <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="SlotForge Logo" className="w-10 h-10 object-contain" />
-          <div>
-            <p className="text-[16px] font-semibold text-on-surface" style={{ fontFamily: 'var(--font-display)' }}>
-              SlotForge
-            </p>
-            <p className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>
-              Institutional Scheduling
-            </p>
+    <div className="stitch-landing min-h-screen bg-paper text-on-surface">
+      <header className="stitch-header">
+        <nav className="stitch-container flex h-16 items-center justify-between gap-5" aria-label="Public navigation">
+          <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="SlotForge home">
+            <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="" className="h-7 w-7 object-contain" />
+            <span className="text-sm font-bold tracking-tight text-on-surface">SlotForge</span>
+          </Link>
+          <div className="hidden items-center gap-7 text-[11px] font-semibold text-on-surface-variant md:flex">
+            <a href="#workflow" className="hover:text-on-surface">Workflow</a>
+            <a href="#capabilities" className="hover:text-on-surface">Capabilities</a>
+            <a href="#faq" className="hover:text-on-surface">FAQ</a>
           </div>
-        </Link>
-
-        <nav className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="p-2 rounded-lg hover:bg-accent-soft transition-colors"
-            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          >
-            <span className="material-symbols-outlined text-on-surface-variant" style={{ fontSize: 20 }}>
-              {theme === 'dark' ? 'light_mode' : 'dark_mode'}
-            </span>
-          </button>
-          <Link
-            to="/login"
-            className="px-3 py-2 text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors"
-          >
-            Sign In
-          </Link>
-          <Link
-            to={organizationId ? '/dashboard' : '/signup'}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors"
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-              {organizationId ? 'dashboard' : 'add_business'}
-            </span>
-            {organizationId ? 'Open Dashboard' : 'Create Institution'}
-          </Link>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={toggleTheme} className="rounded p-2 text-on-surface-variant hover:bg-accent-soft" aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>{theme === 'dark' ? 'light_mode' : 'dark_mode'}</span>
+            </button>
+            {!loading && !signedIn && <Link to="/login" className="hidden px-2 py-2 text-[11px] font-semibold text-on-surface-variant hover:text-on-surface sm:inline">Sign in</Link>}
+            <Link to={primaryHref} className="rounded bg-on-surface px-3.5 py-2 text-[11px] font-semibold text-paper-raised transition-opacity hover:opacity-85">
+              {signedIn ? 'Open dashboard' : 'Create institution'}
+            </Link>
+          </div>
         </nav>
       </header>
 
-      <main className="mx-auto max-w-7xl px-6 pb-12 pt-10 md:pt-16">
-        <section className="grid items-center gap-10 lg:grid-cols-[1fr_0.92fr]">
-          <div className="max-w-3xl">
-            <p className="text-label-caps text-secondary mb-4" style={{ fontSize: 11 }}>
-              Timetable operations for academic teams
-            </p>
-            <h1 className="text-display-lg text-on-surface" style={{ fontSize: 'clamp(46px, 7vw, 88px)', lineHeight: 0.94 }}>
-              SlotForge
-            </h1>
-            <p className="mt-5 max-w-2xl text-body-lg text-on-surface-variant">
-              Build institution schedules from teachers, rooms, sections, course loads, and solver constraints without losing track of versions or conflicts.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                to={organizationId ? '/dashboard' : '/signup'}
-                className="inline-flex items-center gap-2 px-5 py-3 bg-primary text-on-primary text-sm font-semibold rounded-lg hover:bg-primary-container transition-colors"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                  play_circle
-                </span>
-                {organizationId ? 'Open Dashboard' : 'Start Scheduling'}
-              </Link>
-              <Link
-                to="/login"
-                className="inline-flex items-center gap-2 px-5 py-3 bg-paper-raised text-primary border-2 border-rule text-sm font-semibold rounded-lg hover:bg-accent-soft transition-colors"
-              >
-                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                  login
-                </span>
-                Sign In
-              </Link>
-            </div>
+      <main>
+        <section className="stitch-hero">
+          <div className="stitch-container grid items-center gap-12 py-16 lg:grid-cols-[.88fr_1.12fr] lg:py-24">
+            <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: .5 }}>
+              <div className="stitch-status"><span className="stitch-status-dot" />Institutional scheduling, made legible</div>
+              <h1 className="stitch-display mt-6">Bring every schedule<br />into focus.</h1>
+              <p className="mt-6 max-w-xl text-base leading-7 text-on-surface-variant">SlotForge gives academic teams one calm place to model their resources, resolve constraints, and publish schedules people can trust.</p>
+              <div className="mt-9 flex flex-wrap gap-3">
+                <Link to={primaryHref} className="stitch-primary-cta">{signedIn ? 'Open workspace' : 'Start scheduling'} <span aria-hidden="true">→</span></Link>
+                <a href="#workflow" className="stitch-secondary-cta">See the workflow</a>
+              </div>
+              <div className="mt-14 grid max-w-lg grid-cols-3 gap-6 border-t border-rule pt-5">
+                <Stat value="One" label="shared source of truth" />
+                <Stat value="Draft" label="before every publish" />
+                <Stat value="Clear" label="from setup to export" />
+              </div>
+            </motion.div>
+            <motion.div initial={{ opacity: 0, scale: .97 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: .65, delay: .1 }} className="solver-map-wrap">
+              <div className="solver-map-kicker"><span className="stitch-status-dot" /> Scheduling logic map</div>
+              <SolverMap />
+            </motion.div>
           </div>
+        </section>
 
-          <div className="bg-paper-raised border-2 border-rule rounded-xl shadow-lg overflow-hidden">
-            <div className="flex items-center justify-between border-b border-rule px-4 py-3">
-              <div>
-                <p className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>
-                  Day-order preview
-                </p>
-                <p className="text-sm font-semibold text-on-surface">Third year odd semester</p>
-              </div>
-              <span className="inline-flex items-center rounded-full border border-primary/20 bg-accent-soft px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider text-primary">
-                Draft v8
-              </span>
-            </div>
-            <div className="grid grid-cols-[70px_repeat(6,1fr)] border-b border-rule bg-on-background text-paper-raised">
-              {['Day', 'I', 'II', 'III', 'IV', 'V', 'VI'].map((hour) => (
-                <div key={hour} className="border-r border-rule px-2 py-2 text-center text-[10px] font-semibold uppercase tracking-wider">
-                  {hour}
-                </div>
-              ))}
-            </div>
-            <div className="grid">
-              {previewRows.map((row) => (
-                <div key={row[0]} className="grid grid-cols-[70px_repeat(6,1fr)] border-b border-rule last:border-b-0">
-                  {row.map((cell, index) => (
-                    <div key={`${row[0]}-${index}`} className="min-h-12 border-r border-rule px-2 py-2 text-center text-[11px]">
-                      {index === 0 ? (
-                        <span className="font-bold text-on-surface">{cell}</span>
-                      ) : cell ? (
-                        <span className={`inline-flex min-w-12 justify-center rounded border px-2 py-1 font-semibold ${cell.includes('LAB') ? 'border-secondary/30 bg-signal-soft text-secondary' : 'border-primary/20 bg-accent-soft text-primary'}`}>
-                          {cell}
-                        </span>
-                      ) : (
-                        <span className="text-mono-grey/40">-</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ))}
-            </div>
-            <div className="border-t border-rule bg-surface-container-low px-4 py-3">
-              <div className="grid grid-cols-[60px_1fr_1fr_60px] gap-2 text-[10px] text-mono-grey">
-                <span>Code</span>
-                <span>Course</span>
-                <span>Faculty</span>
-                <span>Hours</span>
-              </div>
-              <div className="mt-2 grid gap-1">
-                {facultyRows.map((row) => (
-                  <div key={row[0]} className="grid grid-cols-[60px_1fr_1fr_60px] gap-2 text-[11px] text-on-surface">
-                    <span className="font-bold text-primary">{row[0]}</span>
-                    <span>{row[1]}</span>
-                    <span className="text-on-surface-variant">{row[2]}</span>
-                    <span>{row[3]}</span>
-                  </div>
-                ))}
-              </div>
+        <section className="border-y border-rule bg-paper-raised py-9">
+          <div className="stitch-container grid gap-5 text-center sm:grid-cols-3">
+            <p className="text-[10px] font-mono uppercase tracking-[.16em] text-mono-grey">Model resources once</p>
+            <p className="text-[10px] font-mono uppercase tracking-[.16em] text-mono-grey">Keep rules visible</p>
+            <p className="text-[10px] font-mono uppercase tracking-[.16em] text-mono-grey">Review before publish</p>
+          </div>
+        </section>
+
+        <section id="workflow" className="stitch-container py-24">
+          <div className="max-w-3xl"><p className="stitch-eyebrow">The working rhythm</p><h2 className="stitch-heading mt-4">A schedule should be a decision, not a scramble.</h2><p className="mt-4 max-w-2xl text-sm leading-6 text-on-surface-variant">The workflow stays linear enough to learn quickly and flexible enough for the details that surface once a real institution starts using it.</p></div>
+          <div className="mt-14 grid gap-px overflow-hidden border border-rule bg-rule md:grid-cols-4">{workflow.map(([number, title, body]) => <motion.article whileHover={{ y: -4 }} key={number} className="bg-paper-raised p-6"><p className="text-[10px] font-mono tracking-widest text-secondary">{number}</p><h3 className="mt-8 text-lg font-semibold text-on-surface" style={{ fontFamily: 'var(--font-display)' }}>{title}</h3><p className="mt-3 text-sm leading-6 text-on-surface-variant">{body}</p></motion.article>)}</div>
+        </section>
+
+        <section id="capabilities" className="border-y border-rule bg-paper-raised py-24">
+          <div className="stitch-container"><div className="max-w-3xl"><p className="stitch-eyebrow">Intelligent foundation</p><h2 className="stitch-heading mt-4">Tools for the parts of scheduling that actually get complicated.</h2></div>
+            <div className="mt-14 grid gap-4 md:grid-cols-2">
+              <CapabilityCard className="stitch-feature-card stitch-feature-card--pale" icon="account_tree" title="A clear operational model" body="Resources, assignments, rooms, sections, and time structure live in the same workspace instead of across separate spreadsheets." tags={['Resources', 'Assignments']} />
+              <CapabilityCard className="stitch-feature-card stitch-feature-card--dark" icon="precision_manufacturing" title="A solver you can inspect" body="Generate a workable draft, make targeted adjustments, and use conflict analysis to understand the trade-offs behind a placement." tags={['Generate', 'Explainability']} />
+              <CapabilityCard className="stitch-feature-card" icon="history" title="Version control without the mess" body="Keep draft, published, and archived timetable states distinct so a change never erases the schedule people rely on." />
+              <CapabilityCard className="stitch-feature-card" icon="ios_share" title="Exports that fit the institution" body="Prepare shareable timetables and structured exports for the people and systems that need the final answer." visual />
             </div>
           </div>
         </section>
 
-        <section className="mt-12 border-y border-rule py-6">
-          <div className="grid gap-3 md:grid-cols-4">
-            {workflow.map((item) => (
-              <div key={item.label} className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-accent-soft flex items-center justify-center text-primary">
-                  <span className="material-symbols-outlined" style={{ fontSize: 19 }}>
-                    {item.icon}
-                  </span>
-                </div>
-                <span className="text-sm font-semibold text-on-surface">{item.label}</span>
-              </div>
-            ))}
-          </div>
-        </section>
+        <section className="stitch-dark-section py-24"><div className="stitch-container text-center"><p className="text-[10px] font-mono uppercase tracking-[.16em] text-white/35">Built for the constraints behind the grid</p><h2 className="stitch-heading mt-4 text-white">Made for every academic team.</h2><p className="mt-3 text-sm text-white/50">Faculty, rooms, courses, and the rules between them.</p>
+          <div className="mt-14 grid gap-px border border-white/15 bg-white/15 sm:grid-cols-2 lg:grid-cols-4">{capabilities.map(([icon, title, body]) => <div key={title} className="bg-[#0d2924] p-7 text-center transition-colors hover:bg-white/5"><span className="material-symbols-outlined text-white/75" style={{ fontSize: 26 }}>{icon}</span><h3 className="mt-5 text-sm font-semibold text-white">{title}</h3><p className="mt-3 text-xs leading-5 text-white/50">{body}</p></div>)}</div>
+        </div></section>
 
-        <section className="mt-10 grid gap-4 md:grid-cols-3">
-          {[
-            ['rule', 'Qualification-aware', 'Teachers are matched to subjects and sections before solving.'],
-            ['view_week', 'Lab-ready grids', 'Double-period blocks render as merged timetable cells.'],
-            ['history', 'Version controlled', 'Draft schedules can be edited before publication.'],
-          ].map(([icon, title, body]) => (
-            <div key={title} className="border-t-2 border-rule pt-4">
-              <span className="material-symbols-outlined text-primary" style={{ fontSize: 22 }}>{icon}</span>
-              <h2 className="mt-3 text-headline-sm text-on-surface">{title}</h2>
-              <p className="mt-2 text-body-sm text-on-surface-variant">{body}</p>
-            </div>
-          ))}
-        </section>
+        <section id="faq" className="stitch-faq py-24"><div className="stitch-container max-w-3xl"><div className="text-center"><p className="stitch-eyebrow">Questions, answered</p><h2 className="stitch-heading mt-4">FAQ</h2></div><div className="mt-12 space-y-3">{faqs.map(([question, answer], index) => <div key={question} className="border border-rule bg-paper-raised"><button type="button" className="flex w-full items-center justify-between gap-5 px-6 py-5 text-left text-sm font-semibold text-on-surface" aria-expanded={openFaq === index} onClick={() => setOpenFaq(openFaq === index ? -1 : index)}>{question}<span className={`material-symbols-outlined text-mono-grey transition-transform ${openFaq === index ? 'rotate-45' : ''}`} style={{ fontSize: 20 }}>add</span></button>{openFaq === index && <p className="border-t border-rule px-6 py-5 text-sm leading-6 text-on-surface-variant">{answer}</p>}</div>)}</div></div></section>
+
+        <section className="stitch-cta"><div className="stitch-container relative z-10 py-24 text-center"><h2 className="stitch-display mx-auto max-w-4xl text-white" style={{ fontSize: 'clamp(2.6rem, 6vw, 5.3rem)' }}>Start with the schedule your institution actually needs.</h2><p className="mx-auto mt-6 max-w-xl text-sm leading-6 text-white/60">Create an institution, add the resources you know, and let SlotForge guide the next decision.</p><Link to={primaryHref} className="mt-9 inline-flex rounded bg-white px-6 py-3 text-sm font-semibold text-[#0d2924] transition-transform hover:-translate-y-0.5">{signedIn ? 'Open workspace' : 'Create your institution'} <span className="ml-2">→</span></Link></div></section>
       </main>
+
+      <footer className="stitch-footer"><div className="stitch-container grid gap-10 py-14 sm:grid-cols-[1.4fr_repeat(3,1fr)]"><div><div className="flex items-center gap-2"><img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="" className="h-7 w-7" /><span className="text-sm font-bold">SlotForge</span></div><p className="mt-4 max-w-56 text-xs leading-5 text-white/45">Precise institutional scheduling for academic teams.</p></div><FooterGroup title="Product" links={['Workflow', 'Solver', 'Versions']} /><FooterGroup title="Resources" links={['FAQ', 'Setup guide', 'Support']} /><FooterGroup title="Institution" links={['Privacy', 'Terms', 'Contact']} /></div><div className="stitch-container border-t border-white/10 py-5 text-[10px] font-mono uppercase tracking-widest text-white/30">© {new Date().getFullYear()} SlotForge</div></footer>
     </div>
   );
 }
+
+function SolverMap() {
+  const nodes = [['Faculty', 'groups', 'solver-node--faculty'], ['Subjects', 'menu_book', 'solver-node--subjects'], ['Rooms', 'meeting_room', 'solver-node--rooms'], ['Rules', 'rule_settings', 'solver-node--rules'], ['Draft', 'view_week', 'solver-node--draft']];
+  return <div className="solver-map"><div className="solver-grid" />{nodes.map(([label, icon, className]) => <div key={label} className={`solver-node ${className}`}><span className="material-symbols-outlined" style={{ fontSize: 19 }}>{icon}</span><span>{label}</span></div>)}<div className="solver-core"><span className="material-symbols-outlined" style={{ fontSize: 28 }}>precision_manufacturing</span><span>Solver<br />Core</span></div><div className="solver-connector solver-connector--one" /><div className="solver-connector solver-connector--two" /><div className="solver-connector solver-connector--three" /><div className="solver-connector solver-connector--four" /><div className="solver-connector solver-connector--five" /><div className="solver-footer"><span className="stitch-status-dot" />0 known conflicts <span>•</span> ready for review</div></div>;
+}
+
+function CapabilityCard({ className, icon, title, body, tags, visual }: { className: string; icon: string; title: string; body: string; tags?: string[]; visual?: boolean }) {
+  return <article className={className}><div><span className="material-symbols-outlined" style={{ fontSize: 25 }}>{icon}</span><h3 className="mt-7 text-2xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>{title}</h3><p className="mt-4 max-w-md text-sm leading-6 opacity-70">{body}</p></div>{tags && <div className="mt-7 flex flex-wrap gap-2">{tags.map(tag => <span key={tag} className="stitch-tag">{tag}</span>)}</div>}{visual && <div className="stitch-export-lines" aria-hidden="true"><i /><i /><i /></div>}</article>;
+}
+
+function Stat({ value, label }: { value: string; label: string }) { return <div><p className="text-base font-bold text-on-surface">{value}</p><p className="mt-1 text-[9px] font-mono uppercase tracking-[.11em] text-mono-grey">{label}</p></div>; }
+function FooterGroup({ title, links }: { title: string; links: string[] }) { return <div><p className="text-[10px] font-mono uppercase tracking-widest text-white/35">{title}</p><div className="mt-4 space-y-2">{links.map(link => <a key={link} href="#" className="block text-xs text-white/60 hover:text-white">{link}</a>)}</div></div>; }
