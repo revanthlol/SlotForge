@@ -8,6 +8,8 @@ import AppLayout from './layout';
 import LandingPage from '../features/auth/pages/LandingPage';
 import LoginPage from '../features/auth/pages/LoginPage';
 import SignupPage from '../features/auth/pages/SignupPage';
+import CompleteAccountPage from '../features/auth/pages/CompleteAccountPage';
+import OAuthCallbackPage from '../features/auth/pages/OAuthCallbackPage';
 import DashboardPage from '../features/dashboard/pages/DashboardPage';
 import TeachersPage from '../features/timetable/pages/TeachersPage';
 import RoomsPage from '../features/timetable/pages/RoomsPage';
@@ -53,13 +55,14 @@ function RouteScrollManager() {
 }
 
 function ProtectedRoute({ children }: { children: React.JSX.Element }) {
-  const { organizationId, loading } = useAuth();
+  const { user, organizationId, needsAccountSetup, loading } = useAuth();
   const location = useLocation();
   const { progress, loading: onboardingLoading, loadedWorkspaceId } = useOnboardingProgress(organizationId);
 
   if (loading || (organizationId && (onboardingLoading || loadedWorkspaceId !== organizationId))) return <LoadingRouteState />;
 
   if (!organizationId) {
+    if (user && needsAccountSetup) return <Navigate to="/complete-account" replace />;
     const redirect = encodeURIComponent(`${location.pathname}${location.search}`);
     return <Navigate to={`/login?redirect=${redirect}`} replace />;
   }
@@ -73,10 +76,11 @@ function ProtectedRoute({ children }: { children: React.JSX.Element }) {
 }
 
 function PublicAuthRoute({ children }: { children: React.JSX.Element }) {
-  const { organizationId, loading } = useAuth();
+  const { user, organizationId, needsAccountSetup, loading } = useAuth();
   const { progress, loading: onboardingLoading, loadedWorkspaceId } = useOnboardingProgress(organizationId);
 
   if (loading || (organizationId && (onboardingLoading || loadedWorkspaceId !== organizationId))) return <LoadingRouteState />;
+  if (user && needsAccountSetup) return <Navigate to="/complete-account" replace />;
   if (organizationId) {
     const isCompletedOrSkipped = onboardingFinished(progress);
     return <Navigate to={isCompletedOrSkipped ? '/' : '/onboarding'} replace />;
@@ -85,11 +89,22 @@ function PublicAuthRoute({ children }: { children: React.JSX.Element }) {
   return children;
 }
 
+function AccountSetupRoute({ children }: { children: React.JSX.Element }) {
+  const { user, organizationId, needsAccountSetup, loading } = useAuth();
+
+  if (loading) return <LoadingRouteState />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (organizationId) return <Navigate to="/" replace />;
+  if (!needsAccountSetup) return <LoadingRouteState />;
+  return children;
+}
+
 function HomeRoute() {
-  const { organizationId, loading } = useAuth();
+  const { user, organizationId, needsAccountSetup, loading } = useAuth();
   const { progress, loading: onboardingLoading, loadedWorkspaceId } = useOnboardingProgress(organizationId);
 
   if (loading || (organizationId && (onboardingLoading || loadedWorkspaceId !== organizationId))) return <LoadingRouteState />;
+  if (user && needsAccountSetup) return <Navigate to="/complete-account" replace />;
   if (!organizationId) return <LandingPage />;
   if (!onboardingFinished(progress)) return <Navigate to="/onboarding" replace />;
 
@@ -105,6 +120,8 @@ export default function AppRouter() {
       <Route path="/landing" element={<LandingPage />} />
       <Route path="/login" element={<MobileRouteGate><PublicAuthRoute><LoginPage /></PublicAuthRoute></MobileRouteGate>} />
       <Route path="/signup" element={<MobileRouteGate><PublicAuthRoute><SignupPage /></PublicAuthRoute></MobileRouteGate>} />
+      <Route path="/auth/callback" element={<OAuthCallbackPage />} />
+      <Route path="/complete-account" element={<MobileRouteGate><AccountSetupRoute><CompleteAccountPage /></AccountSetupRoute></MobileRouteGate>} />
       <Route path="/share/faculty/:token" element={<PublicSharePage />} />
       <Route path="/open-source" element={<OpenSourcePage />} />
       <Route path="/privacy" element={<PrivacyPage />} />

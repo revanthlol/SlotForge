@@ -2,6 +2,11 @@
 
 ## 2026-07-26
 
+- Isolated every backend pytest session in a disposable Docker PostgreSQL container before application imports. Added fail-closed URL checks that reject remote hosts, non-test database names, and non-PostgreSQL targets, preventing test cleanup from ever reaching the configured Supabase database.
+- Added idempotent application account completion for verified Supabase identities, preserving existing profiles and ignoring user-editable OAuth role metadata.
+- Added Google and GitHub sign-in controls, an OAuth callback route, and a first-time institution completion flow. Missing application profiles now keep their valid Supabase session instead of being automatically signed out.
+- Documented the exact Google/GitHub provider callback and SlotForge redirect allow-list configuration. Supabase remains the single identity authority; no Firebase identity split was introduced.
+
 - Unified the landing, login, signup, open-source, privacy, terms, and contact pages around the same floating public navbar; removed the separate three-button auth switcher and added contextual sign-in/create-institution actions.
 - Gave GitHub a dedicated logo button, added explicit external-link arrows to GitHub and Contribute in the shared footer, and added `/landing` plus route-safe landing section links.
 - Added route scroll restoration, public-page entry motion and a reduced-motion-aware progress treatment. The open-source page now links and displays the complete MIT License.

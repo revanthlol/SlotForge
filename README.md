@@ -17,7 +17,7 @@ The complete source, current application schema, and faculty-facing UML diagrams
 - Draft, publish, archive, branch, compare, and rollback version workflows
 - Faculty timetable views and revocable public share links
 - PDF, Excel, HTML, iCalendar, DOCX, and Google Docs-oriented exports
-- Supabase Auth, organization membership, and tenant-scoped FastAPI access
+- Password, Google, and GitHub sign-in through Supabase Auth, with organization membership and tenant-scoped FastAPI access
 
 Staff roster, event, exam, and facility presets are visible as coming-soon roadmap domains. They are intentionally locked until each has complete persistence, solver, and product coverage.
 
@@ -73,6 +73,8 @@ cd ../backend && PYTHONPATH=. .venv/bin/pytest -q
 ```
 
 See [docs/TESTING.md](docs/TESTING.md) for focused and deployment checks.
+Backend pytest is fail-closed and uses a fresh disposable Docker PostgreSQL
+container. It never reads or mutates the database configured in `backend/.env`.
 
 ## Database and architecture
 

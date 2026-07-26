@@ -22,6 +22,11 @@ For browser verification, start `npm run dev` and check:
 
 ## Backend
 
+Backend tests require Docker. Pytest starts its own disposable PostgreSQL
+container before importing any application module, points both database URLs at
+that container, and destroys it after the session. Tests never load the
+database URL from `backend/.env`.
+
 ```bash
 cd backend
 python -m venv .venv
@@ -30,10 +35,16 @@ pip install -r requirements.txt
 PYTHONPATH=. pytest -q
 ```
 
+This is a fail-closed safety boundary: if Docker cannot start, the suite stops.
+It never falls back to a developer, Supabase, staging, or production database.
+The test connection is also rejected unless it uses PostgreSQL on a loopback
+host and the database name contains `test`. Do not weaken or bypass these
+checks when adding tests.
+
 Run a focused test first while developing, for example:
 
 ```bash
-PYTHONPATH=. pytest -q tests/test_canvas_api.py
+PYTHONPATH=. pytest -q tests/integration/test_heatmap_api.py
 ```
 
 The health endpoints are:

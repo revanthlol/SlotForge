@@ -20,6 +20,12 @@ VITE_SUPABASE_ANON_KEY=your_public_client_key
 
 The Supabase client key is public by design, but it must never be replaced with a service-role or secret key. Backend credentials belong only in `backend/.env` or the deployment platform.
 
+Password, Google, and GitHub authentication all use the same Supabase project.
+Social identities return through `/auth/callback`; first-time users then finish
+their application profile and institution at `/complete-account`. Provider
+client secrets are configured in Supabase and never belong in this frontend.
+See the [Supabase setup guide](../docs/SUPABASE_SETUP.md) for callback URLs.
+
 ## Checks
 
 ```bash

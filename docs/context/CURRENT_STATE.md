@@ -13,6 +13,7 @@ Academic Timetable is the only supported domain preset. Staff roster, event, exa
 - The public landing leads with “Build timetables around reality,” an animated desktop solver trace, a static mobile result, a desktop launch chooser, and prominent MIT/GitHub/self-hosting messaging.
 - The landing navbar no longer advertises separate sign-in and create-institution actions. Mobile navigation teases the coming mobile app and links to GitHub.
 - Login and signup use the same floating public navbar as the landing page, with a contextual account action instead of a separate three-button auth switcher.
+- Login and signup support Google and GitHub through Supabase Auth. A verified identity without an application profile keeps its session and completes idempotent institution setup instead of being signed out on `/auth/me` 404.
 - Login, signup, onboarding, and the authenticated console use the mobile experience gate; public, policy, open-source, contact, and faculty share routes remain accessible.
 - Canvas is light in light mode, dark in dark mode, and fills all available workspace space below the persistent top bar. Search, view tabs, labels, inspector, pan, zoom, minimap, and selection focus remain interactive.
 - Public `/open-source`, `/privacy`, `/terms`, and `/contact` routes share the landing navbar and footer, animate into view, and restore the viewport to the top during route changes. The open-source page reproduces and links the complete MIT License.
@@ -25,6 +26,7 @@ Academic Timetable is the only supported domain preset. Staff roster, event, exa
 - Backend: FastAPI, Pydantic, SQLAlchemy, Alembic.
 - Solver: Google OR-Tools CP-SAT.
 - Identity/data: Supabase Auth and PostgreSQL.
+- Backend tests start a disposable loopback PostgreSQL container and fail closed if isolation is unavailable; they cannot fall back to the configured Supabase database.
 - Production: Vercel frontend; `slotforge-api.service` on the Oracle VPS.
 - Alembic head: `c7d4e5f6a7b8`.
 - Public schema: 20 application tables plus `alembic_version`, structure only.

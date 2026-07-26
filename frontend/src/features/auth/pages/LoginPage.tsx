@@ -5,25 +5,27 @@ import { useTheme } from '../../../contexts/ThemeContext';
 import { motion } from 'motion/react';
 import LoadingScreen from '../../../components/ui/LoadingScreen';
 import { PublicNavbar } from '../../public/PublicChrome';
+import OAuthButtons from '../components/OAuthButtons';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { signIn, signInWithOAuth } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/';
+  const oauthError = searchParams.get('oauth_error');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
-      await signIn(email, password);
-      navigate(redirectTo.startsWith('/') ? redirectTo : '/', { replace: true });
+      const result = await signIn(email, password);
+      navigate(result === 'missing-profile' ? '/complete-account' : (redirectTo.startsWith('/') ? redirectTo : '/'), { replace: true });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Sign in failed');
     } finally {
@@ -70,11 +72,18 @@ export default function LoginPage() {
           <h2 className="text-headline-sm text-on-surface mb-1">Sign in</h2>
           <p className="text-body-sm text-on-surface-variant mb-6">Access your scheduling workspace.</p>
 
-          {error && (
+          {(error || oauthError) && (
             <div className="mb-4 px-4 py-3 bg-error-container text-on-error-container text-sm rounded-lg border border-error/20">
-              {error}
+              {error || (oauthError === 'session' ? 'The provider returned without a valid session. Please try again.' : oauthError)}
             </div>
           )}
+
+          <OAuthButtons onProvider={signInWithOAuth} onError={setError} />
+          <div className="my-5 flex items-center gap-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-rule" />
+            <span className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>or use email</span>
+            <span className="h-px flex-1 bg-rule" />
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>

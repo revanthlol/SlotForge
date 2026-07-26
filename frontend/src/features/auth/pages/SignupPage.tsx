@@ -5,6 +5,7 @@ import { motion } from 'motion/react';
 import LoadingScreen from '../../../components/ui/LoadingScreen';
 import { WORK_ROLE_OPTIONS } from '../../settings/profileRoles';
 import { PublicNavbar } from '../../public/PublicChrome';
+import OAuthButtons from '../components/OAuthButtons';
 
 export default function SignupPage() {
   const [orgName, setOrgName] = useState('');
@@ -14,7 +15,7 @@ export default function SignupPage() {
   const [jobTitle, setJobTitle] = useState('Timetable coordinator');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { signUp } = useAuth();
+  const { signUp, signInWithOAuth } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,6 +49,14 @@ export default function SignupPage() {
               {error}
             </div>
           )}
+
+          <OAuthButtons onProvider={signInWithOAuth} onError={setError} />
+          <p className="mt-3 text-center text-xs leading-5 text-mono-grey">Social sign-up verifies your identity first, then asks for institution details.</p>
+          <div className="my-5 flex items-center gap-3" aria-hidden="true">
+            <span className="h-px flex-1 bg-rule" />
+            <span className="text-label-caps text-mono-grey" style={{ fontSize: 9 }}>or use email</span>
+            <span className="h-px flex-1 bg-rule" />
+          </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>

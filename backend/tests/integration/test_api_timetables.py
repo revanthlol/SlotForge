@@ -3,9 +3,9 @@ import jwt
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.core.config import settings
 from app.core.db import SessionLocal
 from app.models.organization import Organization
+from app.models.organization_membership import OrganizationMembership
 from app.models.profile import Profile
 from app.models.teacher import Teacher
 from app.models.room import Room
@@ -124,6 +124,99 @@ def test_profile_identity_can_be_updated_without_changing_access_role():
     finally:
         db.close()
 
+
+def test_authenticated_user_without_profile_can_complete_account():
+    user_id = str(uuid.uuid4())
+    token = jwt.encode(
+        {
+            "sub": user_id,
+            "aud": "authenticated",
+            "email": "oauth-admin@example.edu",
+            "user_metadata": {
+                "full_name": "OAuth Administrator",
+                # User-controlled auth metadata must never grant application access.
+                "role": "viewer",
+            },
+        },
+        "dummy-secret-key-for-tests",
+        algorithm="HS256",
+    )
+    headers = {"Authorization": f"Bearer {token}"}
+
+    response = client.post(
+        "/auth/complete-account",
+        json={
+            "org_name": "OAuth University",
+            "full_name": "OAuth Administrator",
+            "job_title": "Academic registrar",
+        },
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    assert response.json() == {
+        "user_id": user_id,
+        "organization_id": response.json()["organization_id"],
+        "role": "org_admin",
+        "full_name": "OAuth Administrator",
+        "job_title": "Academic registrar",
+    }
+
+    db = SessionLocal()
+    try:
+        profile = db.query(Profile).filter(Profile.id == uuid.UUID(user_id)).one()
+        organization = db.query(Organization).filter(Organization.id == profile.organization_id).one()
+        membership = db.query(OrganizationMembership).filter(
+            OrganizationMembership.user_id == profile.id,
+            OrganizationMembership.organization_id == organization.id,
+        ).one()
+        assert organization.name == "OAuth University"
+        assert membership.role == "org_admin"
+        assert profile.role == "org_admin"
+    finally:
+        db.close()
+
+
+def test_complete_account_is_idempotent_for_an_existing_profile():
+    org_id, user_id, headers = create_test_user("Existing University")
+
+    first = client.post(
+        "/auth/complete-account",
+        json={
+            "org_name": "Should Not Be Created",
+            "full_name": "Changed Name",
+            "job_title": "Department head",
+        },
+        headers=headers,
+    )
+    second = client.post(
+        "/auth/complete-account",
+        json={
+            "org_name": "Also Should Not Be Created",
+            "full_name": "Another Name",
+            "job_title": "Faculty member",
+        },
+        headers=headers,
+    )
+
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert first.json()["organization_id"] == org_id
+    assert second.json()["organization_id"] == org_id
+
+    db = SessionLocal()
+    try:
+        assert db.query(Organization).filter(
+            Organization.name.in_(["Should Not Be Created", "Also Should Not Be Created"])
+        ).count() == 0
+        assert db.query(Profile).filter(Profile.id == uuid.UUID(user_id)).count() == 1
+        assert db.query(OrganizationMembership).filter(
+            OrganizationMembership.user_id == uuid.UUID(user_id),
+            OrganizationMembership.organization_id == uuid.UUID(org_id),
+        ).count() == 1
+    finally:
+        db.close()
+
 def test_organization_get():
     org_id, user_id, headers = create_test_user("Skinner Org")
     
@@ -163,7 +256,7 @@ def test_teacher_crud():
     assert response.json()["name"] == "Teacher A Updated"
     
     # List
-    response = client.get(f"/teachers/", headers=headers)
+    response = client.get("/teachers/", headers=headers)
     assert response.status_code == 200
     assert len(response.json()) == 1
     
