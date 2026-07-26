@@ -201,8 +201,6 @@ input[type="range"] {
   background-size: auto, 64px 64px, 64px 64px, auto;
 }
 
-.route-frame { min-height: 100vh; }
-
 .loading-screen__inner { display: grid; justify-items: center; gap: 14px; }
 
 .newtons-cradle { --uib-size: 54px; --uib-speed: 1.2s; --uib-color: var(--color-primary); position: relative; display: flex; align-items: center; justify-content: center; width: var(--uib-size); height: var(--uib-size); }
