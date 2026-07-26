@@ -46,9 +46,9 @@ export default function LandingPage() {
     <div className="stitch-landing min-h-screen bg-paper text-on-surface">
       <header className="stitch-header">
         <nav className={`stitch-container stitch-nav-floating ${scrolled ? 'is-scrolled' : ''}`} aria-label="Public navigation">
-          <Link to="/" className="flex shrink-0 items-center gap-2" aria-label="SlotForge home">
+          <Link to="/" className="stitch-nav-brand flex shrink-0 items-center gap-2.5" aria-label="SlotForge home">
             <img src={theme === 'dark' ? '/logo/logo-dark.svg' : '/logo/logo.svg'} alt="" className="h-7 w-7 object-contain" />
-            <span className="text-sm font-bold tracking-tight text-on-surface">SlotForge</span>
+            <span className="stitch-nav-wordmark">SlotForge</span>
           </Link>
           <div className="hidden items-center gap-1 md:flex">
             <a href="#workflow">Workflow</a>
