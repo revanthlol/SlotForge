@@ -84,9 +84,9 @@ export default function LandingPage() {
                 <Stat value="Clear" label="from setup to export" />
               </motion.div>
             </div>
-            <motion.div initial={reduceMotion ? false : { opacity: 0, scale: .96, rotate: 1.5 }} animate={reduceMotion ? undefined : { opacity: 1, scale: 1, rotate: 0 }} transition={{ duration: .8, delay: .16, ease: [0.16, 1, .3, 1] }} className="solver-map-wrap">
-              <div className="solver-map-kicker"><span className="stitch-status-dot" /> Scheduling logic map</div>
-              <SolverMap />
+            <motion.div initial={reduceMotion ? false : { opacity: 0, scale: .97, y: 12 }} animate={reduceMotion ? undefined : { opacity: 1, scale: 1, y: 0 }} transition={{ duration: .7, delay: .16, ease: [0.16, 1, .3, 1] }} className="schedule-preview-wrap">
+              <div className="schedule-preview-kicker"><span className="stitch-status-dot" /> Draft schedule · Week 07</div>
+              <SchedulePreview />
             </motion.div>
           </div>
         </section>
@@ -129,9 +129,20 @@ export default function LandingPage() {
   );
 }
 
-function SolverMap() {
-  const nodes = [['Faculty', 'groups', 'solver-node--faculty'], ['Subjects', 'menu_book', 'solver-node--subjects'], ['Rooms', 'meeting_room', 'solver-node--rooms'], ['Rules', 'rule_settings', 'solver-node--rules'], ['Draft', 'view_week', 'solver-node--draft']];
-  return <div className="solver-map"><div className="solver-grid" />{nodes.map(([label, icon, className]) => <div key={label} className={`solver-node ${className}`}><span className="material-symbols-outlined" style={{ fontSize: 19 }}>{icon}</span><span>{label}</span></div>)}<div className="solver-core"><span className="material-symbols-outlined" style={{ fontSize: 28 }}>precision_manufacturing</span><span>Solver<br />Core</span></div><div className="solver-connector solver-connector--one" /><div className="solver-connector solver-connector--two" /><div className="solver-connector solver-connector--three" /><div className="solver-connector solver-connector--four" /><div className="solver-connector solver-connector--five" /><div className="solver-footer"><span className="stitch-status-dot" />0 known conflicts <span>•</span> ready for review</div></div>;
+function SchedulePreview() {
+  return <div className="schedule-preview">
+    <div className="schedule-preview__header">
+      <div><p className="schedule-preview__eyebrow">B.Tech · CSE · Semester 04</p><h2>Weekly draft</h2></div>
+      <span className="schedule-preview__status"><i />Ready to review</span>
+    </div>
+    <div className="schedule-preview__grid" aria-label="Sample timetable preview">
+      <span className="schedule-preview__time">09:00</span><span className="schedule-preview__day">Mon</span><span className="schedule-preview__day">Tue</span><span className="schedule-preview__day">Wed</span>
+      <span className="schedule-preview__time">10:00</span><div className="schedule-block schedule-block--systems">Systems<br /><small>Lab 2</small></div><div className="schedule-block schedule-block--data">Data structures<br /><small>A-203</small></div><div className="schedule-block schedule-block--empty" />
+      <span className="schedule-preview__time">11:00</span><div className="schedule-block schedule-block--empty" /><div className="schedule-block schedule-block--design">Design studio<br /><small>R-110</small></div><div className="schedule-block schedule-block--math">Discrete math<br /><small>A-203</small></div>
+      <span className="schedule-preview__time">12:00</span><div className="schedule-block schedule-block--math">Discrete math<br /><small>A-203</small></div><div className="schedule-block schedule-block--empty" /><div className="schedule-block schedule-block--systems">Systems<br /><small>Lab 2</small></div>
+    </div>
+    <div className="schedule-preview__footer"><span><i />0 unresolved conflicts</span><span>18/18 placements covered</span></div>
+  </div>;
 }
 
 function LandingFaq() {
