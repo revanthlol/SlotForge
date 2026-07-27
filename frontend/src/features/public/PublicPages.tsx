@@ -53,9 +53,9 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
 }
 
 export function OpenSourcePage() {
-  return <PublicShell eyebrow="OPEN SOURCE / MIT" title="Built in the open. Better with you." intro="SlotForge is an MIT-licensed scheduling platform. Inspect the solver, run the whole stack yourself, report a rough edge, or help shape the next release.">
+  return <PublicShell eyebrow="OPEN SOURCE / MIT" title="Built in the open. Better with you." intro="SlotForge is an MIT-licensed scheduling platform. Inspect the solver, follow every release, report a rough edge, or help shape what ships next.">
     <div className="grid gap-4 sm:grid-cols-3">
-      {[["code", "Read the code", "Follow the FastAPI, React, PostgreSQL, and OR-Tools implementation."], ["fork_right", "Make it yours", "Self-host it, extend the scheduling model, or build a domain adapter."], ["diversity_3", "Contribute", "Issues, documentation, tests, accessibility, and product feedback all move the project forward."]].map(([icon, cardTitle, body]) => <article key={cardTitle} className="rounded-xl border border-rule bg-paper-raised p-5"><span className="material-symbols-outlined text-primary">{icon}</span><h2 className="mt-6 text-lg">{cardTitle}</h2><p>{body}</p></article>)}
+      {[["code", "Read the code", "Follow the FastAPI, React, PostgreSQL, and OR-Tools implementation."], ["fork_right", "Extend the model", "Study the scheduling decisions, propose a constraint, or build a domain adapter."], ["diversity_3", "Contribute", "Issues, documentation, tests, accessibility, and product feedback all move the project forward."]].map(([icon, cardTitle, body]) => <article key={cardTitle} className="rounded-xl border border-rule bg-paper-raised p-5"><span className="material-symbols-outlined text-primary">{icon}</span><h2 className="mt-6 text-lg">{cardTitle}</h2><p>{body}</p></article>)}
     </div>
     <Section title="Start contributing">
       <p>Read the contribution guide, choose an issue, and open your work against the <code>dev</code> branch. Security reports should follow the private process in <code>SECURITY.md</code>.</p>

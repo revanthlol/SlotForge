@@ -6,7 +6,7 @@
 
 SlotForge helps academic teams model faculty, subjects, sections, rooms, time structure, and institutional rules; generate a timetable with Google OR-Tools CP-SAT; inspect conflicts and scheduling pressure; and move a schedule through draft, review, publication, sharing, and export.
 
-The complete source, current application schema, and faculty-facing UML diagrams are public under the MIT License. You can audit the scheduling logic, self-host the stack, or contribute improvements.
+The complete source, current application schema, and faculty-facing UML diagrams are public under the MIT License. You can audit the scheduling logic, follow development in public, or contribute improvements.
 
 ## What works today
 

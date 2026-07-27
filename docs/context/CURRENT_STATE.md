@@ -10,7 +10,7 @@ Academic Timetable is the only supported domain preset. Staff roster, event, exa
 
 ## Current application behavior
 
-- The public landing leads with “Build timetables around reality,” an animated desktop solver trace, a static mobile result, a desktop launch chooser, and prominent MIT/GitHub/self-hosting messaging.
+- The public landing leads with “Build timetables around reality,” responsive animated solver traces, a lightweight scroll-led solve narrative, a desktop launch chooser, and prominent MIT/GitHub/open-source messaging.
 - The landing navbar no longer advertises separate sign-in and create-institution actions. Mobile navigation teases the coming mobile app and links to GitHub.
 - Login and signup use the same floating public navbar as the landing page, with a contextual account action instead of a separate three-button auth switcher.
 - Login and signup support Google and GitHub through Supabase Auth. A verified identity without an application profile keeps its session and completes idempotent institution setup instead of being signed out on `/auth/me` 404.
