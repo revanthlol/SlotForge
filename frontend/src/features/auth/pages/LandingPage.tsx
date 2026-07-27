@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion, useScroll, useSpring } from 'motion/react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { GitHubMark, PublicFooter, PublicNavbar, REPOSITORY_URL } from '../../public/PublicChrome';
@@ -16,7 +16,18 @@ const faqs = [
   ['Can I use day-order timetables?', 'Yes. You can configure either a fixed weekday week or a rotating day-order cycle during setup, then render the timetable in the same structure.'],
   ['Can I review a schedule before publishing?', 'Yes. Generated schedules start as drafts. Review conflicts, edit slots where needed, compare versions, and publish only when the result is ready.'],
   ['Do I need every detail before I begin?', 'No. Start with the resources and rules you know, save your progress, and continue refining the workspace as your institution’s data becomes available.'],
+  ['Is SlotForge open source?', 'Yes. The complete product is published under the MIT License. You can inspect the solver, follow development, report issues, and contribute code or documentation on GitHub.'],
+  ['How does the solver make a placement?', 'SlotForge models availability, room capacity, teaching assignments, workload, and other institutional rules as explicit constraints. The generated draft stays inspectable so your team can review the outcome before publishing it.'],
+  ['Can we bring in an existing timetable?', 'Structured imports and exports are part of the product direction. Today, institutions can model their resources in the guided workspace and export the timetable after review.'],
+  ['What happens when our rules change?', 'Update the affected resource or constraint and generate a new draft. Published schedules remain distinct from drafts, so experimentation does not silently replace the version people already use.'],
+  ['Does SlotForge work on mobile?', 'The full scheduling console currently needs a desktop-sized workspace. The public site works on mobile, and a focused mobile companion is planned for faculty access.'],
 ];
+
+const storySteps = [
+  ['01 / CONTEXT', 'See the institution before solving it.', 'Faculty, rooms, sections, courses, and time patterns enter one shared model—not five disconnected spreadsheets.', 'context'],
+  ['02 / CONSTRAINT PASS', 'Watch rules become decisions.', 'Availability, capacity, workload, and collision rules stay visible while the solver tests possible placements.', 'constraints'],
+  ['03 / REVIEW STATE', 'Publish an answer you can defend.', 'The winning draft arrives with conflicts, coverage, and version state attached, ready for a human review.', 'review'],
+] as const;
 
 const capabilities = [
   ['groups', 'Faculty load', 'Balance teaching hours while retaining the visibility needed for real academic teams.'],
@@ -28,16 +39,8 @@ const capabilities = [
 export default function LandingPage() {
   const { user } = useAuth();
   const [launcherOpen, setLauncherOpen] = useState(false);
-  const [desktopTrace, setDesktopTrace] = useState(() => window.matchMedia('(min-width: 900px)').matches);
   const reduceMotion = useReducedMotion();
   const signedIn = Boolean(user);
-
-  useEffect(() => {
-    const media = window.matchMedia('(min-width: 900px)');
-    const update = () => setDesktopTrace(media.matches);
-    media.addEventListener('change', update);
-    return () => media.removeEventListener('change', update);
-  }, []);
 
   const enter = (delay = 0) => reduceMotion ? undefined : { initial: { opacity: 0, y: 18 }, animate: { opacity: 1, y: 0 }, transition: { duration: .58, delay } };
 
@@ -57,12 +60,13 @@ export default function LandingPage() {
               </motion.div>
               <motion.div {...enter(.32)} className="mt-14 grid max-w-lg grid-cols-3 gap-6 border-t border-rule pt-5">
                 <Stat value="MIT" label="licensed" />
-                <Stat value="Self-host" label="your stack" />
+                <Stat value="Open source" label="built in public" />
                 <Stat value="OR-Tools" label="solver core" />
               </motion.div>
             </div>
             <motion.div initial={reduceMotion ? false : { opacity: 0, scale: .97, y: 12 }} animate={reduceMotion ? undefined : { opacity: 1, scale: 1, y: 0 }} transition={{ duration: .7, delay: .16, ease: [0.16, 1, .3, 1] }} className="solver-trace-wrap">
-              <SolverTrace animated={desktopTrace && !reduceMotion} />
+              <SolverTrace animated={!reduceMotion} />
+              <MobileSolverTrace animated={!reduceMotion} />
             </motion.div>
           </div>
         </section>
@@ -80,6 +84,8 @@ export default function LandingPage() {
           <div className="mt-14 grid gap-px overflow-hidden border border-rule bg-rule md:grid-cols-4">{workflow.map(([number, title, body], index) => <motion.article initial={reduceMotion ? false : { opacity: 0, y: 16 }} whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }} viewport={{ once: true, amount: .35 }} transition={{ duration: .42, delay: index * .06 }} whileHover={reduceMotion ? undefined : { y: -4 }} key={number} className="bg-paper-raised p-6"><p className="text-[10px] font-mono tracking-widest text-on-surface-variant">{number}</p><h3 className="mt-8 text-lg font-semibold text-on-surface" style={{ fontFamily: 'var(--font-display)' }}>{title}</h3><p className="mt-3 text-sm leading-6 text-on-surface-variant">{body}</p></motion.article>)}</div>
         </section>
 
+        <ScrollStory reduceMotion={reduceMotion} />
+
         <section id="capabilities" className="border-y border-rule bg-paper-raised py-24">
           <div className="stitch-container"><div className="max-w-3xl"><p className="stitch-eyebrow">Intelligent foundation</p><h2 className="stitch-heading mt-4">Tools for the parts of scheduling that actually get complicated.</h2></div>
             <div className="mt-14 grid gap-4 md:grid-cols-2">
@@ -95,9 +101,9 @@ export default function LandingPage() {
           <div className="mt-14 grid gap-px border border-white/15 bg-white/15 sm:grid-cols-2 lg:grid-cols-4">{capabilities.map(([icon, title, body]) => <div key={title} className="bg-[#0d2924] p-7 text-center transition-colors hover:bg-white/5"><span className="material-symbols-outlined text-white/75" style={{ fontSize: 26 }}>{icon}</span><h3 className="mt-5 text-sm font-semibold text-white">{title}</h3><p className="mt-3 text-xs leading-5 text-white/50">{body}</p></div>)}</div>
         </div></section>
 
-        <section id="open-source" className="border-b border-rule bg-paper-raised py-24"><div className="stitch-container grid gap-10 lg:grid-cols-[1fr_.8fr] lg:items-end"><div><p className="stitch-eyebrow">Open source by design</p><h2 className="stitch-heading mt-4">The scheduling engine belongs in the open.</h2><p className="mt-5 max-w-2xl text-sm leading-6 text-on-surface-variant">Read every constraint, audit how drafts are produced, self-host the stack, or contribute the workflow your institution needs next. SlotForge is MIT licensed and built publicly.</p></div><div className="flex flex-wrap gap-3 lg:justify-end"><a href={REPOSITORY_URL} target="_blank" rel="noreferrer" className="stitch-primary-cta">Star or contribute <span aria-hidden="true">↗</span></a><Link to="/open-source" className="stitch-secondary-cta">Open-source guide</Link></div></div></section>
+        <section id="open-source" className="border-b border-rule bg-paper-raised py-24"><div className="stitch-container grid gap-10 lg:grid-cols-[1fr_.8fr] lg:items-end"><div><p className="stitch-eyebrow">Open source by design</p><h2 className="stitch-heading mt-4">The scheduling engine belongs in the open.</h2><p className="mt-5 max-w-2xl text-sm leading-6 text-on-surface-variant">Read every constraint, audit how drafts are produced, follow the roadmap, or contribute the workflow your institution needs next. SlotForge is MIT licensed, publicly developed, and hosted for the teams using it.</p></div><div className="flex flex-wrap gap-3 lg:justify-end"><a href={REPOSITORY_URL} target="_blank" rel="noreferrer" className="stitch-primary-cta">Star or contribute <span aria-hidden="true">↗</span></a><Link to="/open-source" className="stitch-secondary-cta">Open-source guide</Link></div></div></section>
 
-        <LandingFaq />
+        <LandingFaq reduceMotion={reduceMotion} />
 
         <section className="stitch-cta"><div className="stitch-container relative z-10 py-24 text-center"><h2 className="stitch-display mx-auto max-w-4xl text-white" style={{ fontSize: 'clamp(2.6rem, 6vw, 5.3rem)' }}>Start with the schedule your institution actually needs.</h2><p className="mx-auto mt-6 max-w-xl text-sm leading-6 text-white/60">The web console is available on desktop. A focused mobile experience is coming soon.</p>{signedIn ? <Link to="/" className="stitch-desktop-launch mt-9 inline-flex rounded bg-white px-6 py-3 text-sm font-semibold text-[#0d2924] transition-transform hover:-translate-y-0.5">Open workspace <span className="ml-2">→</span></Link> : <button type="button" onClick={() => setLauncherOpen(true)} className="stitch-desktop-launch mt-9 rounded bg-white px-6 py-3 text-sm font-semibold text-[#0d2924] transition-transform hover:-translate-y-0.5">Launch web app <span className="ml-2">→</span></button>}</div></section>
       </main>
@@ -110,14 +116,80 @@ export default function LandingPage() {
 
 function SolverTrace({ animated }: { animated: boolean }) {
   const nodes = [['person', 'Prof. Rao', 'Faculty'], ['menu_book', 'Systems', 'Subject'], ['groups', 'CSE–4A', 'Section'], ['science', 'Lab 2', 'Room'], ['rule', 'No clashes', 'Constraint']];
-  return <div className={`solver-trace ${animated ? 'is-animated' : 'is-static'}`} aria-label="A solver trace resolving academic constraints into accepted timetable slots">
-    <div className="solver-trace__bar"><span><i />Solver trace · Academic workspace</span><span>CP-SAT / 05 inputs</span></div>
+  return <div role="img" className={`solver-trace solver-trace--desktop ${animated ? 'is-animated' : 'is-static'}`} aria-label="A solver trace resolving academic constraints into accepted timetable slots">
+    <div className="solver-trace__bar"><span><i />Solver trace · Academic workspace</span><span>CP-SAT / 05 inputs / run 04</span></div>
     <div className="solver-trace__stage">
       <div className="solver-trace__inputs">{nodes.map(([icon, label, type], index) => <div key={label} className="solver-trace__node" style={{ '--trace-index': index } as CSSProperties}><span className="material-symbols-outlined">{icon}</span><span><strong>{label}</strong><small>{type}</small></span></div>)}</div>
       <svg className="solver-trace__lines" viewBox="0 0 600 330" preserveAspectRatio="none" aria-hidden="true"><path d="M140 43 C260 43 255 165 345 165"/><path d="M140 103 C245 103 260 165 345 165"/><path d="M140 163 C245 163 260 165 345 165"/><path d="M140 223 C245 223 260 165 345 165"/><path d="M140 283 C260 283 255 165 345 165"/><path className="solver-trace__accepted-line" d="M365 165 C430 165 430 92 486 92"/></svg>
       <div className="solver-trace__core"><span className="material-symbols-outlined">precision_manufacturing</span><small>resolve</small></div>
       <div className="solver-trace__result"><p>Accepted placements</p><div><span>MON · 09:00</span><strong>Systems</strong><small>CSE–4A · Lab 2</small></div><div><span>WED · 11:00</span><strong>Design studio</strong><small>CSE–4A · R-110</small></div><footer><i />0 conflicts</footer></div>
     </div>
+  </div>;
+}
+
+function MobileSolverTrace({ animated }: { animated: boolean }) {
+  const resources = [['person', 'Faculty'], ['menu_book', 'Courses'], ['groups', 'Sections'], ['science', 'Rooms']];
+  return <div role="img" className={`mobile-solver ${animated ? 'is-animated' : 'is-static'}`} aria-label="A live timetable solve moving from institutional resources to reviewed placements">
+    <div className="mobile-solver__bar"><span><i />Live solve · cycle 04</span><span>0 conflicts</span></div>
+    <div className="mobile-solver__body">
+      <div className="mobile-solver__model">
+        <p>Institution model</p>
+        <div>{resources.map(([icon, label], index) => <span key={label} style={{ '--mobile-index': index } as CSSProperties}><span className="material-symbols-outlined">{icon}</span>{label}</span>)}</div>
+      </div>
+      <div className="mobile-solver__pipeline" aria-hidden="true">
+        <i className="mobile-solver__rail" />
+        <i className="mobile-solver__signal" />
+        <span><b>01</b> Model</span><span><b>02</b> Resolve</span><span><b>03</b> Verify</span>
+      </div>
+      <div className="mobile-solver__result">
+        <header><span>Accepted draft</span><strong>18 / 18</strong></header>
+        <div className="mobile-solver__placement"><span>MON · 09:00</span><strong>Systems</strong><small>CSE–4A · Lab 2</small></div>
+        <div className="mobile-solver__placement"><span>WED · 11:00</span><strong>Design studio</strong><small>CSE–4A · R-110</small></div>
+        <footer><span><i />Ready to review</span><span>12 rules passed</span></footer>
+      </div>
+    </div>
+  </div>;
+}
+
+function ScrollStory({ reduceMotion }: { reduceMotion: boolean | null }) {
+  const storyRef = useRef<HTMLElement | null>(null);
+  const { scrollYProgress } = useScroll({ target: storyRef, offset: ['start 72%', 'end 55%'] });
+  const progress = useSpring(scrollYProgress, { stiffness: 90, damping: 26, mass: .45 });
+
+  return <section ref={storyRef} className="stitch-story border-y border-rule">
+    <div className="stitch-container stitch-story__layout">
+      <div className="stitch-story__intro">
+        <p className="stitch-eyebrow">Inside one solve</p>
+        <h2 className="stitch-heading mt-4">From raw context to a reviewable answer.</h2>
+        <p className="mt-5 max-w-md text-sm leading-6 text-on-surface-variant">Scroll through the three states that turn scheduling from a black box into an operational decision.</p>
+        <div className="stitch-story__progress" aria-hidden="true"><motion.i style={reduceMotion ? { scaleY: 1 } : { scaleY: progress }} /></div>
+      </div>
+      <div className="stitch-story__steps">
+        {storySteps.map(([label, title, body, visual]) => <motion.article key={label} initial={reduceMotion ? false : { opacity: .35, y: 24 }} whileInView={reduceMotion ? undefined : { opacity: 1, y: 0 }} viewport={{ amount: .62 }} transition={{ duration: .48, ease: [0.16, 1, .3, 1] }} className="stitch-story__step">
+          <div className="stitch-story__copy"><p>{label}</p><h3>{title}</h3><span>{body}</span></div>
+          <StoryVisual variant={visual} active={!reduceMotion} />
+        </motion.article>)}
+      </div>
+    </div>
+  </section>;
+}
+
+function StoryVisual({ variant, active }: { variant: typeof storySteps[number][3]; active: boolean }) {
+  if (variant === 'context') return <div className={`story-visual story-visual--context ${active ? 'is-animated' : ''}`} aria-hidden="true">
+    {['Faculty · 42', 'Courses · 18', 'Rooms · 12', 'Sections · 06'].map((item, index) => <span key={item} style={{ '--story-index': index } as CSSProperties}>{item}</span>)}
+    <strong>Shared model <small>ready</small></strong>
+  </div>;
+
+  if (variant === 'constraints') return <div className={`story-visual story-visual--constraints ${active ? 'is-animated' : ''}`} aria-hidden="true">
+    <span>Availability <i /></span><span>Capacity <i /></span><span>Workload <i /></span><span>Collisions <i /></span>
+    <strong><span className="material-symbols-outlined">precision_manufacturing</span>Testing placements</strong>
+  </div>;
+
+  return <div className={`story-visual story-visual--review ${active ? 'is-animated' : ''}`} aria-hidden="true">
+    <header><span><i />Draft 04</span><strong>Ready to review</strong></header>
+    <div><span>MON 09:00</span><strong>Systems</strong><small>Lab 2</small></div>
+    <div><span>WED 11:00</span><strong>Design studio</strong><small>R-110</small></div>
+    <footer>0 conflicts <span>18/18 covered</span></footer>
   </div>;
 }
 
@@ -133,10 +205,13 @@ function LaunchChooser({ onClose }: { onClose: () => void }) {
   return <div className="fixed inset-0 z-[100] grid place-items-center bg-[#071713]/65 p-5 backdrop-blur-sm" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}><section role="dialog" aria-modal="true" aria-labelledby="launch-title" className="w-full max-w-lg rounded-2xl border-2 border-rule bg-paper-raised p-6 shadow-2xl"><div className="flex items-start justify-between gap-5"><div><p className="stitch-eyebrow">Desktop web app</p><h2 id="launch-title" className="mt-3 text-3xl font-semibold" style={{ fontFamily: 'var(--font-display)' }}>Where do you want to begin?</h2></div><button ref={closeButtonRef} type="button" onClick={onClose} aria-label="Close" className="grid h-9 w-9 place-items-center rounded-lg border border-rule text-on-surface-variant hover:bg-accent-soft"><span className="material-symbols-outlined">close</span></button></div><div className="mt-7 grid gap-3 sm:grid-cols-2"><Link to="/login" className="rounded-xl border border-rule bg-paper p-5 hover:border-primary"><span className="material-symbols-outlined text-primary">login</span><strong className="mt-5 block">Sign in</strong><span className="mt-2 block text-xs leading-5 text-on-surface-variant">Return to an existing institution workspace.</span></Link><Link to="/signup" className="rounded-xl border border-primary bg-accent-soft p-5"><span className="material-symbols-outlined text-primary">domain_add</span><strong className="mt-5 block">Create institution</strong><span className="mt-2 block text-xs leading-5 text-on-surface-variant">Start the guided Academic setup.</span></Link></div><p className="mt-5 text-xs text-mono-grey">On a phone? The mobile app is coming soon; the scheduling console currently needs a desktop-sized workspace.</p></section></div>;
 }
 
-function LandingFaq() {
+function LandingFaq({ reduceMotion }: { reduceMotion: boolean | null }) {
   const [openFaq, setOpenFaq] = useState(0);
 
-  return <section id="faq" className="stitch-faq py-24"><div className="stitch-container max-w-3xl"><div className="text-center"><p className="stitch-eyebrow">Questions, answered</p><h2 className="stitch-heading mt-4">FAQ</h2></div><div className="mt-12 space-y-3">{faqs.map(([question, answer], index) => <div key={question} className="border border-rule bg-paper-raised"><button type="button" className="flex w-full items-center justify-between gap-5 px-6 py-5 text-left text-sm font-semibold text-on-surface" aria-expanded={openFaq === index} onClick={() => setOpenFaq((current) => current === index ? -1 : index)}>{question}<span className={`material-symbols-outlined text-mono-grey transition-transform ${openFaq === index ? 'rotate-45' : ''}`} style={{ fontSize: 20 }}>add</span></button>{openFaq === index && <p className="border-t border-rule px-6 py-5 text-sm leading-6 text-on-surface-variant">{answer}</p>}</div>)}</div></div></section>;
+  return <section id="faq" className="stitch-faq py-24"><div className="stitch-container max-w-3xl"><div className="text-center"><p className="stitch-eyebrow">Questions, answered</p><h2 className="stitch-heading mt-4">FAQ</h2><p className="mx-auto mt-4 max-w-xl text-sm leading-6 text-on-surface-variant">The practical details about modelling, reviewing, contributing, and using SlotForge.</p></div><div className="mt-12 space-y-3">{faqs.map(([question, answer], index) => {
+    const answerId = `landing-faq-${index}`;
+    return <motion.div layout={!reduceMotion} key={question} className="overflow-hidden border border-rule bg-paper-raised"><button type="button" className="flex w-full items-center justify-between gap-5 px-6 py-5 text-left text-sm font-semibold text-on-surface" aria-expanded={openFaq === index} aria-controls={answerId} onClick={() => setOpenFaq((current) => current === index ? -1 : index)}>{question}<span className={`material-symbols-outlined text-mono-grey transition-transform ${openFaq === index ? 'rotate-45' : ''}`} style={{ fontSize: 20 }}>add</span></button><AnimatePresence initial={false}>{openFaq === index && <motion.div id={answerId} role="region" initial={reduceMotion ? false : { height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={reduceMotion ? undefined : { height: 0, opacity: 0 }} transition={{ duration: reduceMotion ? 0 : .2 }}><p className="border-t border-rule px-6 py-5 text-sm leading-6 text-on-surface-variant">{answer}</p></motion.div>}</AnimatePresence></motion.div>;
+  })}</div></div></section>;
 }
 
 function CapabilityCard({ className, icon, title, body, tags, visual, reduceMotion }: { className: string; icon: string; title: string; body: string; tags?: string[]; visual?: boolean; reduceMotion: boolean | null }) {
