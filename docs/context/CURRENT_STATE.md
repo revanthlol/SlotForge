@@ -1,6 +1,6 @@
 # Current State
 
-Last updated: 2026-07-26
+Last updated: 2026-07-27
 
 ## Product
 
@@ -28,7 +28,7 @@ Academic Timetable is the only supported domain preset. Staff roster, event, exa
 - Identity/data: Supabase Auth and PostgreSQL.
 - Backend tests start a disposable loopback PostgreSQL container and fail closed if isolation is unavailable; they cannot fall back to the configured Supabase database.
 - Production: Vercel frontend; `slotforge-api.service` on the Oracle VPS.
-- Oracle is running the authentication-persistence application release `0d6368c`; service and database health checks pass and `/auth/complete-account` is loaded.
+- Shritha's main Oracle environment is running release `9a8927d` against its dedicated Supabase project; service and database health checks pass and `/auth/complete-account` is loaded.
 - Alembic head: `c7d4e5f6a7b8`.
 - Public schema: 20 application tables plus `alembic_version`, structure only.
 
@@ -39,6 +39,7 @@ Academic Timetable is the only supported domain preset. Staff roster, event, exa
 - Tenant access is currently enforced by FastAPI membership/admin checks. Do not claim complete database RLS coverage.
 - Assignment replacement remains a full-list operation; concurrent edits are last-completed-write wins.
 - The frontend production bundle emits a large-chunk warning; route-level splitting remains future work.
+- The Vercel project still treats `dev` as its Production branch and compiles that deployment against the other Supabase project. Before Shritha's social login can work end to end, set the Vercel Production branch to `main`, set the production `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to Shritha's project, and redeploy. Never expose the Supabase secret key or database URLs to Vite.
 - Project-stage privacy and terms pages require professional review before commercial launch.
 
 ## Verification and release

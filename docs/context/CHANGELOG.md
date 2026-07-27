@@ -1,5 +1,13 @@
 # Context Changelog
 
+## 2026-07-27
+
+- Reconciled `dev` and `main` at merge commit `9a8927d` without a force push, then fast-forwarded the Shritha Oracle checkout on `main` to the same release while preserving its server-only Alembic URL escaping workaround.
+- Switched `slotforge-api.service` to Shritha's dedicated Supabase credentials using the existing known-good, mode-`600` environment backup. A second recovery backup was created before the switch; no secret values were written to repository documentation or logs.
+- Before migrating, copied all 13 existing public tables into the private `slotforge_backup_20260727t131242z` schema and verified every table count. Migrated transactionally from `9d2a4c7b1e10` to `c7d4e5f6a7b8`; the existing organization and profile remained and their expected workspace and membership were created.
+- Verified database and secret-key administration access, one active JWKS signing key, enabled Google and GitHub providers, and successful provider authorization handoffs to Google and GitHub. Restarted `slotforge-api.service`; local and public `/health` and `/health/db` returned HTTP 200 at Alembic head with no new error-level journal entries.
+- Remaining deployment blocker: Vercel currently uses `dev` as the Production branch and its browser bundle targets the other Supabase project. Production must be switched to `main`, its public Vite Supabase URL/key aligned with Shritha's project, and the main deployment rebuilt before OAuth is considered end-to-end verified.
+
 ## 2026-07-26
 
 - Isolated every backend pytest session in a disposable Docker PostgreSQL container before application imports. Added fail-closed URL checks that reject remote hosts, non-test database names, and non-PostgreSQL targets, preventing test cleanup from ever reaching the configured Supabase database.
