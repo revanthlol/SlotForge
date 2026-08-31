@@ -1,6 +1,7 @@
 from typing import Optional, Dict, Any, List
 from uuid import UUID
 from datetime import datetime
+# pyrefly: ignore [missing-import]
 from pydantic import BaseModel, Field
 
 class AssignmentCreate(BaseModel):

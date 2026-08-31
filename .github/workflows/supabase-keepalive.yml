@@ -1,0 +1,49 @@
+name: Supabase Keepalive
+
+on:
+  schedule:
+    # Run every 4 days at 06:00 UTC (well within Supabase's ~7-day inactivity pause threshold)
+    - cron: '0 6 */4 * *'
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    name: Ping Supabase (${{ matrix.environment }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [dev, prod]
+    steps:
+      - name: Ping PostgREST Endpoint
+        env:
+          ENV_NAME: ${{ matrix.environment }}
+          SUPABASE_URL: ${{ matrix.environment == 'dev' && secrets.SUPABASE_URL_DEV || secrets.SUPABASE_URL_PROD }}
+          SUPABASE_ANON_KEY: ${{ matrix.environment == 'dev' && secrets.SUPABASE_ANON_KEY_DEV || secrets.SUPABASE_ANON_KEY_PROD }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::error::SUPABASE_URL_${ENV_NAME^^} or SUPABASE_ANON_KEY_${ENV_NAME^^} secret is not set."
+            exit 1
+          fi
+
+          echo "Sending keepalive request to Supabase ($ENV_NAME) PostgREST endpoint..."
+          
+          # Strip trailing slash if present
+          BASE_URL="${SUPABASE_URL%/}"
+          
+          HTTP_STATUS=$(curl -sS -o /tmp/supabase_response.txt -w "%{http_code}" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            "$BASE_URL/rest/v1/organizations?select=id&limit=1")
+          
+          echo "[$ENV_NAME] HTTP Status Code: $HTTP_STATUS"
+          
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "Supabase ($ENV_NAME) keepalive ping succeeded (HTTP $HTTP_STATUS)."
+          else
+            echo "::error::Supabase ($ENV_NAME) keepalive ping failed with HTTP status $HTTP_STATUS."
+            echo "Response body:"
+            cat /tmp/supabase_response.txt
+            echo ""
+            exit 1
+          fi
