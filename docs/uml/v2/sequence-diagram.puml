@@ -1,5 +1,5 @@
 @startuml
-title SlotForge — Generate Timetable Sequence
+title SlotForge — Generate Timetable Sequence (with Async Job Pipeline)
 skinparam shadowing false
 skinparam linetype ortho
 skinparam ArrowColor #475569
@@ -11,26 +11,109 @@ participant "React frontend" as Frontend
 participant "Supabase Auth" as Auth
 participant "FastAPI backend" as Backend
 database "PostgreSQL" as Database
+queue "Job Queue" as Queue
+participant "Worker Pool" as Worker
 participant "OR-Tools scheduler" as Scheduler
 
 Admin -> Frontend : Sign in
+activate Frontend
 Frontend -> Auth : Submit credentials
+activate Auth
 Auth --> Frontend : Session + access token
+deactivate Auth
+deactivate Frontend
+
 Admin -> Frontend : Generate timetable
+activate Frontend
 Frontend -> Backend : POST generation request\nBearer access token
+activate Backend
+
 Backend -> Auth : Verify token signature / claims
+activate Auth
+Auth --> Backend : Valid
+deactivate Auth
+
 Backend -> Database : Check membership and load\nworkspace inputs + constraints
+activate Database
 Database --> Backend : Resources, tasks, groups,\nlocations, timeslots, rules
-Backend -> Scheduler : Build and solve problem
-alt feasible
-  Scheduler --> Backend : Assignments + score
-  Backend -> Database : Save run, version, assignments
+deactivate Database
+
+group Async Job Pipeline
+  Backend -> Database : Create job record (status = queued)
+  activate Database
+  Database --> Backend : job_id
+  deactivate Database
+
+  Backend -> Queue : Enqueue solve job\n(job_id, inputs, constraints)
+  activate Queue
+  Queue --> Backend : Accepted
+  deactivate Queue
+
+  Backend --> Frontend : 202 Accepted\n{job_id}
+  deactivate Backend
+  Frontend --> Admin : Show "generating…" status
+  deactivate Frontend
+
+  Queue -> Worker : Dispatch job
+  activate Queue
+  activate Worker
+  deactivate Queue
+
+  Worker -> Database : Update job status = running
+  activate Database
+  deactivate Database
+
+  Worker -> Scheduler : Build and solve problem
+  activate Scheduler
+
+  alt feasible
+    Scheduler --> Worker : Assignments + score
+    Worker -> Database : Save run, version, assignments\nUpdate job status = done
+    activate Database
+    deactivate Database
+  else infeasible
+    Scheduler --> Worker : Infeasibility details
+    Worker -> Database : Save failed run\nUpdate job status = failed
+    activate Database
+    deactivate Database
+  else timeout / worker crash
+    Worker --> Database : Update job status = errored\n(retry policy applies)
+    activate Database
+    deactivate Database
+  end
+  deactivate Scheduler
+  deactivate Worker
+
+  loop poll or push (WebSocket/SSE)
+    Frontend -> Backend : GET job status (job_id)
+    activate Frontend
+    activate Backend
+    Backend -> Database : Read job status
+    activate Database
+    Database --> Backend : status + result ref
+    deactivate Database
+    Backend --> Frontend : status update
+    deactivate Backend
+    deactivate Frontend
+  end
+end
+
+alt job done
+  Frontend -> Backend : GET run result (job_id)
+  activate Frontend
+  activate Backend
+  Backend -> Database : Fetch assignments
+  activate Database
+  Database --> Backend : Draft timetable
+  deactivate Database
   Backend --> Frontend : Draft timetable
+  deactivate Backend
   Frontend --> Admin : Review conflicts and placements
-else infeasible
-  Scheduler --> Backend : Infeasibility details
-  Backend -> Database : Save failed run
-  Backend --> Frontend : Conflict explanation
-  Frontend --> Admin : Adjust data or rules
+  deactivate Frontend
+else job failed / errored
+  Backend --> Frontend : Conflict explanation / error detail
+  activate Frontend
+  Frontend --> Admin : Adjust data or rules, or retry
+  deactivate Frontend
 end
 @enduml

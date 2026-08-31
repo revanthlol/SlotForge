@@ -83,6 +83,19 @@ Do not claim complete row-level security coverage from this repository. The curr
 
 Supabase changed new-table Data API exposure defaults in 2026; Data API grants and RLS are separate controls. Review the current [Supabase API security guide](https://supabase.com/docs/guides/api/securing-your-api) before exposing a schema.
 
+## Keepalive workflow (Free tier inactivity prevention)
+
+Supabase pauses free-tier projects after roughly 7 days of inactivity. To prevent project pausing, a GitHub Actions workflow is configured at [`.github/workflows/supabase-keepalive.yml`](../.github/workflows/supabase-keepalive.yml) using a matrix strategy to ping both dev and prod projects independently in the same run.
+
+- **Schedule**: Runs automatically every 4 days via cron (and supports manual execution via `workflow_dispatch`).
+- **Mechanism**: Issues a lightweight authenticated `GET` request (`/rest/v1/organizations?select=id&limit=1`) to the Supabase PostgREST API using each environment's anonymous key.
+- **Alerts**: Runs both environments independently (`fail-fast: false`). If either environment returns a non-2xx status code, that matrix job fails with clear environment-specific error logs, triggering a GitHub Actions failure notification.
+- **Required Secrets**: Requires four GitHub repository secrets configured under **Settings → Secrets and variables → Actions**:
+  - `SUPABASE_URL_DEV`
+  - `SUPABASE_ANON_KEY_DEV`
+  - `SUPABASE_URL_PROD`
+  - `SUPABASE_ANON_KEY_PROD`
+
 ## Security checklist
 
 - Keep secret/service-role keys out of clients and version control.
